@@ -4,6 +4,7 @@ import { opts } from "@/app/api/auth/[...nextauth]/route";
 import { createRecord, getRecords } from "@/lib/airtable";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { headers } from 'next/headers';
 
 // The form schema for extra validation
 const schema = z.object({
@@ -34,6 +35,23 @@ async function isEmailRSVPed(email: string): Promise<boolean> {
         maxRecords: 1,
     });
     return records.length > 0;
+}
+
+/**
+ * Gets the client's IP address from the request headers
+ */
+async function getClientIP(): Promise<string> {
+    const headersList = await headers();
+    const forwardedFor = headersList.get('x-forwarded-for');
+    if (forwardedFor) {
+        // Get the first IP in the list (client IP)
+        return forwardedFor.split(',')[0].trim();
+    }
+    const realIP = headersList.get('x-real-ip');
+    if (realIP) {
+        return realIP;
+    }
+    return 'unknown';
 }
 
 /**
@@ -100,6 +118,9 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
             data: newEntry,
             valid: false
         }
+
+        // Add IP address to the entry
+        newEntry["IP Address"] = await getClientIP();
 
         try {
             // Create airtable record
