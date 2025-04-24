@@ -106,22 +106,24 @@ export default function Home() {
     <ReactLenis root>
       <div>
         <main className="h-[1000vh]">
-          <Link href="https://hackclub.com">
-            <img
-              style={{
-                position: "fixed",
-                top: "20px",
-                left: "0",
-                border: "0",
-                width: "180px",
-                zIndex: "999",
-                opacity: bannerOpacity,
-                transition: "opacity 0.2s ease-out"
-              }}
-              src="https://assets.hackclub.com/banners/2025.svg"
-              alt="Hack Club"
-            />
-          </Link>
+          {bannerOpacity > 0 && (
+            <Link href="https://hackclub.com">
+              <img
+                style={{
+                  position: "fixed",
+                  top: "20px",
+                  left: "0",
+                  border: "0",
+                  width: "180px",
+                  zIndex: "999",
+                  opacity: bannerOpacity,
+                  transition: "opacity 0.2s ease-out"
+                }}
+                src="https://assets.hackclub.com/banners/2025.svg"
+                alt="Hack Club"
+              />
+            </Link>
+          )}
           {isLocalEnv && (
             <div
               style={{
