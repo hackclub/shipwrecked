@@ -15,7 +15,7 @@ const schema = z.object({
         message: "Last Name cannot be empty",
     }),
     Birthday: z.string().date("Birthday must be a valid date"),
-    referral_code: z.coerce.number().optional(),
+    referral_code: z.coerce.number().optional().transform(val => val === 0 ? undefined : val),
 });
 
 type Data = Record<string, FormDataEntryValue | FormDataEntryValue[]>;
@@ -104,6 +104,11 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
 
         // Create a new Entry
         const newEntry: EntryData = { ...validated.data };
+        
+        // Only include referral_code if it's not null
+        if (validated.data.referral_code === null) {
+            delete newEntry.referral_code;
+        }
 
         // If a session exists, use that email on the new entry
         if (session && session!.user && session!.user!.email)
