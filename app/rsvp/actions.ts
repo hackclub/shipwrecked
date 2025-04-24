@@ -26,6 +26,16 @@ export type FormSave = {
     valid: boolean
 };
 
+// Check if the email is already RSVPed
+async function isEmailRSVPed(email: string): Promise<boolean> {
+    const records = await getRecords("RSVPs", {
+        filterByFormula: `Email = '${email}'`,
+        sort: [],
+        maxRecords: 1,
+    });
+    return records.length > 0;
+}
+
 /**
  * Parses the form fields and saves to airtable
  * If a session is found, use that, else use the payload email
@@ -85,12 +95,7 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
             return { errors: { Email: ["An email is required!"] }, data: undefined, valid: false }
 
         // Check if email is already RSVPed
-        const records = await getRecords("RSVPs", {
-            filterByFormula: `Email = '${newEntry["Email"]}'`,
-            sort: [],
-            maxRecords: 1,
-          });
-        if (records.length > 0) return {
+        if (await isEmailRSVPed(newEntry["Email"] as string)) return {
             errors: { _form: ["This email is already RSVPed!"] },
             data: newEntry,
             valid: false
