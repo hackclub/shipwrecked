@@ -99,7 +99,7 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
                 }
             }
 
-            (validated.data as Record<string, string>)["Email"] = email.data
+            (validated.data as Record<string, string | number | undefined>)["Email"] = email.data
         }
 
         // Create a new Entry
