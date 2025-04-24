@@ -6,6 +6,15 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { headers } from 'next/headers';
 
+// Define the shape of our validated data
+type ValidatedData = {
+    "First Name": string;
+    "Last Name": string;
+    "Email": string;
+    "Birthday": string;
+    referral_code?: number;
+};
+
 // The form schema for extra validation
 const schema = z.object({
     "First Name": z.string().nonempty({
@@ -15,6 +24,7 @@ const schema = z.object({
         message: "Last Name cannot be empty",
     }),
     Birthday: z.string().date("Birthday must be a valid date"),
+    referral_code: z.coerce.number().optional(),
 });
 
 type Data = Record<string, FormDataEntryValue | FormDataEntryValue[]>;

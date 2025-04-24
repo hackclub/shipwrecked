@@ -12,6 +12,7 @@ import { signIn } from "next-auth/react";
 import Toast from "@/components/common/Toast";
 import Link from "next/link";
 import { PrefillData } from "@/types/prefill";
+import { useSearchParams } from 'next/navigation';
 
 // Client Side Registration Form
 //
@@ -25,13 +26,15 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('error');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
 
   // Initialize with empty strings or potentially prefilled data later in useEffect
   const [formData, setFormData] = useState({
     "First Name": "",
     "Last Name": "",
     "Email": "",
-    "Birthday": ""
+    "Birthday": "",
+    "referral_code": searchParams.get('r') || ""
   });
   const hasPrefilled = useRef(false); // Ref to track if prefill happened
 
@@ -65,7 +68,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
         "First Name": "",
         "Last Name": "",
         "Email": "",
-        "Birthday": ""
+        "Birthday": "",
+        "referral_code": ""
       });
       hasPrefilled.current = false; // Reset prefill tracker for potential subsequent renders
       setIsSubmitting(false);
