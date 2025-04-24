@@ -5,6 +5,7 @@ import { createRecord, getRecords } from "@/lib/airtable";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { headers } from 'next/headers';
+import { z as zod } from "zod";
 
 // The form schema for extra validation
 const schema = z.object({
@@ -16,7 +17,10 @@ const schema = z.object({
     }),
     Birthday: z.string().date("Birthday must be a valid date"),
     referral_code: z.coerce.number().optional().transform(val => val === 0 ? undefined : val),
+    Email: z.string().email().optional(),
 });
+
+type SchemaType = z.infer<typeof schema>;
 
 type Data = Record<string, FormDataEntryValue | FormDataEntryValue[]>;
 
@@ -99,7 +103,7 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
                 }
             }
 
-            (validated.data as Record<string, string | number | undefined>)["Email"] = email.data
+            (validated.data as SchemaType)["Email"] = email.data
         }
 
         // Create a new Entry
