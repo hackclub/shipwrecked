@@ -57,7 +57,7 @@ git fetch upstream main
 git rebase upstream/main
 git checkout production
 git rebase main
-
+git push upstream production
 echo "SUCCESS!  Rebased main into production!"
 
 exit 0
