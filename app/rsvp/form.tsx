@@ -170,6 +170,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
           <div className="lg:flex justify-center gap-1 md:gap-2 md:mt-auto mt-[-10]">
             <FormInput
               fieldName="Email"
+              type="email"
               state={state}
               placeholder="orpheus@hackclub.com"
               required
