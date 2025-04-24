@@ -72,7 +72,10 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     } else if (state.errors) {
       console.log('Form submission failed:', state.errors);
       setToastType('error');
-      setToastMessage("Ooops - something went wrong.  Please try again later!");
+      if (state.errors._form[0] === "This email is already RSVPed!")
+        setToastMessage("This email is already RSVPed!");
+      else
+        setToastMessage("Ooops - something went wrong.  Please try again later!");
       setIsSubmitting(false);
     }
   }, [state]);
