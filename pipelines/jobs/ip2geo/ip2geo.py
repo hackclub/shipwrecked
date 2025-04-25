@@ -3,6 +3,7 @@ import sys
 import requests
 import itertools
 import math
+import argparse
 
 from dotenv import load_dotenv
 
@@ -13,17 +14,16 @@ load_dotenv()
 # -----
 
 
-AIRTABLE_API = os.environ.get("AIRTABLE_API_KEY")
-AIRTABLE_BASE = os.environ.get("AIRTABLE_BASE_ID")
-IPINFO_API = os.environ.get("IPINFO_API_TOKEN")
+parser = argparse.ArgumentParser(description='Iterates over Shipwrecked RSVP table and converts ip -> country, saving off that country to airtable')
+parser.add_argument('--airtable-api-key', required=True, help='Airtable API Key')
+parser.add_argument('--airtable-base-id', required=True, help='Airtable Base ID')
+parser.add_argument('--ipinfo-api-token', required=True, help='IPInfo API Token')
 
-if not AIRTABLE_API or not AIRTABLE_BASE:
-    sys.stderr.write("AIRTABLE_API_KEY or AIRTABLE_BASE_ID missing! exitting...\n")
-    sys.exit(-1)
+args = parser.parse_args()
 
-if not IPINFO_API:
-    sys.stderr.write("IPINFO_API_TOKEN missing! exitting...\n")
-    sys.exit(-2)
+AIRTABLE_API = args.airtable_api_key
+AIRTABLE_BASE = args.airtable_base_id
+IPINFO_API = args.ipinfo_api_token
 
 
 # -----

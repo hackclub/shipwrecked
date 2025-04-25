@@ -1,0 +1,10 @@
+# Example cron job that runs every hour
+# 0 * * * * curl -X POST http://localhost:3000/api/cron/hourly >> /var/log/cron.log 2>&1
+
+# Example cron job that runs daily at midnight
+# 0 0 * * * curl -X POST http://localhost:3000/api/cron/daily >> /var/log/cron.log 2>&1
+
+# Run ip2geo.py every minute (IN STAGING)
+* * * * * python3 /usr/local/bin/jobs/ip2geo.py --airtable-api-key "$STAGING_AIRTABLE_API_KEY" --airtable-base-id "$STAGING_AIRTABLE_BASE_ID" --ipinfo-api-token "$STAGING_IPINFO_API_TOKEN" >> /var/log/cron.log 2>&1
+
+# Empty line at the end of the file is required for a valid cron file 
