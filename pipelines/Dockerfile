@@ -5,17 +5,14 @@ RUN apk add --no-cache \
     dcron \
     curl \
     python3 \
-    py3-pip
-
-# Install required Python packages
-RUN pip3 install requests python-dotenv
+    py3-requests \
+    py3-dotenv
 
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
 # Copy the jobs directory
 COPY jobs /usr/local/bin/jobs
-RUN chmod +x /usr/local/bin/jobs/ip2geo.py
 
 # Copy the crontab file
 COPY crontab /etc/crontabs/root
