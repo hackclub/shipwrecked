@@ -61,7 +61,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     if (state.valid) {
       console.log('Form submission successful:', formData);
       setToastType('success');
-      setToastMessage("RSVP submitted successfully!");
+      setToastMessage("Thanks! Check your email for next steps.");
       // Clear form data on success only if it wasn't prefilled initially
       // (or always clear, depending on desired behavior)
       setFormData({
