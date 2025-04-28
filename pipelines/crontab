@@ -1,4 +1,4 @@
 # Run ip2geo.py every minute
-* * * * * python3 /usr/local/bin/jobs/ip2geo/ip2geo.py --airtable-api-key "$AIRTABLE_API_KEY" --airtable-base-id "$AIRTABLE_BASE_ID" --ipinfo-api-token "$IPINFO_API_TOKEN"
+* * * * * python3 /usr/local/bin/jobs/ip2geo.py --airtable-api-key "$AIRTABLE_API_KEY" --airtable-base-id "$AIRTABLE_BASE_ID" --ipinfo-api-token "$IPINFO_API_TOKEN" >> /var/log/cron.log 2>&1
 
 # Empty line at the end of the file is required for a valid cron file 

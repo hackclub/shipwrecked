@@ -115,10 +115,11 @@ records = list(map(update, records))
 
 # Airtable Patch works in groups of 10
 batch_n = math.ceil(len(records) / 10)
-for i, batch in enumerate(itertools.batched(records, 10)):
-    print(f"Patching Airtable Base with Batch {i + 1}/{batch_n}")
+for i in range(0, len(records), 10):
+    batch = records[i:i + 10]
+    print(f"Patching Airtable Base with Batch {i//10 + 1}/{batch_n}")
     data = requests.patch(
         f"https://api.airtable.com/v0/{AIRTABLE_BASE}/RSVPs",
-        json={"records": list(batch)},
+        json={"records": batch},
         auth=AirtableAuth(),
     )
