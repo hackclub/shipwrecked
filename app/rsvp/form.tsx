@@ -34,7 +34,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     "Last Name": "",
     "Email": "",
     "Birthday": "",
-    ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {})
+    ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {}),
+    ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') || "" } : {})
   });
   const hasPrefilled = useRef(false); // Ref to track if prefill happened
 
@@ -69,7 +70,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
         "Last Name": "",
         "Email": "",
         "Birthday": "",
-        ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {})
+        ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {}),
+        ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') || "" } : {})
       });
       hasPrefilled.current = false; // Reset prefill tracker for potential subsequent renders
       setIsSubmitting(false);

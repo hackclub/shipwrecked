@@ -17,6 +17,7 @@ const schema = z.object({
     }),
     Birthday: z.string().date("Birthday must be a valid date"),
     referral_code: z.coerce.number().optional().transform(val => val === 0 ? undefined : val),
+    referral_type: z.string().optional(),
     Email: z.string().email().optional(),
 });
 
@@ -112,6 +113,11 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
         // Only include referral_code if it's not null
         if (validated.data.referral_code === null) {
             delete newEntry.referral_code;
+        }
+
+        // Only include referral_type if it's not empty
+        if (!validated.data.referral_type) {
+            delete newEntry.referral_type;
         }
 
         // If a session exists, use that email on the new entry
