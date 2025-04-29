@@ -34,8 +34,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     "Last Name": "",
     "Email": "",
     "Birthday": "",
-    ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {}),
-    ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') || "" } : {})
+    ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') } : {}),
+    ...(searchParams.get('r') ? { "referral_code": Number(searchParams.get('r')) } : {})
   });
   const hasPrefilled = useRef(false); // Ref to track if prefill happened
 
@@ -70,18 +70,19 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
         "Last Name": "",
         "Email": "",
         "Birthday": "",
-        ...(searchParams.get('r') ? { "referral_code": searchParams.get('r') || "" } : {}),
-        ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') || "" } : {})
+        ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') } : {}),
+        ...(searchParams.get('r') ? { "referral_code": Number(searchParams.get('r')) } : {}),
       });
       hasPrefilled.current = false; // Reset prefill tracker for potential subsequent renders
       setIsSubmitting(false);
     } else if (state.errors) {
       console.log('Form submission failed:', state.errors);
       setToastType('error');
-      if (state.errors._form[0] === "This email is already RSVPed!")
+      if (state.errors._form && Array.isArray(state.errors._form) && state.errors._form.length > 0 && state.errors._form[0] === "This email is already RSVPed!") {
         setToastMessage("This email is already RSVPed!");
-      else
+      } else {
         setToastMessage("Ooops - something went wrong.  Please try again later!");
+      }
       setIsSubmitting(false);
     }
   }, [state]);
@@ -109,9 +110,19 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     console.log('Starting form submission:', formData);
     setIsSubmitting(true);
     const data = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      data.append(key, value);
+    Object.entries(formData).forEach(([key, value]) => {      
+      // String all null values, don't sent 'em at all
+      if (value !== null) {
+        if (key === "referral_code") {
+          console.log(`Adding form field: ${key} = ${value}`);
+          data.append(key, Number(value));
+        } else {
+          console.log(`Adding form field: ${key} = ${value}`);
+          data.append(key, value);  
+        }
+      }
     });
+    console.log('FormData entries:', Array.from(data.entries()));
     try {
       startTransition(() => {
         formAction(data);
