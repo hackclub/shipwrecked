@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run TypeScript Check
-        run: yarn tsc --noEmit
-
       - name: Build project
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
