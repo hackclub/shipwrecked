@@ -60,6 +60,10 @@ async function getClientIP(): Promise<string> {
     return 'unknown';
 }
 
+function sanitizeEmail(email: string): string {
+    return email.toLowerCase().replace(/\s+/g, '');
+}
+
 /**
  * Parses the form fields and saves to airtable
  * If a session is found, use that, else use the payload email
@@ -103,7 +107,7 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
         // If the payload contains an email, parse it and save it to the validated scheme
         if (payload.get("Email")) {
             console.log('Validating email...');
-            const email = await z.string().email().safeParseAsync(payload.get("Email"))
+            const email = await z.string().email().safeParseAsync(sanitizeEmail(payload.get("Email") as string))
 
             if (!email.success) {
                 console.log('Email validation failed');
@@ -115,7 +119,7 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
             }
 
             (validated.data as SchemaType)["Email"] = email.data
-            console.log('Email validated successfully');
+            console.log('Email validated successfully - ', email.data);
         }
 
         // Create a new Entry
