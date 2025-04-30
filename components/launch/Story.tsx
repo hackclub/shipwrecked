@@ -7,6 +7,7 @@ import Waves from "./Waves";
 import Bay from "./Bay";
 import CallToAction from "./CallToAction";
 import TriggerButton from "./TriggerButton";
+import ShareButton from "@/components/common/ShareButton";
 import { PrefillData } from "@/types/prefill";
 
 export const ScrollProgressContext = createContext<
@@ -114,6 +115,7 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
             <TriggerButton targetPercent={1} waves>Sign up</TriggerButton>
           </div>
         )}
+        {scrollPercent >= sections.cta.start && <ShareButton />}
         <div>
           {animateSectionIfWithinBounds(
             sections.shore.start,
