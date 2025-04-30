@@ -43,6 +43,34 @@ This will start:
 - Redis cache
 - All necessary environment variables and connections
 
+## Local Development with Docker Services
+
+For local development, you can run just the database services (Postgres and Redis) in Docker while running the Next.js application directly on your host machine:
+
+1. Start the services:
+```bash
+docker compose -f docker-compose-local-dev.yaml up -d
+```
+
+2. The following services will be available:
+   - PostgreSQL: `postgresql://postgres:postgres@localhost:5432/shipwrecked`
+   - Redis: `redis://localhost:6379`
+
+3. Run the Next.js application locally:
+```bash
+yarn dev
+```
+
+You can override the database connections by setting environment variables:
+- `DATABASE_URL`: Override the PostgreSQL connection string
+- `REDIS_URL`: Override the Redis connection string
+
+Example `.env.local`:
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/shipwrecked
+REDIS_URL=redis://localhost:6379
+```
+
 ## Deployment
 
 ### Staging Environment
