@@ -4,12 +4,30 @@ import { useState, useContext } from 'react';
 import { motion } from 'motion/react';
 import Modal from './Modal';
 import { ScrollProgressContext } from '../launch/Story';
+import { useIsMobile } from '@/lib/hooks';
 
 export default function ShareButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [showCopiedModal, setShowCopiedModal] = useState(false);
   const [scrollPercent] = useContext(ScrollProgressContext);
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const isMobile = useIsMobile();
+
+  // Adds a referral type to the URL - but only if one doesn't exist
+  const addReferralTypeToUrl = (url: string, referralType?: string): string => {
+    try {
+      const urlObj = new URL(url);
+      if (!urlObj.searchParams.has('t')) {
+        if (referralType) {
+          urlObj.searchParams.set('t', referralType);
+        }
+      }
+      return urlObj.toString();
+    } catch (e) {
+      console.error('Invalid URL:', e);
+      return url;
+    }
+  };
 
   // Only show the share button when we're at the RSVP page (scrollPercent === 1)
   if (scrollPercent < 0.9) return null;
@@ -28,11 +46,12 @@ export default function ShareButton() {
       ),
       onClick: () => {
         const text = 'Join me at Shipwrecked, a once-in-a-lifetime hackathon on an island! 🏝️';
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(currentUrl)}`, '_blank');
+        const shareUrl = addReferralTypeToUrl(currentUrl, 'sx');
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
         setIsOpen(false);
       }
     },
-    {
+    ...(isMobile ? [{
       name: 'Instagram',
       icon: (
         <div className="bg-gradient-to-tr from-[#FCAF45] via-[#F77737] to-[#FD1D1D] p-2 rounded-lg">
@@ -42,11 +61,12 @@ export default function ShareButton() {
         </div>
       ),
       onClick: () => {
-        navigator.clipboard.writeText("I just RSVPed for Shipwrecked, a once-in-a-lifetime hackathon on an island! 🏝️ " + currentUrl);
+        const shareUrl = addReferralTypeToUrl(currentUrl, 'si');
+        navigator.clipboard.writeText("I just RSVPed for Shipwrecked, a once-in-a-lifetime hackathon on an island! 🏝️ " + shareUrl);
         setIsOpen(false);
         setShowCopiedModal(true);
       }
-    }
+    }] : [])
   ];
 
   return (
@@ -57,7 +77,7 @@ export default function ShareButton() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        Share this site
+        Share
       </motion.button>
 
       <Modal
