@@ -45,7 +45,7 @@ export default function ShareButton() {
         </div>
       ),
       onClick: () => {
-        const text = 'Join me at Shipwrecked, a once-in-a-lifetime hackathon on an island! 🏝️';
+        const text = 'Join me at Shipwrecked, literally a high-school hackathon on an island! 🏝️ #hackathon #hackclub #code #programming #coding #shipwrecked';
         const shareUrl = addReferralTypeToUrl(currentUrl, 'sx');
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
         setIsOpen(false);
@@ -73,7 +73,7 @@ export default function ShareButton() {
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed top-8 right-8 z-50 bg-transparent hover:bg-white/10 text-white font-medium py-2 px-4 rounded-lg transition-colors border border-white/20 backdrop-blur-sm"
+        className={`fixed top-8 right-8 z-50 bg-transparent hover:bg-white/10 text-white font-medium py-2 px-4 rounded-lg transition-colors border border-white/20 backdrop-blur-sm ${isMobile ? 'top-[58px] right-[30px]' : ''}`}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -109,8 +109,12 @@ export default function ShareButton() {
         okText="Close"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-lg text-gray-700">
-            The share post was copied to your clipboard!  Use the link below to post it to Instagram.
+          <p className="text-base text-gray-700">
+            <p>1. FYI - the share post was copied to your clipboard!</p>
+            <p>2. Tap the link below to open Instagram</p>
+            <p>3. Tap the '+' icon to post a new Story</p>
+            <p>4. Tap the 'Aa' (add text) button, and Ctrl/Cmd-V to paste!</p>
+            <p>5. Post your story to help spread the word!</p>
           </p>
           <div className="flex flex-col gap-2">
             <a 
