@@ -29,6 +29,7 @@
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^2.15.3",
     "sonner": "^2.0.3",
     "tailwindcss": "^4.1.4",
     "zod": "^3.24.3"
