@@ -130,22 +130,23 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       const rsvps = await response.json() as RSVP[];
       if (!rsvps?.length) return [];
 
-      // Group RSVPs by week
-      const rsvpsByWeek = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
+      // Group RSVPs by day
+      const rsvpsByDay = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const date = new Date(rsvp.createdAt);
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
-        const weekKey = weekStart.toISOString().split('T')[0];
+        const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
         
-        acc[weekKey] = (acc[weekKey] || 0) + 1;
+        acc[dayKey] = (acc[dayKey] || 0) + 1;
         return acc;
       }, {});
 
-      return Object.entries(rsvpsByWeek).map(([date, value]) => ({
-        name: 'Total RSVPs',
-        value,
-        date
-      }));
+      // Sort days chronologically
+      return Object.entries(rsvpsByDay)
+        .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+        .map(([date, value]) => ({
+          name: 'Total RSVPs',
+          value,
+          date
+        }));
     } catch (error) {
       console.error('Error getting RSVP data:', error);
       return [];
