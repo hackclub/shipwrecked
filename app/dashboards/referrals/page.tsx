@@ -160,7 +160,7 @@ export default function ReferralsDashboard() {
 
   return (
     <div className="p-8">
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {renderChart(typeData, 'Referrals by Type')}
         {renderReferrerList(referrerData, 'Top Referrers (Past 24 Hours)')}
         {renderChart(rsvpData, 'Total RSVPs')}
