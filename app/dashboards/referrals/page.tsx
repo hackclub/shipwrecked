@@ -13,35 +13,54 @@ export default function ReferralsDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let pollTimeout: NodeJS.Timeout | null = null;
+
+    setLoading(true);
+    setError(null);
+
     const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const provider = getReferralDataProvider();
-        const [typeResult, referrerResult, allTimeResult, rsvpResult] = await Promise.all([
-          provider.getReferralsByType(),
-          provider.getReferralsByReferrer(),
-          provider.getAllTimeTopReferrers(),
-          provider.getReferralsByRSVPs()
-        ]);
-        
+      const provider = getReferralDataProvider();
+      const [typeResult, referrerResult, allTimeResult, rsvpResult] = await Promise.all([
+        provider.getReferralsByType(),
+        provider.getReferralsByReferrer(),
+        provider.getAllTimeTopReferrers(),
+        provider.getReferralsByRSVPs()
+      ]);
+      return { typeResult, referrerResult, allTimeResult, rsvpResult };
+    };
+
+    const pollForData = async () => {
+      if (cancelled) return;
+      const { typeResult, referrerResult, allTimeResult, rsvpResult } = await fetchData();
+      const hasData =
+        typeResult.length > 0 ||
+        referrerResult.length > 0 ||
+        allTimeResult.length > 0 ||
+        rsvpResult.length > 0;
+
+      if (hasData) {
         setTypeData(typeResult);
         setReferrerData(referrerResult);
         setAllTimeReferrerData(allTimeResult);
         setRsvpData(rsvpResult);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
         setLoading(false);
+      } else {
+        // Keep polling every 2 seconds until data is available
+        pollTimeout = setTimeout(pollForData, 2000);
       }
     };
 
-    fetchData();
+    pollForData();
+
+    return () => {
+      cancelled = true;
+      if (pollTimeout) clearTimeout(pollTimeout);
+    };
   }, []);
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return <div className="p-8 text-center text-lg text-gray-600">Waiting for data...</div>;
   }
 
   if (error) {

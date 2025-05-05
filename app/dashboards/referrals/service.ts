@@ -130,7 +130,11 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
         const rsvpDate = new Date(rsvp.createdAt);
         if (rsvpDate >= oneDayAgo) {
           const referrer = rsvp.referralCode || 'direct';
-          acc[referrer] = (acc[referrer] || 0) + 1;
+
+          // Skip test user '3' (test user)
+          if (referrer !== '3') { // '3' is a test user
+            acc[referrer] = (acc[referrer] || 0) + 1;
+          }
         }
         return acc;
       }, {});
@@ -140,10 +144,11 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
         .map(([name, value]) => ({
           name,
           value,
-          date: now.toISOString().split('T')[0] // Use current date since it's a summary
+          date: now.toISOString().split('T')[0]
         }))
-        .sort((a, b) => b.value - a.value) // Sort by count descending
-        .slice(0, 10); // Take top 10 referrers
+        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3') // Filter out 'direct' and test user '3' (test user)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
     } catch (error) {
       console.error('Error getting referrer data:', error);
       return [];
@@ -159,19 +164,25 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       // Group all RSVPs by referrer
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const referrer = rsvp.referralCode || 'direct';
-        acc[referrer] = (acc[referrer] || 0) + 1;
+        // Skip test user '3' (test user)
+        if (referrer !== '3') { // '3' is a test user
+          acc[referrer] = (acc[referrer] || 0) + 1;
+        }
         return acc;
       }, {});
 
       // Convert to array and sort by count (descending)
-      return Object.entries(referralsByReferrer)
+      const sortedReferrers = Object.entries(referralsByReferrer)
         .map(([name, value]) => ({
           name,
           value,
           date: new Date().toISOString().split('T')[0] // Use current date since it's a summary
         }))
+        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3') // Filter out 'direct' and test user '3' (test user)
         .sort((a, b) => b.value - a.value) // Sort by count descending
         .slice(0, 50); // Take top 50 referrers
+
+      return sortedReferrers;
     } catch (error) {
       console.error('Error getting all-time referrer data:', error);
       return [];
