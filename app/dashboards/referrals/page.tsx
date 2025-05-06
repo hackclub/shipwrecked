@@ -4,6 +4,29 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { getReferralDataProvider, ReferralData } from './service';
 
+// Color mapping for different referral types
+const getSeriesColor = (name: string): string => {
+  const colorMap: Record<string, string> = {
+    'direct': '#8884d8',          // Purple
+    'social_media': '#82ca9d',    // Green
+    'email': '#ffc658',          // Gold
+    'friend': '#ff7300',         // Orange
+    'search': '#0088fe',         // Blue
+    'other': '#00C49F',          // Teal
+  };
+  
+  // Return mapped color or generate one for unknown types
+  return colorMap[name] || `hsl(${Math.random() * 360}, 70%, 50%)`;
+};
+
+// Time range options
+const timeRanges = [
+  { label: 'Last 3 Days', days: 3 },
+  { label: 'Last 7 Days', days: 7 },
+  { label: 'Last 14 Days', days: 14 },
+  { label: 'All Time', days: 0 }
+];
+
 export default function ReferralsDashboard() {
   const [typeData, setTypeData] = useState<ReferralData[]>([]);
   const [referrerData, setReferrerData] = useState<ReferralData[]>([]);
@@ -11,6 +34,19 @@ export default function ReferralsDashboard() {
   const [rsvpData, setRsvpData] = useState<ReferralData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDirect, setShowDirect] = useState(true);
+  const [selectedRange, setSelectedRange] = useState(timeRanges[3]);
+
+  // Filter data based on selected time range
+  const filterDataByTimeRange = (data: ReferralData[]): ReferralData[] => {
+    if (selectedRange.days === 0) return data; // "All Time"
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - selectedRange.days);
+    const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+    
+    return data.filter(item => item.date >= cutoffDateStr);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -67,9 +103,14 @@ export default function ReferralsDashboard() {
     return <div className="p-8 text-red-600">Error: {error}</div>;
   }
 
-  const renderChart = (data: ReferralData[], title: string) => {
+  const renderChart = (data: ReferralData[], title: string, isTypeChart = false) => {
+    // Apply time range filter for type and RSVP charts
+    const filteredData = (isTypeChart || title === 'Total RSVPs') 
+      ? filterDataByTimeRange(data)
+      : data;
+
     // Group data by name for multiple lines
-    const groupedData = data.reduce((acc, item) => {
+    const groupedData = filteredData.reduce((acc, item) => {
       if (!acc[item.name]) {
         acc[item.name] = [];
       }
@@ -78,12 +119,16 @@ export default function ReferralsDashboard() {
     }, {} as Record<string, ReferralData[]>);
 
     // Create a unique set of dates for the x-axis
-    const dates = Array.from(new Set(data.map(item => item.date))).sort();
+    const dates = Array.from(new Set(filteredData.map(item => item.date))).sort();
 
     // Create the final data structure for the chart
     const chartData = dates.map(date => {
       const point: any = { date };
       Object.entries(groupedData).forEach(([name, items]) => {
+        // Skip 'direct' series if showDirect is false and this is the type chart
+        if (isTypeChart && name === 'direct' && !showDirect) {
+          return;
+        }
         const item = items.find(i => i.date === date);
         point[name] = item?.value || 0;
       });
@@ -92,7 +137,21 @@ export default function ReferralsDashboard() {
 
     return (
       <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {isTypeChart && (
+            <button
+              onClick={() => setShowDirect(!showDirect)}
+              className={`px-3 py-1 rounded text-sm font-medium ${
+                showDirect 
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {showDirect ? 'Hide Direct' : 'Show Direct'}
+            </button>
+          )}
+        </div>
         <div className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -112,17 +171,23 @@ export default function ReferralsDashboard() {
                 }}
               />
               <Legend />
-              {Object.keys(groupedData).map((name, index) => (
-                <Line
-                  key={name}
-                  type="monotone"
-                  dataKey={name}
-                  stroke={`hsl(${index * 120}, 70%, 50%)`}
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              ))}
+              {Object.keys(groupedData).map((name) => {
+                // Skip rendering the 'direct' line if showDirect is false and this is the type chart
+                if (isTypeChart && name === 'direct' && !showDirect) {
+                  return null;
+                }
+                return (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    stroke={getSeriesColor(name)}
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: getSeriesColor(name) }}
+                    activeDot={{ r: 6, fill: getSeriesColor(name) }}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -166,8 +231,31 @@ export default function ReferralsDashboard() {
 
   return (
     <div className="p-8">
+      <div className="mb-6 flex justify-end">
+        <div className="inline-flex rounded-md shadow-sm" role="group">
+          {timeRanges.map((range) => (
+            <button
+              key={range.label}
+              onClick={() => setSelectedRange(range)}
+              className={`
+                px-4 py-2 text-sm font-medium
+                ${range === selectedRange
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                }
+                border border-gray-200
+                first:rounded-l-lg first:border-l
+                last:rounded-r-lg
+                -ml-px first:ml-0
+              `}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {renderChart(typeData, 'Referrals by Type')}
+        {renderChart(typeData, 'Referrals by Type', true)}
         {renderReferrerList(referrerData, 'Top Referrers (Past 24 Hours)')}
         {renderChart(rsvpData, 'Total RSVPs')}
         {renderReferrerList(allTimeReferrerData, 'All-Time Top Referrers')}
