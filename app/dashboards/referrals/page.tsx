@@ -99,11 +99,17 @@ export default function ReferralsDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="date" 
-                tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                tickFormatter={(dateStr) => {
+                  const [year, month, day] = dateStr.split('-');
+                  return `${month}/${day}`;
+                }}
               />
               <YAxis />
               <Tooltip 
-                labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                labelFormatter={(dateStr) => {
+                  const [year, month, day] = dateStr.split('-');
+                  return `${month}/${day}/${year}`;
+                }}
               />
               <Legend />
               {Object.keys(groupedData).map((name, index) => (

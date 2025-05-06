@@ -24,6 +24,13 @@ export interface ReferralData {
   date: string; // ISO date string
 }
 
+// Helper function to format date consistently in local timezone
+function formatDate(date: Date): string {
+  // Adjust for local timezone
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  return `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+}
+
 // This interface defines how we'll fetch data
 export interface ReferralDataProvider {
   getReferralsByType(): Promise<ReferralData[]>;
@@ -86,12 +93,13 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       // Group RSVPs by type and date
       const referralsByTypeAndDate = rsvps.reduce((acc: Record<string, Record<string, number>>, rsvp: RSVP) => {
         const type = rsvp.referralType || 'direct';
-        const date = new Date(rsvp.createdAt).toISOString().split('T')[0];
+        const date = new Date(rsvp.createdAt);
+        const dayKey = formatDate(date);
         
         if (!acc[type]) {
           acc[type] = {};
         }
-        acc[type][date] = (acc[type][date] || 0) + 1;
+        acc[type][dayKey] = (acc[type][dayKey] || 0) + 1;
         return acc;
       }, {});
 
@@ -107,8 +115,15 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
         });
       });
 
-      // Sort by date
-      return result.sort((a, b) => a.date.localeCompare(b.date));
+      // Sort by date and log the final results
+      const sortedResult = result.sort((a, b) => a.date.localeCompare(b.date));
+      console.log('Debug: Final date range:', {
+        firstDate: sortedResult[0]?.date,
+        lastDate: sortedResult[sortedResult.length - 1]?.date,
+        totalEntries: sortedResult.length
+      });
+
+      return sortedResult;
     } catch (error) {
       console.error('Error getting referral type data:', error);
       return [];
@@ -132,7 +147,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
           const referrer = rsvp.referralCode || 'direct';
 
           // Skip test user '3' (test user)
-          if (referrer !== '3') { // '3' is a test user
+          if (referrer !== '3') {
             acc[referrer] = (acc[referrer] || 0) + 1;
           }
         }
@@ -140,13 +155,15 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       }, {});
 
       // Convert to array and sort by count (descending)
+      const todayKey = formatDate(now);
+      
       return Object.entries(referralsByReferrer)
         .map(([name, value]) => ({
           name,
           value,
-          date: now.toISOString().split('T')[0]
+          date: todayKey
         }))
-        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3') // Filter out 'direct' and test user '3' (test user)
+        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3')
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
     } catch (error) {
@@ -164,25 +181,23 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       // Group all RSVPs by referrer
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const referrer = rsvp.referralCode || 'direct';
-        // Skip test user '3' (test user)
-        if (referrer !== '3') { // '3' is a test user
+        if (referrer !== '3') {
           acc[referrer] = (acc[referrer] || 0) + 1;
         }
         return acc;
       }, {});
 
-      // Convert to array and sort by count (descending)
-      const sortedReferrers = Object.entries(referralsByReferrer)
+      const todayKey = formatDate(new Date());
+      
+      return Object.entries(referralsByReferrer)
         .map(([name, value]) => ({
           name,
           value,
-          date: new Date().toISOString().split('T')[0] // Use current date since it's a summary
+          date: todayKey
         }))
-        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3') // Filter out 'direct' and test user '3' (test user)
-        .sort((a, b) => b.value - a.value) // Sort by count descending
-        .slice(0, 50); // Take top 50 referrers
-
-      return sortedReferrers;
+        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3')
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 50);
     } catch (error) {
       console.error('Error getting all-time referrer data:', error);
       return [];
@@ -198,7 +213,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       // Group RSVPs by day
       const rsvpsByDay = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const date = new Date(rsvp.createdAt);
-        const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const dayKey = formatDate(date);
         
         acc[dayKey] = (acc[dayKey] || 0) + 1;
         return acc;
