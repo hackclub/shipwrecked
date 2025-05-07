@@ -29,20 +29,20 @@ done
 echo "Services are ready! Setting up Prisma..."
 
 # Create necessary directories for Prisma
-mkdir -p generated/prisma/runtime
-chmod -R 777 generated
+mkdir -p generated/prisma/runtime || { echo "Failed to create Prisma directories"; exit 1; }
+chmod -R 777 generated || { echo "Failed to set permissions"; exit 1; }
 
 # Generate Prisma client and run migrations
 echo "Generating Prisma client..."
-npx prisma generate
+npx prisma generate || { echo "Prisma client generation failed"; exit 1; }
 
 echo "Running Prisma migrations..."
-npx prisma migrate deploy
+npx prisma migrate deploy || { echo "Prisma migrations failed"; exit 1; }
 
 echo "Prisma setup complete! Starting Next.js development server..."
 
 # Upload schema changes to the database first
-yarn prisma db push
+yarn prisma db push || { echo "Prisma db push failed"; exit 1; }
 
 # Run the Next.js development server
 yarn dev 
