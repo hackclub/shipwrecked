@@ -26,7 +26,20 @@ for i in {1..5}; do
   sleep 1
 done
 
-echo "Services are ready! Starting Next.js development server..."
+echo "Services are ready! Setting up Prisma..."
+
+# Create necessary directories for Prisma
+mkdir -p generated/prisma/runtime
+chmod -R 777 generated
+
+# Generate Prisma client and run migrations
+echo "Generating Prisma client..."
+npx prisma generate
+
+echo "Running Prisma migrations..."
+npx prisma migrate deploy
+
+echo "Prisma setup complete! Starting Next.js development server..."
 
 # Run the Next.js development server
 yarn dev 
