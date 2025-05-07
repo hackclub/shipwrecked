@@ -15,13 +15,20 @@ export default function BayLayout({ children }: any) {
 
 function SessionWrapper({ children }: any) {
     const { data: session, status } = useSession();
-    return (
-        <>
-            <Header 
-                session={session}
-                status={status}
-            />
-        {children}
-        </>
-    )
+    
+    // Only show header when authenticated
+    if (status === "authenticated") {
+        return (
+            <>
+                <Header 
+                    session={session}
+                    status={status}
+                />
+                {children}
+            </>
+        );
+    }
+    
+    // When not authenticated, just show children (which will be the access denied page)
+    return children;
 }

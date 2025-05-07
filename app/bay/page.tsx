@@ -130,7 +130,31 @@ export default function Bay() {
   }, []);  
   
   if (status === "loading") return <>Loading...</>
-  if (status === "unauthenticated") return <>Access Denied! <a className="underline text-blue-500" href="/api/auth/signin">Sign In</a></>
+  if (status === "unauthenticated") {
+    return (
+      <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
+        <div className="flex items-center justify-center h-full">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
+            <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Access Denied</h1>
+            <p className="text-gray-600 text-center mb-6">
+              Please sign in to access The Bay and continue your journey.
+            </p>
+            <div className="flex justify-center">
+              <a 
+                href="/bay/login" 
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+              >
+                Sign In
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   return (
