@@ -2,6 +2,7 @@ import { fetchHackatimeProjects } from "@/lib/hackatime";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createProject } from "@/lib/project";
+import { requireUserSession } from "@/lib/requireUserSession";
 
 export type Project = {
     projectID: string
@@ -35,35 +36,29 @@ async function deleteProject(projectID: string, userId: string) {
 export async function GET(request: Request) { 
     const { searchParams } = new URL(request.url);
     
+    // TODO - What is this functionality doing?  Why is this hard-coded, and why do we check if hackatime is present, but assume slackID always will be present?
     if (searchParams.has("hackatime")) {
         return Response.json(await fetchHackatimeProjects(searchParams.get("slackID") as string));
     }
 
     try {
-        const session = await auth();
-        if (!session?.user) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-
+        const user = await requireUserSession();
         const projects = await prisma.project.findMany({
             where: {
-                userId: session.user.id
+                userId: user.id
             }
         });
         return Response.json(projects);
     } catch (err) {
-        console.log("got error", err);
+        // TODO - would it be better here to just not catch the exception, and let it bubble up?
+        console.error("got error", err);
         return new Response(err as any);
     }
 }
 
 export async function POST(request: Request) {
     try {
-        const session = await auth();
-        if (!session?.user) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-
+        const user = await requireUserSession();
         const { name, description, hackatime, codeUrl, playableUrl, screenshot } = await request.json();
         const createdProject = await createProject({ 
             name, 
@@ -72,7 +67,7 @@ export async function POST(request: Request) {
             codeUrl, 
             playableUrl, 
             screenshot,
-            userId: (session.user as any).id
+            userId: user.id
         });
         return Response.json({ success: true, data: createdProject });
     } catch (err) {
@@ -82,17 +77,13 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const session = await auth();
-        if (!session?.user) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-
+        const user = await requireUserSession();
         const { projectID } = await request.json();
         await prisma.project.delete({
             where: {
                 projectID_userId: {
                     projectID,
-                    userId: (session.user as any).id
+                    userId: user.id
                 }
             }
         });
