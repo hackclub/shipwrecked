@@ -11,9 +11,54 @@ import { useSession } from 'next-auth/react';
 import { Toaster, toast } from "sonner";
 import ProgressBar from '@/components/common/ProgressBar';
 import type { ProjectType } from '../api/projects/route';
+import { useRouter } from 'next/navigation';
+
+function AccessDeniedHaiku() {
+  const router = useRouter();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Start fade-in after mount
+    const fadeTimer = setTimeout(() => setVisible(true), 10);
+    // Redirect after 5 seconds
+    const redirectTimer = setTimeout(() => {
+      router.push('/bay/login');
+    }, 5000);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(redirectTimer);
+    };
+  }, [router]);
+
+  return (
+    <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
+      <div className="relative flex items-center justify-center h-full">
+        <div
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 4s ease-in',
+            display: 'inline-block'
+          }}
+          className="text-center"
+        >
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
+            Stranded on the shore,
+          </p>
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
+            Treasure lies beyond the waves,
+          </p>
+          <p className="text-5xl md:text-6xl font-serif text-white font-bold">
+            Sign in to set sail.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Bay() {
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
@@ -131,29 +176,7 @@ export default function Bay() {
   
   if (status === "loading") return <>Loading...</>
   if (status === "unauthenticated") {
-    return (
-      <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
-        <div className="flex items-center justify-center h-full">
-          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
-            <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Access Denied</h1>
-            <p className="text-gray-600 text-center mb-6">
-              Please sign in to access The Bay and continue your journey.
-            </p>
-            <div className="flex justify-center">
-              <a 
-                href="/bay/login" 
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
-              >
-                Sign In
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AccessDeniedHaiku />;
   }
 
 

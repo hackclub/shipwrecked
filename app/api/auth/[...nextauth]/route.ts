@@ -4,6 +4,7 @@ import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { NextAuthOptions } from "next-auth";
+import { createTransport } from "nodemailer";
 
 
 const adapter = {
@@ -36,9 +37,40 @@ export const opts: NextAuthOptions = {
     EmailProvider({
       server: process.env.EMAIL_SERVER as string,
       from: process.env.EMAIL_FROM as string,
-      maxAge: 60 * 10 // make email links valid for 10 minutes
+      maxAge: 60 * 10, // make email links valid for 10 minutes
+      generateVerificationToken: () => {
+        return Math.random().toString(36).substring(2, 15);
+      },
+      sendVerificationRequest: async ({ identifier: email, url, token, provider }) => {
+        // Customize the verification email
+        const { host } = new URL(url);
+        const transport = await createTransport(provider.server);
+        await transport.sendMail({
+          to: email,
+          from: provider.from,
+          subject: `Sign in to Shipwrecked`,
+          text: `Click here to sign in to Shipwrecked: ${url}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #47D1F6;">Welcome to Shipwrecked!</h1>
+              <p>Click the button below to sign in to your account:</p>
+              <a href="${url}" style="display: inline-block; background-color: #47D1F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+                Sign in to Shipwrecked
+              </a>
+              <p style="color: #666; font-size: 14px;">
+                If you didn't request this email, you can safely ignore it.
+              </p>
+            </div>
+          `,
+        });
+      },
     })
   ],
+  pages: {
+    signIn: '/bay/login',
+    verifyRequest: '/bay/login/verify',
+    error: '/bay/login/error',
+  },
   callbacks: {
     async session({ session }) {
       const user = await prisma.user.findFirst({ where: { email: session.user!.email as string }});

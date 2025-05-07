@@ -31,19 +31,21 @@ export default function LoginOptions() {
 
         <p className="mb-.5 mt-2 text-lg"> or </p>
 
-        <form action={loginWithEmail}>
-          <div className="my-2 mx-6">
-            <input
-              className="mr-2 w-72 my-2 px-4 py-2 bg-gray-100 disabled:bg-gray-200 rounded outline-1 outline-gray-200"
-              name="email"
-              placeholder="Email"
-              type="email"
-            />
-
-            <button className="ml-2 mt-1 mb-2 py-2 px-4 bg-white border border-[#C8CACD] hover:bg-gray-200 rounded-lg">
-              Sign In
-            </button>
-          </div>
+        <form action={loginWithEmail} className="flex flex-row items-center gap-2 w-full flex-nowrap" style={{ minWidth: 0 }}>
+          <input
+            className="flex-grow min-w-0 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            name="email"
+            placeholder="Email"
+            type="email"
+            required
+          />
+          <button
+            type="submit"
+            className="flex-shrink-0 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+            style={{ minWidth: 80 }}
+          >
+            Sign In
+          </button>
         </form>
       </div>
     </>
