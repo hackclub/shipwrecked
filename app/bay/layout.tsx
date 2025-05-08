@@ -18,14 +18,14 @@ function SessionWrapper({ children }: any) {
     
     // Only show header when authenticated
     if (status === "authenticated") {
-        return (
-            <>
-                <Header 
-                    session={session}
-                    status={status}
-                />
-                {children}
-            </>
+    return (
+        <>
+            <Header 
+                session={session}
+                status={status}
+            />
+        {children}
+        </>
         );
     }
     
