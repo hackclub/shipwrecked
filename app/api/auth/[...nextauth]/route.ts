@@ -11,6 +11,19 @@ const adapter = {
   ...PrismaAdapter(prisma),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   linkAccount: async ({ ok, state, ...data }: any) => {
+    console.log('Linking account:', { provider: data.provider, userId: data.userId });
+    
+    // If this is a Slack account, update the user with their Slack ID
+    if (data.provider === 'slack') {
+      console.log('Updating user with Slack ID from profile');
+      await prisma.user.update({
+        where: { id: data.userId },
+        data: { 
+          slack: data.providerAccountId  // Slack's user ID
+        }
+      });
+    }
+
     const account = await prisma.account.create({
       data: {
         ...data,
@@ -72,11 +85,53 @@ export const opts: NextAuthOptions = {
     error: '/bay/login/error',
   },
   callbacks: {
-    async session({ session }) {
-      const user = await prisma.user.findFirst({ where: { email: session.user!.email as string }});
-      if (!user) return session;
-      const slackId = await prisma.user.slack(session.user!.email as string);
-      return { user: { ...session.user, id: user.id, slack: slackId }, expires: session.expires };
+    async jwt({ token, user, account }) {
+      // Initial sign-in
+      if (account && user) {
+        console.log('JWT Callback - Initial sign-in:', { userId: user.id, provider: account.provider });
+        return {
+          ...token,
+          id: user.id
+        };
+      }
+
+      // Subsequent calls
+      console.log('JWT Callback - Reusing token:', { tokenId: token.id });
+      return token;
+    },
+    async session({ session, token, user }) {
+      // console.log('Session Callback - Input:', { 
+      //   hasToken: !!token, 
+      //   hasUser: !!user,
+      //   sessionUser: session?.user 
+      // });
+
+      // We're using database sessions, so we should have a user
+      if (user) {
+        // console.log('Session Callback - Using database user:', { userId: user.id });
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id: user.id
+          }
+        };
+      }
+
+      // Fallback to JWT if needed
+      if (token) {
+        // console.log('Session Callback - Using JWT token:', { tokenId: token.id });
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id: token.id
+          }
+        };
+      }
+
+      console.log('Session Callback - No user or token found');
+      return session;
     },
     async signIn({ user, account, profile, email, credentials }) {
       return true;
@@ -84,8 +139,8 @@ export const opts: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       return `${baseUrl}/bay`;
     }
-  }
-  // debug: true
+  },
+  debug: false
 }
 
 const handler = NextAuth(opts)

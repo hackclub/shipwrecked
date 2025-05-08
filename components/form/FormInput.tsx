@@ -1,5 +1,9 @@
-import { FormSave } from "@/app/bay/submit/actions";
 import { ReactNode, ChangeEvent } from "react";
+
+export type FormSave = {
+  errors?: Record<string, string[]>;
+  data?: Record<string, any>;
+};
 
 export default function FormInput({
   fieldName,
