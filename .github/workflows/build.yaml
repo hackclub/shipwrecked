@@ -24,6 +24,7 @@ jobs:
 
       - name: Build project
         env:
+          HACKATIME_API_TOKEN: "doesntmatter"
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
