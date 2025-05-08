@@ -35,38 +35,46 @@ function VerifyContent() {
       const token = searchParams.get('token');
       const email = searchParams.get('email');
 
+      // It is expected for this to be called once with no token or email - we will hit the flow below after user clicks the link in the email
       if (!token || !email) {
-        setToastMessage('Invalid verification link');
-        setToastType('error');
         return;
       }
 
       try {
         const response = await fetch(`/api/auth/verify?token=${token}&email=${email}`);
+        console.log('Verification API response status:', response.status);
         const data = await response.json();
+        console.log('Verification API response:', data);
 
         if (data.success) {
+          console.log('Verification successful, attempting sign in');
           setToastMessage('Email verified successfully! Signing you in...');
           setToastType('success');
           
           // Sign in the user
+          console.log('Calling NextAuth signIn with email provider...');
           const result = await signIn('email', {
             email,
             token,
             redirect: false,
           });
+          console.log('SignIn result:', result);
 
           if (result?.ok) {
+            console.log('SignIn successful, redirecting to /bay');
             router.push('/bay');
           } else {
+            console.error('SignIn failed:', result?.error);
             setToastMessage('Failed to sign in after verification');
             setToastType('error');
           }
         } else {
+          console.error('Verification failed:', data.message);
           setToastMessage(data.message || 'Verification failed');
           setToastType('error');
         }
       } catch (error) {
+        console.error('Verification error:', error);
         setToastMessage('An error occurred during verification');
         setToastType('error');
       }
