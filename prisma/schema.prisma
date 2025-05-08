@@ -36,6 +36,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   slack         String?         @unique // slack user id 
+  hackatimeId   String?         @unique // hackatime user id
   // Optional for WebAuthn support
   Authenticator Authenticator[]
 
