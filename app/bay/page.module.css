@@ -15,6 +15,13 @@
 .projectList {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .projectList {
+    max-width: 50%;
+  }
 }
 
 .editForm {

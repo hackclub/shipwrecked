@@ -298,19 +298,20 @@ export default function Bay() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.progressSection}>
+        <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
+          <div className="w-full px-4 sm:px-0">
+            <span className="flex flex-row items-center gap-2 text-2xl justify-center">
+              🧑‍💻
+              <ProgressBar value={totalHours} max={60} />
+              🏝️
+            </span>
+            <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
+          </div>
+        </div>
+      </div>
       <div className={styles.content}>
         <div className={styles.projectList}>
-          <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
-            <div className="w-full px-4 sm:px-0">
-              <span className="flex flex-row items-center gap-2 text-2xl justify-center">
-                🧑‍💻
-                <ProgressBar value={totalHours} max={60} />
-                🏝️
-              </span>
-              <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
-            </div>
-          </div>
-
           <div className="mt-6 w-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Projects</h2>
@@ -342,7 +343,6 @@ export default function Bay() {
             </div>
           </div>
         </div>
-
         {/* Edit Form - Desktop */}
         {isProjectEditModalOpen && (
           <div className={styles.editForm}>
@@ -428,7 +428,6 @@ export default function Bay() {
             </form>
           </div>
         )}
-
         {/* Create Project Modal */}
         <ProjectModal
           isOpen={isProjectCreateModalOpen}
@@ -440,7 +439,6 @@ export default function Bay() {
           hackatimeProjects={hackatimeProjects}
           isLoadingHackatime={isLoadingHackatime}
         />
-
         {/* Edit Project Modal - Mobile Only */}
         <div className="md:hidden">
           <ProjectModal
@@ -455,7 +453,6 @@ export default function Bay() {
             {...initialEditState}
           />
         </div>
-
         <Toaster richColors />
         {toastMessage && (
           <Toast
