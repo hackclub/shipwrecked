@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: "Shipwrecked",
     images: [
       {
-        url: '/launchImgSmaller.webp', 
+        url: 'https://shipwrecked.hackclub.com/launchImgSmaller.webp', 
         alt: 'Shipwrecked Hackathon dates and location', 
       },
     ],
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "Shipwrecked",
     description:
       "Shipwrecked is a 130 person, Flagship Hackathon run by Hack Club happening this summer, August 8-11th on Cathleen Stone Island in the Boston harbor.",
-    images: ['/launchImgSmaller.webp'], // Path to your image
+    images: ['https://shipwrecked.hackclub.com/launchImgSmaller.webp'], // Path to your image
   },
 };
 
