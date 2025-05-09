@@ -388,26 +388,25 @@ export default function Bay() {
                 fieldName='codeUrl'
                 placeholder='Code URL'
                 state={projectEditState}
-                required
-                defaultValue={initialEditState.codeUrl}
+                {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
               >
                 Code URL
               </FormInput>
               <FormInput
                 fieldName='playableUrl'
-                placeholder='Playable URL (optional)'
+                placeholder='Playable URL'
                 state={projectEditState}
                 defaultValue={initialEditState.playableUrl}
               >
-                Playable URL (optional)
+                Playable URL
               </FormInput>
               <FormInput
                 fieldName='screenshot'
-                placeholder='Screenshot URL (optional)'
+                placeholder='Screenshot URL'
                 state={projectEditState}
                 defaultValue={initialEditState.screenshot}
               >
-                Screenshot URL (optional)
+                Screenshot URL
               </FormInput>
               <FormSelect 
                 fieldName='hackatime'
@@ -478,6 +477,7 @@ type ProjectModalProps = Partial<ProjectType> & {
 }
 
 function ProjectModal(props: ProjectModalProps) {
+  const isCreate = props.modalTitle?.toLowerCase().includes('create');
   return (
     <Modal
       isOpen={props.isOpen}
@@ -514,31 +514,34 @@ function ProjectModal(props: ProjectModalProps) {
         >
           Description
         </FormInput>
-        <FormInput
-          fieldName='codeUrl'
-          placeholder='Code URL'
-          state={props.state}
-          required
-          {...(props.codeUrl && { defaultValue: props.codeUrl})}
-        >
-          Code URL
-        </FormInput>
-        <FormInput
-          fieldName='playableUrl'
-          placeholder='Playable URL (optional)'
-          state={props.state}
-          {...(props.playableUrl && { defaultValue: props.playableUrl})}
-        >
-          Playable URL (optional)
-        </FormInput>
-        <FormInput
-          fieldName='screenshot'
-          placeholder='Screenshot URL (optional)'
-          state={props.state}
-          {...(props.screenshot && { defaultValue: props.screenshot})}
-        >
-          Screenshot URL (optional)
-        </FormInput>
+        {!isCreate && (
+          <>
+            <FormInput
+              fieldName='codeUrl'
+              placeholder='Code URL'
+              state={props.state}
+              {...(props.codeUrl && { defaultValue: props.codeUrl})}
+            >
+              Code URL
+            </FormInput>
+            <FormInput
+              fieldName='playableUrl'
+              placeholder='Playable URL (optional)'
+              state={props.state}
+              {...(props.playableUrl && { defaultValue: props.playableUrl})}
+            >
+              Playable URL (optional)
+            </FormInput>
+            <FormInput
+              fieldName='screenshot'
+              placeholder='Screenshot URL (optional)'
+              state={props.state}
+              {...(props.screenshot && { defaultValue: props.screenshot})}
+            >
+              Screenshot URL (optional)
+            </FormInput>
+          </>
+        )}
         <FormSelect 
           fieldName='hackatime'
           placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}

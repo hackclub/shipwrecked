@@ -24,6 +24,13 @@
   }
 }
 
+@media (max-width: 767px) {
+  .projectList {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
 .editForm {
   display: none;
   width: 400px;

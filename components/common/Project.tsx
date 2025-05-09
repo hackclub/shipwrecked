@@ -29,9 +29,12 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
             className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 border-b border-gray-200 cursor-pointer"
             onClick={handleRowClick}
         >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0 w-full">
                 <span className="text-gray-600">{hours}h</span>
-                <span className="font-medium">{name}</span>
+                <span className="font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem]">{name}</span>
+                {description && (
+                  <span className="text-gray-500 flex-grow truncate min-w-0 ml-2">{description}</span>
+                )}
             </div>
             <div className="flex gap-2">
                 <button

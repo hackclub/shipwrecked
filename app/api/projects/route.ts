@@ -157,3 +157,66 @@ export async function DELETE(request: Request) {
         }, { status: 500 });
     }
 }
+
+export async function PUT(request: Request) {
+    console.log('[PUT] Received request to update project');
+    try {
+        const user = await requireUserSession();
+        console.log(`[PUT] Authenticated user ${user.id}`);
+
+        // Check content type to determine how to parse the request
+        const contentType = request.headers.get('content-type');
+        console.log('[PUT] Content-Type:', contentType);
+
+        let projectData: any = {};
+        if (contentType?.includes('multipart/form-data')) {
+            console.log('[PUT] Parsing FormData');
+            const formData = await request.formData();
+            projectData = {
+                projectID: formData.get('projectID')?.toString() || '',
+                name: formData.get('name')?.toString() || '',
+                description: formData.get('description')?.toString() || '',
+                hackatime: formData.get('hackatime')?.toString(),
+                codeUrl: formData.get('codeUrl')?.toString() || '',
+                playableUrl: formData.get('playableUrl')?.toString() || '',
+                screenshot: formData.get('screenshot')?.toString() || ''
+            };
+        } else {
+            console.log('[PUT] Parsing JSON');
+            projectData = await request.json();
+        }
+
+        const { projectID, ...updateFields } = projectData;
+        if (!projectID) {
+            return Response.json({ success: false, error: 'projectID is required' }, { status: 400 });
+        }
+
+        // Remove undefined fields
+        Object.keys(updateFields).forEach(key => {
+            if (updateFields[key] === undefined) {
+                delete updateFields[key];
+            }
+        });
+
+        const updatedProject = await prisma.project.update({
+            where: {
+                projectID_userId: {
+                    projectID,
+                    userId: user.id
+                }
+            },
+            data: updateFields
+        });
+
+        console.log(`[PUT] Successfully updated project ${projectID}`);
+        return Response.json({ success: true, data: updatedProject });
+    } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error('[PUT] Failed to update project:', err);
+        return Response.json({ 
+            success: false, 
+            error: err.message,
+            type: err.constructor.name
+        }, { status: 500 });
+    }
+}
