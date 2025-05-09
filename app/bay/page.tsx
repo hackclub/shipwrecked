@@ -408,6 +408,7 @@ export default function Bay() {
                 required
                 values={hackatimeProjects}
                 defaultValue={initialEditState.hackatime}
+                disabled={true}
               >
                 Your Hackatime Project
               </FormSelect>
@@ -491,7 +492,8 @@ function ProjectModal(props: ProjectModalProps) {
       isOpen={props.isOpen}
       onClose={() => props.setIsOpen(false)}
       title={props.modalTitle}
-      okText="Done"
+      {...(!isCreate && { okText: "Done" })}
+      hideFooter={isCreate}
     >
       <form action={props.formAction}>
         <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
@@ -570,6 +572,7 @@ function ProjectModal(props: ProjectModalProps) {
           required
           values={props.hackatimeProjects}
           {...(props.hackatime && { defaultValue: props.hackatime})}
+          disabled={!isCreate}
         >
           Your Hackatime Project
         </FormSelect>

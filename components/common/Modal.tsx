@@ -9,6 +9,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   okText?: string;
+  hideFooter?: boolean;
 }
 
 export default function Modal({ 
@@ -16,7 +17,8 @@ export default function Modal({
   onClose, 
   title = 'Information',
   children,
-  okText = 'OK'
+  okText = 'OK',
+  hideFooter = false
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -75,14 +77,16 @@ export default function Modal({
         <div className={styles.content}>
           {children}
         </div>
-        <div className={styles.footer}>
-          <button 
-            onClick={onClose}
-            className={styles.okButton}
-          >
-            {okText}
-          </button>
-        </div>
+        {!hideFooter && (
+          <div className={styles.footer}>
+            <button 
+              onClick={onClose}
+              className={styles.okButton}
+            >
+              {okText}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
