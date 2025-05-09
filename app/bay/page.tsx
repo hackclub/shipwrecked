@@ -105,6 +105,96 @@ async function getHackatimeProjects() {
   return await response.json() as HackatimeProject[];
 }
 
+// Project Detail Component
+function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () => void }) {
+  return (
+    <div className={styles.editForm}>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">{project.name}</h2>
+        <button
+          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+          onClick={onEdit}
+          aria-label="Edit project"
+        >
+          <span>Edit</span>
+        </button>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
+        <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
+      </div>
+      
+      {project.hackatime && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-1">Hackatime Project</h3>
+          <p className="text-base text-gray-900">{project.hackatime}</p>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${project.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Viral</span>
+        </div>
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${project.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Shipped</span>
+        </div>
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${project.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">In Review</span>
+        </div>
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${project.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Approved</span>
+        </div>
+      </div>
+      
+      {(project.codeUrl || project.playableUrl) && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Links</h3>
+          <div className="flex flex-col gap-2">
+            {project.codeUrl && (
+              <a 
+                href={project.codeUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline flex items-center gap-2"
+              >
+                <Icon glyph="github" size={16} />
+                View Code Repository
+              </a>
+            )}
+            {project.playableUrl && (
+              <a 
+                href={project.playableUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline flex items-center gap-2"
+              >
+                <Icon glyph="link" size={16} />
+                Try It Out
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {project.screenshot && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-1">Screenshot</h3>
+          <img 
+            src={project.screenshot} 
+            alt={`Screenshot of ${project.name}`}
+            className="mt-2 rounded-lg max-w-full h-auto"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Bay() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -151,19 +241,21 @@ export default function Bay() {
   const [hackatimeProjects, setHackatimeProjects] = useState<Record<string, string>>({});
   const [projectHours, setProjectHours] = useState<Record<string, number>>({});
   const [isLoadingHackatime, setIsLoadingHackatime] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Add render tracking
-  console.log('🔄 Bay component rendering', { 
-    status, 
-    userId: session?.user?.id,
-    loadedForUserId 
-  });
+  // // Add render tracking
+  // console.log('🔄 Bay component rendering', { 
+  //   status, 
+  //   userId: session?.user?.id,
+  //   loadedForUserId 
+  // });
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
     const userId = session?.user?.id;
     const hackatimeId = session?.user?.hackatimeId;
-    console.log('⚡ Effect triggered.', { userId, loadedForUserId, hackatimeId });
+    // console.log('⚡ Effect triggered.', { userId, loadedForUserId, hackatimeId });
 
     // Skip if no user ID or we've already loaded for this user
     if (!userId || userId === loadedForUserId) {
@@ -296,6 +388,39 @@ export default function Bay() {
     getUserProjects();
   }, []);
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // First close any open modal
+        if (isProjectCreateModalOpen) {
+          setIsProjectCreateModalOpen(false);
+        } else if (isProjectEditModalOpen) {
+          setIsProjectEditModalOpen(false);
+        } else if (selectedProjectId) {
+          // Then deselect any selected project
+          setSelectedProjectId(null);
+        }
+      } else if (e.key === 'e' && selectedProjectId && !isProjectEditModalOpen) {
+        // Press 'e' to edit selected project
+        setIsProjectEditModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    // Call the handler right away to set the initial value
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
@@ -322,6 +447,14 @@ export default function Bay() {
                 <Icon glyph="plus" size={24} />
               </button>
             </div>
+            <div className="text-sm text-gray-500 mb-2">
+              <p className="hidden md:block">
+                Click a project to select it. Use <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">E</kbd> to edit, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
+              </p>
+              <p className="md:hidden">
+                Tap a project to edit it.
+              </p>
+            </div>
             <div className="bg-white rounded-lg shadow">
               {projects.map((project, index) => (
                 <Project
@@ -330,9 +463,32 @@ export default function Bay() {
                   hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
                   deleteHandler={deleteProjectId(index, project.projectID, project.userId)}
                   editHandler={(project) => {
-                    setInitialEditState(project);
-                    setIsProjectEditModalOpen(true);
+                    // Check if the edit request is coming from the edit button
+                    const isEditRequest = 'isEditing' in project;
+                    
+                    // For mobile devices, always show the edit form when tapping a project
+                    if (isMobile) {
+                      setSelectedProjectId(project.projectID);
+                      setInitialEditState(project);
+                      setIsProjectEditModalOpen(true);
+                      return;
+                    }
+                    
+                    // For desktop: if clicking the same project and not an edit request, toggle selection
+                    if (selectedProjectId === project.projectID && !isEditRequest) {
+                      setSelectedProjectId(null);
+                    } else {
+                      // Otherwise, select the new project and update form state
+                      setSelectedProjectId(project.projectID);
+                      setInitialEditState(project);
+                      
+                      // Only show edit modal if explicitly requested
+                      if (isEditRequest) {
+                        setIsProjectEditModalOpen(true);
+                      }
+                    }
                   }}
+                  selected={selectedProjectId === project.projectID}
                 />
               ))}
               {projects.length === 0 && (
@@ -343,98 +499,119 @@ export default function Bay() {
             </div>
           </div>
         </div>
-        {/* Edit Form - Desktop */}
-        {isProjectEditModalOpen && (
-          <div className={styles.editForm}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Edit Project</h2>
-            </div>
-            <form action={projectEditFormAction}>
-              <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
-                <FormInput
-                  fieldName='projectID'
-                  state={projectEditState}
-                  placeholder='projectID'
-                  defaultValue={initialEditState.projectID}
-                >
-                  {""}
-                </FormInput>
-              </span>
-              <FormInput
-                fieldName='name'
-                placeholder='Project Name'
-                state={projectEditState}
-                required
-                defaultValue={initialEditState.name}
-              >
-                Project Name
-              </FormInput>
-              <FormInput
-                fieldName='description'
-                placeholder='Description'
-                state={projectEditState}
-                defaultValue={initialEditState.description}
-                required
-              >
-                Description
-              </FormInput>
-              <FormInput
-                fieldName='codeUrl'
-                placeholder='Code URL'
-                state={projectEditState}
-                {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
-              >
-                Code URL
-              </FormInput>
-              <FormInput
-                fieldName='playableUrl'
-                placeholder='Playable URL'
-                state={projectEditState}
-                defaultValue={initialEditState.playableUrl}
-              >
-                Playable URL
-              </FormInput>
-              <FormInput
-                fieldName='screenshot'
-                placeholder='Screenshot URL'
-                state={projectEditState}
-                defaultValue={initialEditState.screenshot}
-              >
-                Screenshot URL
-              </FormInput>
-              <FormSelect 
-                fieldName='hackatime'
-                placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
-                required
-                values={hackatimeProjects}
-                defaultValue={initialEditState.hackatime}
-                disabled={true}
-              >
-                Your Hackatime Project
-              </FormSelect>
-              <div className="grid grid-cols-2 gap-2 my-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!initialEditState.in_review} readOnly disabled /> In Review
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
-                </label>
+        {/* Project Detail or Edit Form - Desktop */}
+        {selectedProjectId && (
+          <>
+            {isProjectEditModalOpen ? (
+              // Edit Form
+              <div className={styles.editForm}>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">Edit Project</h2>
+                  <button
+                    className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    onClick={() => {
+                      setIsProjectEditModalOpen(false);
+                    }}
+                    aria-label="Close project edit form"
+                  >
+                    <span className="text-xl leading-none">&times;</span>
+                  </button>
+                </div>
+                <form action={projectEditFormAction}>
+                  {/* Form inputs remain the same */}
+                  <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
+                    <FormInput
+                      fieldName='projectID'
+                      state={projectEditState}
+                      placeholder='projectID'
+                      defaultValue={initialEditState.projectID}
+                    >
+                      {""}
+                    </FormInput>
+                  </span>
+                  <FormInput
+                    fieldName='name'
+                    placeholder='Project Name'
+                    state={projectEditState}
+                    required
+                    defaultValue={initialEditState.name}
+                  >
+                    Project Name
+                  </FormInput>
+                  <FormInput
+                    fieldName='description'
+                    placeholder='Description'
+                    state={projectEditState}
+                    defaultValue={initialEditState.description}
+                    required
+                  >
+                    Description
+                  </FormInput>
+                  <FormInput
+                    fieldName='codeUrl'
+                    placeholder='Code URL'
+                    state={projectEditState}
+                    {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
+                  >
+                    Code URL
+                  </FormInput>
+                  <FormInput
+                    fieldName='playableUrl'
+                    placeholder='Playable URL'
+                    state={projectEditState}
+                    defaultValue={initialEditState.playableUrl}
+                  >
+                    Playable URL
+                  </FormInput>
+                  <FormInput
+                    fieldName='screenshot'
+                    placeholder='Screenshot URL'
+                    state={projectEditState}
+                    defaultValue={initialEditState.screenshot}
+                  >
+                    Screenshot URL
+                  </FormInput>
+                  <FormSelect 
+                    fieldName='hackatime'
+                    placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+                    required
+                    values={hackatimeProjects}
+                    defaultValue={initialEditState.hackatime}
+                    disabled={true}
+                  >
+                    Your Hackatime Project
+                  </FormSelect>
+                  <div className="grid grid-cols-2 gap-2 my-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={!!initialEditState.in_review} readOnly disabled /> In Review
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
+                    disabled={projectEditPending || isLoadingHackatime}
+                  >
+                    Save Changes
+                  </button>
+                </form>
               </div>
-              <button
-                type="submit"
-                className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
-                disabled={projectEditPending || isLoadingHackatime}
-              >
-                Save Changes
-              </button>
-            </form>
-          </div>
+            ) : (
+              // Project Detail View
+              <ProjectDetail 
+                project={projects.find(p => p.projectID === selectedProjectId)!}
+                onEdit={() => setIsProjectEditModalOpen(true)}
+              />
+            )}
+          </>
         )}
         {/* Create Project Modal */}
         <ProjectModal

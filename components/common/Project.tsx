@@ -9,10 +9,11 @@ type ProjectProps = Project & {
     userId: string, 
     hours: number,
     deleteHandler?: (cb: (projectID: string, userId: string) => Promise<unknown>) => void 
-    editHandler?: (project: Project) => void
+    editHandler?: (project: Project) => void,
+    selected?: boolean
 };
 
-export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, deleteHandler, editHandler, userId, hours }: ProjectProps) {
+export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, deleteHandler, editHandler, userId, hours, selected }: ProjectProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     
     const handleRowClick = (e: React.MouseEvent) => {
@@ -20,26 +21,45 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
         if ((e.target as HTMLElement).closest('.delete-button')) return;
         
         if (editHandler) {
-            editHandler({ name, description, codeUrl, playableUrl, screenshot, hackatime, userId, projectID, submitted });
+            editHandler({ 
+                name, 
+                description, 
+                codeUrl, 
+                playableUrl, 
+                screenshot, 
+                hackatime, 
+                userId, 
+                projectID, 
+                submitted,
+                viral: false,
+                shipped: false,
+                in_review: false,
+                approved: false
+            });
         }
     };
 
     return (
         <div 
-            className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 border-b border-gray-200 cursor-pointer"
+            className={`flex items-center justify-between p-3 hover:bg-gray-50 border-b border-gray-200 cursor-pointer transition-colors ${
+                selected ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-white'
+            }`}
             onClick={handleRowClick}
         >
             <div className="flex items-center gap-2 min-w-0 w-full">
                 <span className="text-gray-600">{hours}h</span>
-                <span className="font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem]">{name}</span>
+                <span className={`font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem] ${selected ? 'text-blue-700' : ''}`}>{name}</span>
                 {description && (
                   <span className="text-gray-500 flex-grow truncate min-w-0 ml-2">{description}</span>
                 )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <button
                     className="p-1 text-red-500 hover:text-red-700 delete-button"
-                    onClick={() => setIsOpen(true)}>
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(true);
+                    }}>
                     <Icon glyph="delete" size={20} />
                 </button>
             </div>
