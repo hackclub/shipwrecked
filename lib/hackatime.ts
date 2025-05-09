@@ -142,6 +142,7 @@ export interface HackatimeSetupStatus {
  * exists in our database or can be found via their email.
  */
 export async function checkHackatimeSetup(userId: string, userEmail: string): Promise<HackatimeSetupStatus> {
+  // return { isSetup: false };
 
   try {
     // First check if we already have a Hackatime ID stored

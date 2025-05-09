@@ -67,33 +67,14 @@ export default function HackatimeSetup() {
         };
     }, [router, status, session]);
 
-    if (status === 'loading' || isChecking) {
-        return (
-            <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
-                <div className="relative flex items-center justify-center h-full">
-                    <div className="text-center">
-                        <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-                            Checking your setup...
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
+    // Always show the checking setup message
     return (
         <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
             <div className="relative flex items-center justify-center h-full">
                 <div className="text-center">
                     <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-                        Something went wrong
+                        Checking your setup...
                     </p>
-                    <button 
-                        onClick={() => setIsChecking(true)}
-                        className="bg-white text-[#47D1F6] font-bold px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition"
-                    >
-                        Try Again
-                    </button>
                 </div>
             </div>
         </div>
