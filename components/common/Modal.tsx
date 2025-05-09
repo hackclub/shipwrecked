@@ -41,9 +41,20 @@ export default function Modal({
 
   // Close if clicking outside modal
   const handleBackdropClick = (e: React.MouseEvent) => {
+    // Stop propagation to prevent triggering parent element clicks
+    e.stopPropagation();
+    
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
+  };
+
+  // Safe close handler that stops event propagation
+  const handleClose = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -67,7 +78,7 @@ export default function Modal({
           <h2 id="modal-title" className={styles.title}>{title}</h2>
           </span>
          <button 
-            onClick={onClose}
+            onClick={handleClose}
             className={styles.closeButton}
             aria-label="Close modal"
           >
@@ -80,7 +91,7 @@ export default function Modal({
         {!hideFooter && (
           <div className={styles.footer}>
             <button 
-              onClick={onClose}
+              onClick={handleClose}
               className={styles.okButton}
             >
               {okText}

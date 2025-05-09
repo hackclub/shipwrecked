@@ -109,30 +109,32 @@ async function getHackatimeProjects() {
 function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () => void }) {
   return (
     <div className={styles.editForm}>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 border-b pb-4">
         <h2 className="text-2xl font-bold">{project.name}</h2>
         <button
           className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
           onClick={onEdit}
           aria-label="Edit project"
         >
+          <Icon glyph="edit" size={16} />
           <span>Edit</span>
         </button>
       </div>
       
-      <div className="mb-6">
+      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
         <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
         <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
       </div>
       
       {project.hackatime && (
-        <div className="mb-6">
+        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-1">Hackatime Project</h3>
           <p className="text-base text-gray-900">{project.hackatime}</p>
         </div>
       )}
       
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
         <div className="flex items-center">
           <div className={`w-3 h-3 rounded-full mr-2 ${project.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <span className="text-sm text-gray-700">Viral</span>
@@ -152,7 +154,7 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
       </div>
       
       {(project.codeUrl || project.playableUrl) && (
-        <div className="mb-6">
+        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Links</h3>
           <div className="flex flex-col gap-2">
             {project.codeUrl && (
@@ -187,7 +189,7 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
           <img 
             src={project.screenshot} 
             alt={`Screenshot of ${project.name}`}
-            className="mt-2 rounded-lg max-w-full h-auto"
+            className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
           />
         </div>
       )}
@@ -505,10 +507,10 @@ export default function Bay() {
             {isProjectEditModalOpen ? (
               // Edit Form
               <div className={styles.editForm}>
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
                   <h2 className="text-2xl font-bold">Edit Project</h2>
                   <button
-                    className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="flex items-center gap-1 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
                     onClick={() => {
                       setIsProjectEditModalOpen(false);
                     }}
@@ -529,59 +531,70 @@ export default function Bay() {
                       {""}
                     </FormInput>
                   </span>
-                  <FormInput
-                    fieldName='name'
-                    placeholder='Project Name'
-                    state={projectEditState}
-                    required
-                    defaultValue={initialEditState.name}
-                  >
-                    Project Name
-                  </FormInput>
-                  <FormInput
-                    fieldName='description'
-                    placeholder='Description'
-                    state={projectEditState}
-                    defaultValue={initialEditState.description}
-                    required
-                  >
-                    Description
-                  </FormInput>
-                  <FormInput
-                    fieldName='codeUrl'
-                    placeholder='Code URL'
-                    state={projectEditState}
-                    {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
-                  >
-                    Code URL
-                  </FormInput>
-                  <FormInput
-                    fieldName='playableUrl'
-                    placeholder='Playable URL'
-                    state={projectEditState}
-                    defaultValue={initialEditState.playableUrl}
-                  >
-                    Playable URL
-                  </FormInput>
-                  <FormInput
-                    fieldName='screenshot'
-                    placeholder='Screenshot URL'
-                    state={projectEditState}
-                    defaultValue={initialEditState.screenshot}
-                  >
-                    Screenshot URL
-                  </FormInput>
-                  <FormSelect 
-                    fieldName='hackatime'
-                    placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
-                    required
-                    values={hackatimeProjects}
-                    defaultValue={initialEditState.hackatime}
-                    disabled={true}
-                  >
-                    Your Hackatime Project
-                  </FormSelect>
-                  <div className="grid grid-cols-2 gap-2 my-4">
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <FormInput
+                      fieldName='name'
+                      placeholder='Project Name'
+                      state={projectEditState}
+                      required
+                      defaultValue={initialEditState.name}
+                    >
+                      Project Name
+                    </FormInput>
+                    <FormInput
+                      fieldName='description'
+                      placeholder='Description'
+                      state={projectEditState}
+                      defaultValue={initialEditState.description}
+                      required
+                    >
+                      Description
+                    </FormInput>
+                  </div>
+                  
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
+                    <FormInput
+                      fieldName='codeUrl'
+                      placeholder='Code URL'
+                      state={projectEditState}
+                      {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
+                    >
+                      Code URL
+                    </FormInput>
+                    <FormInput
+                      fieldName='playableUrl'
+                      placeholder='Playable URL'
+                      state={projectEditState}
+                      defaultValue={initialEditState.playableUrl}
+                    >
+                      Playable URL
+                    </FormInput>
+                    <FormInput
+                      fieldName='screenshot'
+                      placeholder='Screenshot URL'
+                      state={projectEditState}
+                      defaultValue={initialEditState.screenshot}
+                    >
+                      Screenshot URL
+                    </FormInput>
+                  </div>
+                  
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <FormSelect 
+                      fieldName='hackatime'
+                      placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+                      required
+                      values={hackatimeProjects}
+                      defaultValue={initialEditState.hackatime}
+                      disabled={true}
+                    >
+                      Your Hackatime Project
+                    </FormSelect>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 mb-6 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
                     <label className="flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
                     </label>
@@ -597,9 +610,10 @@ export default function Bay() {
                   </div>
                   <button
                     type="submit"
-                    className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
+                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
                     disabled={projectEditPending || isLoadingHackatime}
                   >
+                    <Icon glyph="edit" size={18} />
                     Save Changes
                   </button>
                 </form>
@@ -683,51 +697,60 @@ function ProjectModal(props: ProjectModalProps) {
             {""}
           </FormInput>
         </span>
-        <FormInput
-          fieldName='name'
-          placeholder='Project Name'
-          state={props.state}
-          required
-          {...(props.name && { defaultValue: props.name})}
-        >
-          Project Name
-        </FormInput>
-        <FormInput
-          fieldName='description'
-          placeholder='Description'
-          state={props.state}
-          {...(props.description && { defaultValue: props.description})}
-          required
-        >
-          Description
-        </FormInput>
+        
+        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+          <FormInput
+            fieldName='name'
+            placeholder='Project Name'
+            state={props.state}
+            required
+            {...(props.name && { defaultValue: props.name})}
+          >
+            Project Name
+          </FormInput>
+          <FormInput
+            fieldName='description'
+            placeholder='Description'
+            state={props.state}
+            {...(props.description && { defaultValue: props.description})}
+            required
+          >
+            Description
+          </FormInput>
+        </div>
+        
         {!isCreate && (
           <>
-            <FormInput
-              fieldName='codeUrl'
-              placeholder='Code URL'
-              state={props.state}
-              {...(props.codeUrl && { defaultValue: props.codeUrl})}
-            >
-              Code URL
-            </FormInput>
-            <FormInput
-              fieldName='playableUrl'
-              placeholder='Playable URL (optional)'
-              state={props.state}
-              {...(props.playableUrl && { defaultValue: props.playableUrl})}
-            >
-              Playable URL (optional)
-            </FormInput>
-            <FormInput
-              fieldName='screenshot'
-              placeholder='Screenshot URL (optional)'
-              state={props.state}
-              {...(props.screenshot && { defaultValue: props.screenshot})}
-            >
-              Screenshot URL (optional)
-            </FormInput>
-            <div className="grid grid-cols-2 gap-2 my-4">
+            <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
+              <FormInput
+                fieldName='codeUrl'
+                placeholder='Code URL'
+                state={props.state}
+                {...(props.codeUrl && { defaultValue: props.codeUrl})}
+              >
+                Code URL
+              </FormInput>
+              <FormInput
+                fieldName='playableUrl'
+                placeholder='Playable URL (optional)'
+                state={props.state}
+                {...(props.playableUrl && { defaultValue: props.playableUrl})}
+              >
+                Playable URL (optional)
+              </FormInput>
+              <FormInput
+                fieldName='screenshot'
+                placeholder='Screenshot URL (optional)'
+                state={props.state}
+                {...(props.screenshot && { defaultValue: props.screenshot})}
+              >
+                Screenshot URL (optional)
+              </FormInput>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 mb-6 bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
               </label>
@@ -743,22 +766,27 @@ function ProjectModal(props: ProjectModalProps) {
             </div>
           </>
         )}
-        <FormSelect 
-          fieldName='hackatime'
-          placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
-          required
-          values={props.hackatimeProjects}
-          {...(props.hackatime && { defaultValue: props.hackatime})}
-          disabled={!isCreate}
-        >
-          Your Hackatime Project
-        </FormSelect>
+        
+        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+          <FormSelect 
+            fieldName='hackatime'
+            placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+            required
+            values={props.hackatimeProjects}
+            {...(props.hackatime && { defaultValue: props.hackatime})}
+            disabled={!isCreate}
+          >
+            Your Hackatime Project
+          </FormSelect>
+        </div>
+        
         <button
           type="submit"
-          className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
+          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
           disabled={props.pending || props.isLoadingHackatime}
         >
-          Submit!
+          <Icon glyph={isCreate ? "plus" : "edit"} size={18} />
+          {isCreate ? "Create Project" : "Save Changes"}
         </button>
       </form>
     </Modal>

@@ -55,12 +55,13 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
             </div>
             <div className="flex gap-2 items-center">
                 <button
-                    className="p-1 text-red-500 hover:text-red-700 delete-button"
+                    className="px-3 py-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors delete-button flex items-center gap-1"
                     onClick={(e) => {
                         e.stopPropagation();
                         setIsOpen(true);
                     }}>
-                    <Icon glyph="delete" size={20} />
+                    <Icon glyph="delete" size={16} />
+                    <span className="text-sm font-medium">Delete</span>
                 </button>
             </div>
             <Modal
@@ -68,10 +69,12 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
                 title={`Delete ${name}?`}
                 onClose={() => setIsOpen(false)}
                 okText="Cancel"
+                hideFooter={true}
             >
                 <button
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded focus:outline-none"
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         if (deleteHandler) {
                             deleteHandler(async (projectID, userId) => {
                                 try {
