@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
+    "@dicebear/collection": "^9.2.2",
+    "@dicebear/core": "^9.2.2",
     "@hackclub/icons": "^0.0.15",
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",
