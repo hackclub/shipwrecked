@@ -1,5 +1,5 @@
 // next-auth.d.ts
-import NextAuth from "next-auth";
+import NextAuth, { DefaultUser } from "next-auth";
 
 declare module "next-auth" {
     interface Session {
@@ -9,7 +9,14 @@ declare module "next-auth" {
             email?: string | null;
             image?: string | null;
             slack?: string | null;
+            hackatimeId?: string | null;
         },
         expires: string
+    }
+
+    // Extend the built-in User type
+    interface User extends DefaultUser {
+        slack?: string | null;
+        hackatimeId?: string | null;
     }
 }

@@ -42,6 +42,9 @@ const adapter = {
 
 export const opts: NextAuthOptions = {
   adapter: adapter,
+  session: {
+    strategy: "database"
+  },
   providers: [
     SlackProvider({
       clientId: process.env.SLACK_CLIENT_ID ?? "",
@@ -79,68 +82,31 @@ export const opts: NextAuthOptions = {
       },
     })
   ],
-  pages: {
-    signIn: '/bay/login',
-    verifyRequest: '/bay/login/verify',
-    error: '/bay/login/error',
-  },
   callbacks: {
-    async jwt({ token, user, account }) {
-      // Initial sign-in
-      if (account && user) {
-        console.log('JWT Callback - Initial sign-in:', { userId: user.id, provider: account.provider });
-        return {
-          ...token,
-          id: user.id
-        };
-      }
-
-      // Subsequent calls
-      console.log('JWT Callback - Reusing token:', { tokenId: token.id });
-      return token;
+    async session({ session, user }) {
+      // With database strategy, we get the fresh user data on every request
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: user.id,
+          hackatimeId: user.hackatimeId
+        }
+      };
     },
-    async session({ session, token, user }) {
-      // console.log('Session Callback - Input:', { 
-      //   hasToken: !!token, 
-      //   hasUser: !!user,
-      //   sessionUser: session?.user 
-      // });
-
-      // We're using database sessions, so we should have a user
-      if (user) {
-        // console.log('Session Callback - Using database user:', { userId: user.id });
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: user.id
-          }
-        };
-      }
-
-      // Fallback to JWT if needed
-      if (token) {
-        // console.log('Session Callback - Using JWT token:', { tokenId: token.id });
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: token.id
-          }
-        };
-      }
-
-      console.log('Session Callback - No user or token found');
-      return session;
-    },
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile }) {
       return true;
     },
     async redirect({ url, baseUrl }) {
       return `${baseUrl}/bay`;
     }
   },
-  debug: false
+  pages: {
+    signIn: '/bay/login',
+    verifyRequest: '/bay/login/verify',
+    error: '/bay/login/error',
+  },
+  debug: true  // Temporarily enable debug mode to see what's happening
 }
 
 const handler = NextAuth(opts)

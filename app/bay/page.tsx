@@ -109,6 +109,37 @@ export default function Bay() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // Early return if not authenticated
+  if (status === "loading") return <Loading />
+  if (status === "unauthenticated") {
+    return <AccessDeniedHaiku />;
+  }
+
+  // // Check Hackatime setup in an effect instead of during render
+  // useEffect(() => {
+  //   console.log('🔍 Checking Hackatime setup:', { 
+  //     status, 
+  //     hasSession: !!session,
+  //     hasUser: !!session?.user,
+  //     hackatimeId: session?.user?.hackatimeId 
+  //   });
+
+  //   if (status === "authenticated" && !session?.user?.hackatimeId) {
+  //     console.log('⚠️ No Hackatime ID found, redirecting to setup');
+  //     router.replace('/bay/setup');
+  //   } else {
+  //     console.log('✅ Hackatime check complete:', {
+  //       authenticated: status === "authenticated",
+  //       hasHackatimeId: !!session?.user?.hackatimeId
+  //     });
+  //   }
+  // }, [session?.user?.hackatimeId, status, router]);
+
+  // // Show loading while the effect potentially redirects
+  // if (!session?.user?.hackatimeId) {
+  //   return <Loading />;
+  // }
+
   // Track if we've loaded projects for this user
   const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -131,11 +162,19 @@ export default function Bay() {
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
     const userId = session?.user?.id;
-    console.log('⚡ Effect triggered.', { userId, loadedForUserId });
+    const hackatimeId = session?.user?.hackatimeId;
+    console.log('⚡ Effect triggered.', { userId, loadedForUserId, hackatimeId });
 
     // Skip if no user ID or we've already loaded for this user
     if (!userId || userId === loadedForUserId) {
       console.log('⏭️ Skipping load:', !userId ? 'no user ID' : 'already loaded for this user');
+      return;
+    }
+
+    // Check Hackatime setup from session... this really shouldn't happen, given our check earlier - but just in case
+    if (!hackatimeId) {
+      console.log('⚠️ No Hackatime ID in session, redirecting to setup...');
+      router.push('/bay/setup');
       return;
     }
 
@@ -164,7 +203,7 @@ export default function Bay() {
     }
 
     loadHackatimeProjects();
-  }, [session?.user?.id, loadedForUserId]); // Only depend on user ID
+  }, [session?.user?.id, loadedForUserId, router]); // Only depend on user ID and router
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToastMessage(message);
@@ -256,11 +295,6 @@ export default function Bay() {
   useEffect(() => {
     getUserProjects();
   }, []);
-
-  if (status === "loading") return <Loading />
-  if (status === "unauthenticated") {
-    return <AccessDeniedHaiku />;
-  }
 
   return (
     <div className={styles.container}>

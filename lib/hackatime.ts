@@ -1,4 +1,5 @@
 import { HacaktimeMostRecentHeartbeat, HackatimeProject, HackatimeStatsProject } from "@/types/hackatime";
+import { prisma } from "@/lib/prisma";
 
 if (!process.env.HACKATIME_API_TOKEN) {
   throw new Error('HACKATIME_API_TOKEN environment variable must be set');
@@ -36,7 +37,7 @@ export async function fetchHackatimeProjects(
     }
 
     const data: HackatimeStatsProject = await response.json();
-    console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
+    // console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
     console.log(`✅ Hackatime projects fetched successfully. Found ${data.data.projects.length} projects`);
     
     // if (data.data.projects.length > 0) {
@@ -128,5 +129,77 @@ export async function lookupHackatimeIdBySlack(slackId: string): Promise<string 
   } catch (error) {
     console.error(`💥 Error looking up Hackatime ID by Slack ID:`, error);
     throw error;
+  }
+}
+
+export interface HackatimeSetupStatus {
+  isSetup: boolean;
+  error?: string;
+}
+
+/**
+ * Checks if a user has Hackatime properly set up by verifying their Hackatime ID
+ * exists in our database or can be found via their email.
+ */
+export async function checkHackatimeSetup(userId: string, userEmail: string): Promise<HackatimeSetupStatus> {
+
+  try {
+    // First check if we already have a Hackatime ID stored
+    console.log('🔍 Checking database for existing Hackatime ID...');
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!dbUser) {
+      console.log('❌ User not found in database');
+      return { isSetup: false, error: 'User not found' };
+    }
+
+    console.log('👤 Found user:', { 
+      id: dbUser.id, 
+      email: dbUser.email,
+      hasSlack: !!dbUser.slack,
+      hasHackatime: !!dbUser.hackatimeId 
+    });
+
+    // If we have a Hackatime ID stored, they're set up
+    if (dbUser.hackatimeId) {
+      console.log('✅ User already has Hackatime ID:', dbUser.hackatimeId);
+      return { isSetup: true };
+    }
+
+    // Try Slack ID first if available
+    let hackatimeId: string | null = null;
+    if (dbUser.slack) {
+      console.log('🔍 Looking up Hackatime ID by Slack ID:', dbUser.slack);
+      hackatimeId = await lookupHackatimeIdBySlack(dbUser.slack);
+      console.log(hackatimeId ? '✅ Found Hackatime ID via Slack' : '❌ No Hackatime ID found via Slack');
+    } else {
+      console.log('⏭️ Skipping Slack lookup - no Slack ID available');
+    }
+
+    // If no Slack ID or lookup failed, try email
+    if (!hackatimeId) {
+      console.log('🔍 Attempting email lookup with:', dbUser.email);
+      hackatimeId = await lookupHackatimeIdByEmail(userEmail);
+      console.log(hackatimeId ? '✅ Found Hackatime ID via email' : '❌ No Hackatime ID found via email');
+    }
+    
+    if (hackatimeId) {
+      // Found ID, save it and return success
+      console.log('💾 Saving Hackatime ID to database:', hackatimeId);
+      await prisma.user.update({
+        where: { id: userId },
+        data: { hackatimeId: hackatimeId.toString() }
+      });
+      console.log('✅ Successfully saved Hackatime ID');
+      return { isSetup: true };
+    }
+
+    console.log('❌ No Hackatime ID found through any method');
+    return { isSetup: false };
+  } catch (error) {
+    console.error('💥 Error checking Hackatime status:', error);
+    return { isSetup: false, error: 'Failed to check Hackatime status' };
   }
 }
