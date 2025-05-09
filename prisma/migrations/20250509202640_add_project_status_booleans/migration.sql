@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Project" ADD COLUMN     "approved" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "in_review" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "shipped" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "viral" BOOLEAN NOT NULL DEFAULT false;

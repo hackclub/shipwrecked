@@ -13,6 +13,10 @@ export type Project = {
     hackatime?: string
     submitted: boolean
     userId: string
+    viral: boolean
+    shipped: boolean
+    in_review: boolean
+    approved: boolean
 }
 
 export type ProjectType = Project;
@@ -79,7 +83,11 @@ export async function POST(request: Request) {
                 hackatime: formData.get('hackatime')?.toString(),
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
-                screenshot: formData.get('screenshot')?.toString() || ''
+                screenshot: formData.get('screenshot')?.toString() || '',
+                viral: formData.get('viral') === 'true',
+                shipped: formData.get('shipped') === 'true',
+                in_review: formData.get('in_review') === 'true',
+                approved: formData.get('approved') === 'true'
             };
         } else {
             console.log('[POST] Parsing JSON');
@@ -179,7 +187,11 @@ export async function PUT(request: Request) {
                 hackatime: formData.get('hackatime')?.toString(),
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
-                screenshot: formData.get('screenshot')?.toString() || ''
+                screenshot: formData.get('screenshot')?.toString() || '',
+                viral: formData.get('viral') === 'true',
+                shipped: formData.get('shipped') === 'true',
+                in_review: formData.get('in_review') === 'true',
+                approved: formData.get('approved') === 'true'
             };
         } else {
             console.log('[PUT] Parsing JSON');

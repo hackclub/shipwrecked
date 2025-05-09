@@ -48,7 +48,6 @@
 
 .editForm {
   display: none;
-  width: 400px;
   background: white;
   padding: 2rem;
   border-radius: 0.5rem;
@@ -61,6 +60,9 @@
 @media (min-width: 768px) {
   .editForm {
     display: block;
+    width: 50%;
+    min-width: 0;
+    max-width: 100%;
   }
 }
 

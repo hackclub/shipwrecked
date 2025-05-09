@@ -113,6 +113,11 @@ model Project {
   hackatime String // hackatime project name
   submitted Boolean @default(false)
 
+  viral Boolean @default(false)
+  shipped Boolean @default(false)
+  in_review Boolean @default(false)
+  approved Boolean @default(false)
+
   // user relation
   userId String
   user User @relation(fields: [userId], references: [id])

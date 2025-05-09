@@ -348,12 +348,6 @@ export default function Bay() {
           <div className={styles.editForm}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Edit Project</h2>
-              <button
-                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-                onClick={() => setIsProjectEditModalOpen(false)}
-              >
-                <Icon glyph="delete" size={20} />
-              </button>
             </div>
             <form action={projectEditFormAction}>
               <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
@@ -417,6 +411,20 @@ export default function Bay() {
               >
                 Your Hackatime Project
               </FormSelect>
+              <div className="grid grid-cols-2 gap-2 my-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!initialEditState.in_review} readOnly disabled /> In Review
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
+                </label>
+              </div>
               <button
                 type="submit"
                 className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
@@ -540,6 +548,20 @@ function ProjectModal(props: ProjectModalProps) {
             >
               Screenshot URL (optional)
             </FormInput>
+            <div className="grid grid-cols-2 gap-2 my-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!props.shipped} readOnly disabled /> Shipped
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!props.approved} readOnly disabled /> Approved
+              </label>
+            </div>
           </>
         )}
         <FormSelect 
