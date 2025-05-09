@@ -299,35 +299,137 @@ export default function Bay() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        {/* <h1 className={styles.title}>Shipwrecked Bay</h1> */}
-        
-        {/* <div className={styles.stats}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Total Ships — </span>
-            <span className={styles.statValue}>{projects.length}</span>
+        <div className={styles.projectList}>
+          <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
+            <div className="w-full px-4 sm:px-0">
+              <span className="flex flex-row items-center gap-2 text-2xl justify-center">
+                🧑‍💻
+                <ProgressBar value={totalHours} max={60} />
+                🏝️
+              </span>
+              <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
+            </div>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Ships at Sea — </span>
-            <span className={styles.statValue}>0</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Ships in Port — </span>
-            <span className={styles.statValue}>0</span>
-          </div>
-        </div> */}
 
-        <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
-          <div className="w-full px-4 sm:px-0">
-            <span className="flex flex-row items-center gap-2 text-2xl justify-center">
-              🧑‍💻
-              <ProgressBar value={totalHours} max={60} />
-              🏝️
-            </span>
-            <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
+          <div className="mt-6 w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Your Projects</h2>
+              <button 
+                className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
+                onClick={() => setIsProjectCreateModalOpen(true)}
+              >
+                <Icon glyph="plus" size={24} />
+              </button>
+            </div>
+            <div className="bg-white rounded-lg shadow">
+              {projects.map((project, index) => (
+                <Project
+                  key={project.projectID}
+                  {...project}
+                  hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
+                  deleteHandler={deleteProjectId(index, project.projectID, project.userId)}
+                  editHandler={(project) => {
+                    setInitialEditState(project);
+                    setIsProjectEditModalOpen(true);
+                  }}
+                />
+              ))}
+              {projects.length === 0 && (
+                <div className="p-4 text-center text-gray-500">
+                  No projects yet. Click "Add Project" to get started!
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Modal to create new project */}
+        {/* Edit Form - Desktop */}
+        {isProjectEditModalOpen && (
+          <div className={styles.editForm}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Edit Project</h2>
+              <button
+                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                onClick={() => setIsProjectEditModalOpen(false)}
+              >
+                <Icon glyph="delete" size={20} />
+              </button>
+            </div>
+            <form action={projectEditFormAction}>
+              <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
+                <FormInput
+                  fieldName='projectID'
+                  state={projectEditState}
+                  placeholder='projectID'
+                  defaultValue={initialEditState.projectID}
+                >
+                  {""}
+                </FormInput>
+              </span>
+              <FormInput
+                fieldName='name'
+                placeholder='Project Name'
+                state={projectEditState}
+                required
+                defaultValue={initialEditState.name}
+              >
+                Project Name
+              </FormInput>
+              <FormInput
+                fieldName='description'
+                placeholder='Description'
+                state={projectEditState}
+                defaultValue={initialEditState.description}
+                required
+              >
+                Description
+              </FormInput>
+              <FormInput
+                fieldName='codeUrl'
+                placeholder='Code URL'
+                state={projectEditState}
+                required
+                defaultValue={initialEditState.codeUrl}
+              >
+                Code URL
+              </FormInput>
+              <FormInput
+                fieldName='playableUrl'
+                placeholder='Playable URL (optional)'
+                state={projectEditState}
+                defaultValue={initialEditState.playableUrl}
+              >
+                Playable URL (optional)
+              </FormInput>
+              <FormInput
+                fieldName='screenshot'
+                placeholder='Screenshot URL (optional)'
+                state={projectEditState}
+                defaultValue={initialEditState.screenshot}
+              >
+                Screenshot URL (optional)
+              </FormInput>
+              <FormSelect 
+                fieldName='hackatime'
+                placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+                required
+                values={hackatimeProjects}
+                defaultValue={initialEditState.hackatime}
+              >
+                Your Hackatime Project
+              </FormSelect>
+              <button
+                type="submit"
+                className="md:my-5 my-4 w-full px-3 sm:px-4 mt-4 focus:outline-2 py-2 bg-[#4BC679] rounded text-white self-center transition transform active:scale-95 hover:scale-105 hover:brightness-110"
+                disabled={projectEditPending || isLoadingHackatime}
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Create Project Modal */}
         <ProjectModal
           isOpen={isProjectCreateModalOpen}
           setIsOpen={setIsProjectCreateModalOpen}
@@ -339,47 +441,19 @@ export default function Bay() {
           isLoadingHackatime={isLoadingHackatime}
         />
 
-        <ProjectModal
-          isOpen={isProjectEditModalOpen}
-          setIsOpen={setIsProjectEditModalOpen}
-          formAction={projectEditFormAction}
-          state={projectEditState}
-          pending={projectEditPending}
-          modalTitle='Edit Project!'
-          hackatimeProjects={hackatimeProjects}
-          isLoadingHackatime={isLoadingHackatime}
-          {...initialEditState}
-        />
-
-        <div className="mt-6 w-full md:w-1/2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Your Projects</h2>
-            <button 
-              className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
-              onClick={() => setIsProjectCreateModalOpen(true)}
-            >
-              <Icon glyph="plus" size={24} />
-            </button>
-          </div>
-          <div className="bg-white rounded-lg shadow">
-            {projects.map((project, index) => (
-              <Project
-                key={project.projectID}
-                {...project}
-                hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
-                deleteHandler={deleteProjectId(index, project.projectID, project.userId)}
-                editHandler={(project) => {
-                  setInitialEditState(project);
-                  setIsProjectEditModalOpen(true);
-                }}
-              />
-            ))}
-            {projects.length === 0 && (
-              <div className="p-4 text-center text-gray-500">
-                No projects yet. Click "Add Project" to get started!
-              </div>
-            )}
-          </div>
+        {/* Edit Project Modal - Mobile Only */}
+        <div className="md:hidden">
+          <ProjectModal
+            isOpen={isProjectEditModalOpen}
+            setIsOpen={setIsProjectEditModalOpen}
+            formAction={projectEditFormAction}
+            state={projectEditState}
+            pending={projectEditPending}
+            modalTitle='Edit Project!'
+            hackatimeProjects={hackatimeProjects}
+            isLoadingHackatime={isLoadingHackatime}
+            {...initialEditState}
+          />
         </div>
 
         <Toaster richColors />
