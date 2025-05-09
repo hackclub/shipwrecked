@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Session } from "next-auth";
 import { signOut } from "next-auth/react";
+import { createAvatar } from '@dicebear/core';
+import { lorelei } from '@dicebear/collection';
 
 export type HeaderProps = {
     session: Session | null;
@@ -29,14 +31,13 @@ export default function Header({ session, status }: HeaderProps) {
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
                 {status === "authenticated" && (
                     <>
-                        {session?.user?.image && (
                             <img
-                                src={session.user.image}
-                                alt={session.user.name ?? "User"}
+                                src={session?.user.image ? session.user.image : createAvatar(lorelei, { seed: session?.user.email ?? "" }).toDataUri()}
+                                alt={session?.user.email!}
                                 className="w-10 h-10 rounded-full border-2 border-white shadow"
                             />
-                        )}
-                        <span className="text-white font-semibold">{session?.user?.name}</span>
+ 
+                        <span className="text-white font-semibold">{session?.user.name ? session?.user?.name : session?.user.email?.slice(0, 13) + "..."}</span>
                         <button
                             onClick={() => setDropdownOpen((prev) => !prev)}
                             className="bg-white text-[#47D1F6] font-bold px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition"
