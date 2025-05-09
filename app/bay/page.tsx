@@ -13,6 +13,7 @@ import ProgressBar from '@/components/common/ProgressBar';
 import type { ProjectType } from '../api/projects/route';
 import { useRouter } from 'next/navigation';
 import type { HackatimeProject } from "@/types/hackatime";
+import Icon from "@hackclub/icons";
 
 function Loading() {
   return (
@@ -117,6 +118,7 @@ export default function Bay() {
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState<boolean>(false);
   const [projects, setProjects] = useState<ProjectType[]>([]);
   const [hackatimeProjects, setHackatimeProjects] = useState<Record<string, string>>({});
+  const [projectHours, setProjectHours] = useState<Record<string, number>>({});
   const [isLoadingHackatime, setIsLoadingHackatime] = useState(true);
 
   // Add render tracking
@@ -142,10 +144,17 @@ export default function Bay() {
         console.log('🚀 Loading Hackatime projects for user:', userId);
         const projects = await getHackatimeProjects();
         console.log(`📦 Received ${projects.length} projects`);
-        const formattedProjects = Object.fromEntries(
+        
+        // Create separate maps for project names and hours
+        const projectNames = Object.fromEntries(
           projects.map((project: HackatimeProject) => [project.name, project.name])
         );
-        setHackatimeProjects(formattedProjects);
+        const hours = Object.fromEntries(
+          projects.map((project: HackatimeProject) => [project.name, project.hours || 0])
+        );
+        
+        setHackatimeProjects(projectNames);
+        setProjectHours(hours);
         setLoadedForUserId(userId || null);
       } catch (error) {
         console.error('Failed to load Hackatime projects:', error);
@@ -256,9 +265,9 @@ export default function Bay() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        <h1 className={styles.title}>Shipwrecked Bay</h1>
+        {/* <h1 className={styles.title}>Shipwrecked Bay</h1> */}
         
-        <div className={styles.stats}>
+        {/* <div className={styles.stats}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>Total Ships — </span>
             <span className={styles.statValue}>{projects.length}</span>
@@ -271,24 +280,17 @@ export default function Bay() {
             <span className={styles.statLabel}>Ships in Port — </span>
             <span className={styles.statValue}>0</span>
           </div>
-        </div>
+        </div> */}
 
-        <div className="w-60">
-          <span className="flex flex-row items-center gap-2 text-2xl">
-            🧑‍💻
-            <ProgressBar value={totalHours} max={60} />
-            🏝️
-          </span>
-          <h3>{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
-        </div>
-
-        <div className={styles.actions}>
-          <button 
-            className={styles.modalButton}
-            onClick={() => setIsProjectCreateModalOpen(true)}
-          >
-            Add Project
-          </button>
+        <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
+          <div className="w-full px-4 sm:px-0">
+            <span className="flex flex-row items-center gap-2 text-2xl justify-center">
+              🧑‍💻
+              <ProgressBar value={totalHours} max={60} />
+              🏝️
+            </span>
+            <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
+          </div>
         </div>
 
         {/* Modal to create new project */}
@@ -315,17 +317,35 @@ export default function Bay() {
           {...initialEditState}
         />
 
-        <h1 className={`${styles.title} my-4`}>Your Projects</h1>
-        <div className="grid grid-cols-3 gap-3 my-4">
-          {projects.map((project: any) => (
-            <Project
-              key={project.projectID}
-              deleteHandler={deleteProjectId(0, project.projectID, project.userId)}
-              hours={project.hours}
-              editHandler={(project) => { setIsProjectEditModalOpen(!isProjectEditModalOpen); setInitialEditState(project); }}
-              {...project}
-            />
-          ))}
+        <div className="mt-6 w-full md:w-1/2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Your Projects</h2>
+            <button 
+              className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
+              onClick={() => setIsProjectCreateModalOpen(true)}
+            >
+              <Icon glyph="plus" size={24} />
+            </button>
+          </div>
+          <div className="bg-white rounded-lg shadow">
+            {projects.map((project, index) => (
+              <Project
+                key={project.projectID}
+                {...project}
+                hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
+                deleteHandler={deleteProjectId(index, project.projectID, project.userId)}
+                editHandler={(project) => {
+                  setInitialEditState(project);
+                  setIsProjectEditModalOpen(true);
+                }}
+              />
+            ))}
+            {projects.length === 0 && (
+              <div className="p-4 text-center text-gray-500">
+                No projects yet. Click "Add Project" to get started!
+              </div>
+            )}
+          </div>
         </div>
 
         <Toaster richColors />
