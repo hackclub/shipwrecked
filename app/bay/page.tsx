@@ -251,6 +251,8 @@ export default function Bay() {
   const [isLoadingHackatime, setIsLoadingHackatime] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
 
   // // Add render tracking
   // console.log('🔄 Bay component rendering', { 
@@ -502,31 +504,6 @@ export default function Bay() {
                   key={project.projectID}
                   {...project}
                   hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
-                  deleteHandler={(cb) => {
-                    // Create a wrapper function to provide feedback and update UI
-                    const deleteWrapper = async (projectID: string, userId: string) => {
-                      try {
-                        // Call the original delete callback
-                        await cb(projectID, userId);
-                        // If successful, show confirmation and filter out the deleted project
-                        toast.success(`Project "${project.name}" deleted successfully`);
-                        
-                        // If this was the selected project, clear selection
-                        if (selectedProjectId === project.projectID) {
-                          setSelectedProjectId(null);
-                          setIsProjectEditModalOpen(false);
-                        }
-                        
-                        return { success: true };
-                      } catch (error) {
-                        // If there was an error, show error message
-                        toast.error(`Failed to delete project: ${error}`);
-                        throw error;
-                      }
-                    };
-                    
-                    return deleteWrapper(project.projectID, project.userId);
-                  }}
                   editHandler={(project) => {
                     // Check if the edit request is coming from the edit button
                     const isEditRequest = 'isEditing' in project;
@@ -702,6 +679,31 @@ export default function Bay() {
                     </label>
                   </div>
                   
+                  {/* Delete Project Section */}
+                  <div className="mb-5 bg-gray-50 p-4 rounded-lg border-l-4 border-red-500">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Danger Zone</h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Once you delete a project, there is no going back. Please be certain.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
+                      onClick={() => {
+                        // Find the project in the projects array
+                        const projectToDelete = projects.find(p => p.projectID === selectedProjectId);
+                        
+                        if (projectToDelete) {
+                          // Set the project to delete and open the confirmation modal
+                          setProjectToDelete(projectToDelete);
+                          setIsDeleteConfirmModalOpen(true);
+                        }
+                      }}
+                    >
+                      <Icon glyph="delete" size={16} />
+                      <span>Delete Project</span>
+                    </button>
+                  </div>
+                  
                   {/* Debug info */}
                   <div className="mb-5 p-3 border border-gray-200 rounded-lg text-xs text-gray-500" style={{ display: 'none' }}>
                     <pre>
@@ -815,6 +817,72 @@ export default function Bay() {
             onClose={() => setToastMessage(null)}
           />
         )}
+        
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteConfirmModalOpen}
+          onClose={() => setIsDeleteConfirmModalOpen(false)}
+          title="Delete Project?"
+          hideFooter={true}
+        >
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              Are you sure you want to delete <span className="font-medium">{projectToDelete?.name}</span>?
+            </p>
+            <p className="text-gray-600 text-sm">
+              This action cannot be undone. It will permanently delete the project and all associated data.
+            </p>
+            
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded focus:outline-none transition-colors"
+                onClick={() => setIsDeleteConfirmModalOpen(false)}
+              >
+                Cancel
+              </button>
+              
+              <button
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded focus:outline-none transition-colors"
+                onClick={() => {
+                  // Don't proceed if no project is selected
+                  if (!projectToDelete) return;
+                  
+                  // Close the confirmation modal
+                  setIsDeleteConfirmModalOpen(false);
+                  
+                  // Close the edit modal if it's open
+                  setIsProjectEditModalOpen(false);
+                  
+                  // Delete the project
+                  const deleteProject = async () => {
+                    try {
+                      const response = await fetch(`/api/projects/${projectToDelete.projectID}`, {
+                        method: 'DELETE'
+                      });
+                      
+                      if (!response.ok) throw new Error('Failed to delete project');
+                      
+                      // Remove from projects list
+                      setProjects(prev => prev.filter(p => p.projectID !== projectToDelete.projectID));
+                      
+                      // Clear selection
+                      setSelectedProjectId(null);
+                      
+                      toast.success(`Project "${projectToDelete.name}" deleted successfully`);
+                    } catch (error) {
+                      toast.error(`Failed to delete project: ${error}`);
+                      console.error('Error deleting project:', error);
+                    }
+                  };
+                  
+                  deleteProject();
+                }}
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );
@@ -834,119 +902,204 @@ type ProjectModalProps = Partial<ProjectType> & {
 
 function ProjectModal(props: ProjectModalProps) {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
+  
+  const handleDeleteConfirm = () => {
+    // Close the confirmation modal
+    setIsDeleteConfirmModalOpen(false);
+    
+    // Close the project modal
+    props.setIsOpen(false);
+    
+    // Delete the project
+    const deleteProject = async () => {
+      try {
+        const response = await fetch(`/api/projects/${props.projectID}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete project');
+        
+        // Notify success
+        toast.success(`Project "${props.name}" deleted successfully`);
+        
+        // Refresh the projects list
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        toast.error(`Failed to delete project: ${error}`);
+        console.error('Error deleting project:', error);
+      }
+    };
+    
+    deleteProject();
+  };
+  
   return (
-    <Modal
-      isOpen={props.isOpen}
-      onClose={() => props.setIsOpen(false)}
-      title={props.modalTitle}
-      okText="Done"
-      hideFooter={props.hideFooter || isCreate}
-    >
-      <form action={props.formAction} className="pb-16 relative">
-        <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
-          <FormInput
-            fieldName='projectID'
-            state={props.state}
-            placeholder='projectID'
-            {...(props.projectID && { defaultValue: props.projectID})}
-          >
-            {""}
-          </FormInput>
-        </span>
-        
-        <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-          <FormInput
-            fieldName='name'
-            placeholder='Project Name'
-            state={props.state}
-            required
-            {...(props.name && { defaultValue: props.name})}
-          >
-            Project Name
-          </FormInput>
-          <FormInput
-            fieldName='description'
-            placeholder='Description'
-            state={props.state}
-            {...(props.description && { defaultValue: props.description})}
-            required
-          >
-            Description
-          </FormInput>
-        </div>
-        
-        {!isCreate && (
-          <>
-            <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
-              <FormInput
-                fieldName='codeUrl'
-                placeholder='Code URL'
-                state={props.state}
-                {...(props.codeUrl && { defaultValue: props.codeUrl})}
-              >
-                Code URL
-              </FormInput>
-              <FormInput
-                fieldName='playableUrl'
-                placeholder='Playable URL'
-                state={props.state}
-                {...(props.playableUrl && { defaultValue: props.playableUrl})}
-              >
-                Playable URL
-              </FormInput>
-              <FormInput
-                fieldName='screenshot'
-                placeholder='Screenshot URL'
-                state={props.state}
-                {...(props.screenshot && { defaultValue: props.screenshot})}
-              >
-                Screenshot URL
-              </FormInput>
-            </div>
+    <>
+      <Modal
+        isOpen={props.isOpen}
+        onClose={() => props.setIsOpen(false)}
+        title={props.modalTitle}
+        okText="Done"
+        hideFooter={props.hideFooter || isCreate}
+      >
+        <form action={props.formAction} className="pb-16 relative">
+          <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
+            <FormInput
+              fieldName='projectID'
+              state={props.state}
+              placeholder='projectID'
+              {...(props.projectID && { defaultValue: props.projectID})}
+            >
+              {""}
+            </FormInput>
+          </span>
+          
+          <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+            <FormInput
+              fieldName='name'
+              placeholder='Project Name'
+              state={props.state}
+              required
+              {...(props.name && { defaultValue: props.name})}
+            >
+              Project Name
+            </FormInput>
+            <FormInput
+              fieldName='description'
+              placeholder='Description'
+              state={props.state}
+              {...(props.description && { defaultValue: props.description})}
+              required
+            >
+              Description
+            </FormInput>
+          </div>
+          
+          {!isCreate && (
+            <>
+              <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
+                <FormInput
+                  fieldName='codeUrl'
+                  placeholder='Code URL'
+                  state={props.state}
+                  {...(props.codeUrl && { defaultValue: props.codeUrl})}
+                >
+                  Code URL
+                </FormInput>
+                <FormInput
+                  fieldName='playableUrl'
+                  placeholder='Playable URL'
+                  state={props.state}
+                  {...(props.playableUrl && { defaultValue: props.playableUrl})}
+                >
+                  Playable URL
+                </FormInput>
+                <FormInput
+                  fieldName='screenshot'
+                  placeholder='Screenshot URL'
+                  state={props.state}
+                  {...(props.screenshot && { defaultValue: props.screenshot})}
+                >
+                  Screenshot URL
+                </FormInput>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!props.shipped} readOnly disabled /> Shipped
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!props.approved} readOnly disabled /> Approved
+                </label>
+              </div>
+              
+              {/* Delete Project Section - Only for edit, not create */}
+              <div className="mb-5 bg-gray-50 p-4 rounded-lg border-l-4 border-red-500">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Danger Zone</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Once you delete a project, there is no going back. Please be certain.
+                </p>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
+                  onClick={() => setIsDeleteConfirmModalOpen(true)}
+                >
+                  <Icon glyph="delete" size={16} />
+                  <span>Delete Project</span>
+                </button>
+              </div>
+            </>
+          )}
+          
+          <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+            <FormSelect 
+              fieldName='hackatime'
+              placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+              required
+              values={props.hackatimeProjects}
+              {...(props.hackatime && { defaultValue: props.hackatime})}
+              disabled={!isCreate}
+            >
+              Your Hackatime Project
+            </FormSelect>
+          </div>
+          
+          {/* Fixed button at bottom of modal */}
+          <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-10">
+            <button
+              type="submit"
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
+              disabled={props.pending || props.isLoadingHackatime}
+            >
+              {isCreate ? "Create Project" : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteConfirmModalOpen}
+        onClose={() => setIsDeleteConfirmModalOpen(false)}
+        title="Delete Project?"
+        hideFooter={true}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete <span className="font-medium">{props.name}</span>?
+          </p>
+          <p className="text-gray-600 text-sm">
+            This action cannot be undone. It will permanently delete the project and all associated data.
+          </p>
+          
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded focus:outline-none transition-colors"
+              onClick={() => setIsDeleteConfirmModalOpen(false)}
+            >
+              Cancel
+            </button>
             
-            <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!props.shipped} readOnly disabled /> Shipped
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!props.approved} readOnly disabled /> Approved
-              </label>
-            </div>
-          </>
-        )}
-        
-        <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-          <FormSelect 
-            fieldName='hackatime'
-            placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
-            required
-            values={props.hackatimeProjects}
-            {...(props.hackatime && { defaultValue: props.hackatime})}
-            disabled={!isCreate}
-          >
-            Your Hackatime Project
-          </FormSelect>
+            <button
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded focus:outline-none transition-colors"
+              onClick={handleDeleteConfirm}
+            >
+              Delete Project
+            </button>
+          </div>
         </div>
-        
-        {/* Fixed button at bottom of modal */}
-        <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-10">
-          <button
-            type="submit"
-            className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-            disabled={props.pending || props.isLoadingHackatime}
-          >
-            {isCreate ? "Create Project" : "Save Changes"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+      </Modal>
+    </>
   );
 }
