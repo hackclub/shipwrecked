@@ -239,6 +239,7 @@ export default function Bay() {
   const [totalHours, setTotalHours] = useState<number>(0);
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState<boolean>(false);
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState<boolean>(false);
+  const [isProjectDetailModalOpen, setIsProjectDetailModalOpen] = useState<boolean>(false);
   const [projects, setProjects] = useState<ProjectType[]>([]);
   const [hackatimeProjects, setHackatimeProjects] = useState<Record<string, string>>({});
   const [projectHours, setProjectHours] = useState<Record<string, number>>({});
@@ -558,7 +559,7 @@ export default function Bay() {
                 Click a project to select it. Use <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">E</kbd> to edit, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
               </p>
               <p className="md:hidden">
-                Tap a project to edit it directly.
+                Tap a project to view details.
               </p>
             </div>
             <div className="bg-white rounded-lg shadow">
@@ -579,11 +580,11 @@ export default function Bay() {
                     // Check if the edit request is coming from the edit button
                     const isEditRequest = 'isEditing' in project;
                     
-                    // For mobile devices, always show the edit form when tapping a project
+                    // For mobile devices, show project details first
                     if (isMobile) {
                       setSelectedProjectId(project.projectID);
                       setInitialEditState(project);
-                      setIsProjectEditModalOpen(true);
+                      setIsProjectDetailModalOpen(true);
                       return;
                     }
                     
@@ -614,7 +615,7 @@ export default function Bay() {
           </div>
         </div>
         {/* Project Detail or Edit Form - Desktop */}
-        {selectedProjectId && (
+        {selectedProjectId && !isMobile && (
           <>
             {isProjectEditModalOpen ? (
               // Edit Form
@@ -807,7 +808,6 @@ export default function Bay() {
               </div>
             ) : (
               // Project Detail View
-              // Check if the selected project still exists
               (() => {
                 const selectedProject = projects.find(p => p.projectID === selectedProjectId);
                 
@@ -872,6 +872,140 @@ export default function Bay() {
           hideFooter={true}
           existingProjects={projects}
         />
+        {/* Project Detail Modal - Mobile Only */}
+        <Modal
+          isOpen={isMobile && isProjectDetailModalOpen}
+          onClose={() => setIsProjectDetailModalOpen(false)}
+          title="Project Details"
+          hideFooter={true}
+        >
+          {(() => {
+            const selectedProject = projects.find(p => p.projectID === selectedProjectId);
+            
+            if (!selectedProject) {
+              return (
+                <div className="flex justify-center items-center h-64">
+                  <div className="text-center">
+                    <h3 className="text-xl font-medium text-gray-500 mb-2">Project not found</h3>
+                    <p className="text-gray-400">The project may have been deleted</p>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div className="p-4">
+                <div className="space-y-5 pb-8">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
+                    <p className="text-base text-gray-900">{selectedProject.description || "No description provided."}</p>
+                  </div>
+                  
+                  {selectedProject.hackatime && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">Hackatime Project</h3>
+                      <p className="text-base text-gray-900">{selectedProject.hackatime}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm text-gray-700">Viral</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm text-gray-700">Shipped</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm text-gray-700">In Review</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm text-gray-700">Approved</span>
+                    </div>
+                  </div>
+                  
+                  {(selectedProject.codeUrl || selectedProject.playableUrl) && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Links</h3>
+                      <div className="flex flex-col gap-2">
+                        {selectedProject.codeUrl && (
+                          <a 
+                            href={selectedProject.codeUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-2"
+                          >
+                            <Icon glyph="github" size={16} />
+                            View Code Repository
+                          </a>
+                        )}
+                        {selectedProject.playableUrl && (
+                          <a 
+                            href={selectedProject.playableUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-2"
+                          >
+                            <Icon glyph="link" size={16} />
+                            Try It Out
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedProject.screenshot && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">Screenshot</h3>
+                      <img 
+                        src={selectedProject.screenshot} 
+                        alt={`Screenshot of ${selectedProject.name}`}
+                        className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Edit button at bottom */}
+                  <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setIsProjectDetailModalOpen(false);
+                        
+                        // Make sure to set initialEditState with the full project data
+                        const projectWithDefaults = {
+                          ...selectedProject,
+                          codeUrl: selectedProject.codeUrl || "",
+                          playableUrl: selectedProject.playableUrl || "",
+                          screenshot: selectedProject.screenshot || "",
+                          viral: !!selectedProject.viral,
+                          shipped: !!selectedProject.shipped,
+                          in_review: !!selectedProject.in_review,
+                          approved: !!selectedProject.approved
+                        };
+                        
+                        // Update the form state
+                        setInitialEditState(projectWithDefaults);
+                        
+                        // Wait for state to be updated before showing the form
+                        setTimeout(() => {
+                          setIsProjectEditModalOpen(true);
+                        }, 100);
+                      }}
+                    >
+                      Edit Project
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </Modal>
         {/* Edit Project Modal - Mobile Only */}
         <div className="md:hidden">
           {selectedProjectId && projects.find(p => p.projectID === selectedProjectId) && (
