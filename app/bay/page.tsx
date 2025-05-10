@@ -2,7 +2,7 @@
 import styles from './page.module.css';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
-import { useState, useEffect, useActionState } from 'react';
+import { useState, useEffect, useActionState, useContext, useMemo } from 'react';
 import type { FormSave } from '@/components/form/FormInput';
 import { Project } from '@/components/common/Project';
 import FormSelect from '@/components/form/FormSelect';
@@ -101,8 +101,27 @@ async function editProjectAction(state: FormSave, formData: FormData): Promise<F
 
 // Move getHackatimeProjects outside of Bay component
 async function getHackatimeProjects() {
-  const response = await fetch('/api/hackatime/projects');
-  return await response.json() as HackatimeProject[];
+  try {
+    const response = await fetch('/api/hackatime/projects');
+    
+    if (!response.ok) {
+      console.error('Hackatime API returned error:', response.status, response.statusText);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    // Ensure we have an array
+    if (!Array.isArray(data)) {
+      console.error('Hackatime API returned non-array data:', data);
+      return [];
+    }
+    
+    return data as HackatimeProject[];
+  } catch (error) {
+    console.error('Failed to fetch Hackatime projects:', error);
+    return [];
+  }
 }
 
 // Project Detail Component
@@ -213,31 +232,6 @@ export default function Bay() {
     return <AccessDeniedHaiku />;
   }
 
-  // // Check Hackatime setup in an effect instead of during render
-  // useEffect(() => {
-  //   console.log('🔍 Checking Hackatime setup:', { 
-  //     status, 
-  //     hasSession: !!session,
-  //     hasUser: !!session?.user,
-  //     hackatimeId: session?.user?.hackatimeId 
-  //   });
-
-  //   if (status === "authenticated" && !session?.user?.hackatimeId) {
-  //     console.log('⚠️ No Hackatime ID found, redirecting to setup');
-  //     router.replace('/bay/setup');
-  //   } else {
-  //     console.log('✅ Hackatime check complete:', {
-  //       authenticated: status === "authenticated",
-  //       hasHackatimeId: !!session?.user?.hackatimeId
-  //     });
-  //   }
-  // }, [session?.user?.hackatimeId, status, router]);
-
-  // // Show loading while the effect potentially redirects
-  // if (!session?.user?.hackatimeId) {
-  //   return <Loading />;
-  // }
-
   // Track if we've loaded projects for this user
   const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -253,13 +247,6 @@ export default function Bay() {
   const [isMobile, setIsMobile] = useState(false);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
-
-  // // Add render tracking
-  // console.log('🔄 Bay component rendering', { 
-  //   status, 
-  //   userId: session?.user?.id,
-  //   loadedForUserId 
-  // });
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
@@ -283,22 +270,49 @@ export default function Bay() {
     async function loadHackatimeProjects() {
       try {
         console.log('🚀 Loading Hackatime projects for user:', userId);
-        const projects = await getHackatimeProjects();
+        const projectsData = await getHackatimeProjects();
+        
+        // Ensure we have an array of projects
+        const projects = Array.isArray(projectsData) ? projectsData : [];
         console.log(`📦 Received ${projects.length} projects`);
         
-        // Create separate maps for project names and hours
-        const projectNames = Object.fromEntries(
-          projects.map((project: HackatimeProject) => [project.name, project.name])
-        );
+        if (projects.length === 0) {
+          console.log('No projects found or invalid data received');
+          setHackatimeProjects({});
+          setProjectHours({});
+          return;
+        }
+        
+        // Create hours map (key: project name, value: hours)
         const hours = Object.fromEntries(
           projects.map((project: HackatimeProject) => [project.name, project.hours || 0])
         );
+        
+        // Create an array of projects with hours for sorting
+        const projectsWithHours = projects.map((project: HackatimeProject) => ({
+          name: project.name,
+          hours: project.hours || 0
+        }));
+        
+        // Sort by hours in descending order
+        projectsWithHours.sort((a, b) => b.hours - a.hours);
+        
+        // Create the project names map with proper display
+        const projectNames: Record<string, string> = {};
+        projectsWithHours.forEach(project => {
+          // Use original project name as both key and value
+          // The FormSelect component displays the keys
+          projectNames[`${project.hours}h ${project.name}`] = project.name;
+        });
         
         setHackatimeProjects(projectNames);
         setProjectHours(hours);
         setLoadedForUserId(userId || null);
       } catch (error) {
         console.error('Failed to load Hackatime projects:', error);
+        // Set empty objects to prevent undefined errors
+        setHackatimeProjects({});
+        setProjectHours({});
       } finally {
         setIsLoadingHackatime(false);
       }
@@ -306,6 +320,16 @@ export default function Bay() {
 
     loadHackatimeProjects();
   }, [session?.user?.id, loadedForUserId, router]); // Only depend on user ID and router
+
+  // Trigger a re-render of projects list when projectHours changes
+  // This ensures the sorting stays current when hours data updates
+  useEffect(() => {
+    if (Object.keys(projectHours).length > 0) {
+      console.log('Project hours updated, triggering re-render for sorting');
+      // Create a new array reference to force re-render with updated sort order
+      setProjects([...projects]);
+    }
+  }, [projectHours]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToastMessage(message);
@@ -397,6 +421,17 @@ export default function Bay() {
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip keyboard shortcuts on mobile
+      if (isMobile) return;
+      
+      // Skip if key press is inside a form input (when typing)
+      const target = e.target as HTMLElement;
+      const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || 
+                       target.isContentEditable || 
+                       target.getAttribute('role') === 'textbox';
+      
+      if (isTyping) return;
+      
       if (e.key === 'Escape') {
         // First close any open modal
         if (isProjectCreateModalOpen) {
@@ -423,7 +458,7 @@ export default function Bay() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen, projects]);
+  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen, projects, isMobile]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -464,17 +499,45 @@ export default function Bay() {
     }
   }, [selectedProjectId, initialEditState, projectEditState]);
 
+  // Update total hours whenever projects or projectHours changes
+  useEffect(() => {
+    // Only count hours from projects that are in the projects list
+    const total = projects.reduce((sum, project) => {
+      // If project has a hackatime ID, get hours from projectHours, otherwise default to 0
+      const hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
+      return sum + hours;
+    }, 0);
+    
+    // Calculate percentage (0-100)
+    const percentage = Math.min(Math.round((total / 60) * 100), 100);
+    
+    console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects);
+    setTotalHours(percentage);
+  }, [projects, projectHours]);
+
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
         <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
           <div className="w-full px-4 sm:px-0">
-            <span className="flex flex-row items-center gap-2 text-2xl justify-center">
-              🧑‍💻
-              <ProgressBar value={totalHours} max={60} />
-              🏝️
-            </span>
-            <h3 className="text-center mt-2 text-lg">{totalHours}/60 - {60 - totalHours} more hours to go!</h3>
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-xl">🧑‍💻</span>
+              <div className="flex-grow">
+                <ProgressBar 
+                  value={totalHours} 
+                  max={100} 
+                  height={8}
+                  variant={totalHours >= 100 ? 'success' : 'default'}
+                  animated={totalHours < 100}
+                />
+              </div>
+              <span className="text-xl">🏝️</span>
+            </div>
+            <div className="text-center">
+              <h3 className="font-medium text-lg">
+                {totalHours}%
+              </h3>
+            </div>
           </div>
         </div>
       </div>
@@ -499,7 +562,15 @@ export default function Bay() {
               </p>
             </div>
             <div className="bg-white rounded-lg shadow">
-              {projects.map((project, index) => (
+              {projects
+                .sort((a, b) => {
+                  // Get hours for each project, default to 0 if not found
+                  const hoursA = a.hackatime ? (projectHours[a.hackatime] || 0) : 0;
+                  const hoursB = b.hackatime ? (projectHours[b.hackatime] || 0) : 0;
+                  // Sort by hours in descending order (highest first)
+                  return hoursB - hoursA;
+                })
+                .map((project, index) => (
                 <Project
                   key={project.projectID}
                   {...project}
@@ -653,10 +724,18 @@ export default function Bay() {
                   <div className="mb-5 bg-gray-50 p-4 rounded-lg">
                     <FormSelect 
                       fieldName='hackatime'
-                      placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+                      placeholder={
+                        isLoadingHackatime 
+                          ? 'Loading projects...' 
+                          : Object.keys(hackatimeProjects).length === 0
+                            ? 'No Hackatime projects found'
+                            : 'Select a Hackatime Project'
+                      }
                       required
                       values={hackatimeProjects}
-                      defaultValue={initialEditState.hackatime}
+                      {...(initialEditState.hackatime && { 
+                        defaultValue: initialEditState.hackatime
+                      })}
                       disabled={true}
                     >
                       Your Hackatime Project
@@ -791,6 +870,7 @@ export default function Bay() {
           hackatimeProjects={hackatimeProjects}
           isLoadingHackatime={isLoadingHackatime}
           hideFooter={true}
+          existingProjects={projects}
         />
         {/* Edit Project Modal - Mobile Only */}
         <div className="md:hidden">
@@ -805,6 +885,7 @@ export default function Bay() {
               hackatimeProjects={hackatimeProjects}
               isLoadingHackatime={isLoadingHackatime}
               hideFooter={true}
+              existingProjects={projects}
               {...initialEditState}
             />
           )}
@@ -897,12 +978,49 @@ type ProjectModalProps = Partial<ProjectType> & {
   modalTitle: string,
   hackatimeProjects: Record<string, string>,
   isLoadingHackatime: boolean,
-  hideFooter?: boolean
+  hideFooter?: boolean,
+  existingProjects?: ProjectType[]
 }
 
 function ProjectModal(props: ProjectModalProps) {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
+  
+  // Filter out already added projects for create mode
+  const availableHackatimeProjects = useMemo(() => {
+    if (!isCreate) {
+      // When editing, just use the existing projects
+      return props.hackatimeProjects;
+    }
+    
+    // For creation - filter out projects that are already added
+    // This uses the existing projects prop passed to every ProjectModal instance
+    const allProjects = props.existingProjects || [];
+    
+    // Create a new filtered map for creating new projects
+    const filtered: Record<string, string> = {};
+    
+    // Get already used hackatime project names
+    const usedHackatimeProjects: string[] = [];
+    
+    // Collect all hackatime project names that are already used
+    allProjects.forEach((project: ProjectType) => {
+      if (project.hackatime) {
+        usedHackatimeProjects.push(project.hackatime);
+      }
+    });
+    
+    // Add only unused projects to the filtered map
+    Object.entries(props.hackatimeProjects).forEach(([label, projectName]) => {
+      if (!usedHackatimeProjects.includes(projectName)) {
+        filtered[label] = projectName;
+      }
+    });
+    
+    console.log('Filtering projects. Available:', Object.keys(filtered).length, 'Used:', usedHackatimeProjects.length);
+    
+    return filtered;
+  }, [isCreate, props.hackatimeProjects, props.existingProjects]);
   
   const handleDeleteConfirm = () => {
     // Close the confirmation modal
@@ -1045,11 +1163,19 @@ function ProjectModal(props: ProjectModalProps) {
           <div className="mb-5 bg-gray-50 p-4 rounded-lg">
             <FormSelect 
               fieldName='hackatime'
-              placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
+              placeholder={
+                props.isLoadingHackatime 
+                  ? 'Loading projects...' 
+                  : Object.keys(props.hackatimeProjects).length === 0
+                    ? 'No Hackatime projects found'
+                    : 'Select a Hackatime Project'
+              }
               required
-              values={props.hackatimeProjects}
-              {...(props.hackatime && { defaultValue: props.hackatime})}
-              disabled={!isCreate}
+              values={availableHackatimeProjects}
+              {...(props.hackatime && { 
+                defaultValue: props.hackatime
+              })}
+              disabled={!isCreate || props.isLoadingHackatime || Object.keys(props.hackatimeProjects).length === 0}
             >
               Your Hackatime Project
             </FormSelect>
