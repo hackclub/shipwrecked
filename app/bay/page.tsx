@@ -518,9 +518,9 @@ export default function Bay() {
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
-        <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-8">
-          <div className="w-full px-4 sm:px-0">
-            <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
+          <div className="flex-grow px-4 sm:px-0">
+            <div className="flex items-center gap-3 mb-1 mt-2 md:mt-0">
               <span className="text-xl">🧑‍💻</span>
               <div className="flex-grow">
                 <ProgressBar 
@@ -533,7 +533,7 @@ export default function Bay() {
               </div>
               <span className="text-xl">🏝️</span>
             </div>
-            <div className="text-center">
+            <div className="text-center mt-1 mb-3 md:mb-1">
               <h3 className="font-medium text-lg">
                 {totalHours}%
               </h3>
@@ -543,7 +543,7 @@ export default function Bay() {
       </div>
       <div className={styles.content}>
         <div className={styles.projectList}>
-          <div className="mt-6 w-full">
+          <div className="mt-2 md:mt-6 w-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Projects</h2>
               <button 
@@ -1017,7 +1017,7 @@ function ProjectModal(props: ProjectModalProps) {
       }
     });
     
-    console.log('Filtering projects. Available:', Object.keys(filtered).length, 'Used:', usedHackatimeProjects.length);
+    // console.log('Filtering projects. Available:', Object.keys(filtered).length, 'Used:', usedHackatimeProjects.length);
     
     return filtered;
   }, [isCreate, props.hackatimeProjects, props.existingProjects]);

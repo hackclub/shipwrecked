@@ -27,7 +27,7 @@ export default function Header({ session, status }: HeaderProps) {
 
     return (
         <nav className="w-full px-6 py-4 bg-[#47D1F6] flex items-center justify-between shadow-md">
-            <span className="text-lg font-bold text-white"></span>
+            <span className="text-lg font-bold text-white">The Bay</span>
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
                 {status === "authenticated" && (
                     <>
