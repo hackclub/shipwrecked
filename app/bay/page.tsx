@@ -504,6 +504,11 @@ export default function Bay() {
   useEffect(() => {
     // Only count hours from projects that are in the projects list
     const total = projects.reduce((sum, project) => {
+      // If project is viral, it automatically counts as 15 hours
+      if (project.viral) {
+        return sum + 15;
+      }
+      
       // If project has a hackatime ID, get hours from projectHours, otherwise default to 0
       let hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
       
@@ -574,18 +579,61 @@ export default function Bay() {
                 <strong>Each project is capped at 15 hours maximum</strong> contribution toward your total
               </li>
               <li>
+                <strong>Viral projects automatically count for the full 15 hours</strong>, regardless of actual tracked time
+              </li>
+              <li>
                 Projects that are not marked as "shipped" are capped at 14.75 hours
-              </li>
-              <li>
-                Your percentage is calculated as: <span className="font-mono bg-gray-100 px-2 py-1 rounded">Total Hours ÷ 60 × 100</span>
-              </li>
-              <li>
-                When you reach 60 hours of tracked development time (with the caps applied), you'll be at 100%
               </li>
               <li>
                 Only hours from projects you've added to The Bay count toward your progress
               </li>
             </ul>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <h4 className="font-medium mb-2">Calculation Breakdown:</h4>
+            <ol className="list-decimal pl-5 space-y-3">
+              <li className="pb-1">
+                <span className="font-semibold block mb-1">Step 1: Calculate hours for each project</span>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  <li><strong>If project is viral:</strong> Count as 15 hours</li>
+                  <li><strong>If not viral:</strong> Take tracked hours (capped at 15 hours)</li>
+                  <li><strong>If not shipped:</strong> Cap at 14.75 hours maximum</li>
+                </ul>
+              </li>
+              <li className="pb-1">
+                <span className="font-semibold block mb-1">Step 2: Calculate total hours</span>
+                <div className="text-sm">
+                  Add up the hours from all projects to get your total hours
+                </div>
+                <div className="font-mono bg-gray-100 p-2 my-1 rounded-md text-sm">
+                  Total Hours = Project1 Hours + Project2 Hours + ... + ProjectN Hours
+                </div>
+              </li>
+              <li className="pb-1">
+                <span className="font-semibold block mb-1">Step 3: Calculate percentage</span>
+                <div className="text-sm">
+                  Divide your total hours by 60 (the goal) and multiply by 100
+                </div>
+                <div className="font-mono bg-gray-100 p-2 my-1 rounded-md text-sm">
+                  Percentage = (Total Hours ÷ 60) × 100%
+                </div>
+                <div className="text-sm">
+                  The final percentage is capped at 100%
+                </div>
+              </li>
+            </ol>
+            <div className="mt-3 text-sm bg-blue-50 p-2 rounded-md">
+              <span className="font-semibold block">Example:</span>
+              <p>If you have 3 projects:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Project 1: Viral (automatically 15 hours)</li>
+                <li>Project 2: 20 hours tracked but not viral (capped at 15 hours)</li>
+                <li>Project 3: 10 hours tracked, not shipped (10 hours)</li>
+              </ul>
+              <p className="mt-1">Total Hours = 15 + 15 + 10 = 40 hours</p>
+              <p>Percentage = (40 ÷ 60) × 100% = 66.7% (rounded to 67%)</p>
+            </div>
           </div>
           
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
@@ -598,11 +646,7 @@ export default function Bay() {
                 Make at least one of your projects go viral according to our <a href="/info/go-viral" className="text-blue-600 hover:underline">defined criteria</a>
               </li>
             </ol>
-          </div>
-          
-          <p>
-            Your current progress: <span className="font-bold">{totalHours}%</span> toward the 60-hour requirement
-          </p>
+          </div>          
         </div>
       </Modal>
       <div className={styles.content}>
