@@ -126,10 +126,41 @@ async function getHackatimeProjects() {
 
 // Project Detail Component
 function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () => void }) {
+  // Calculate project's contribution percentage
+  const getProjectHours = () => {
+    // If viral, it's 15 hours (25% toward the 60-hour goal)
+    if (project.viral) {
+      console.log(`ProjectDetail: ${project.name} is viral, returning 15 hours`);
+      return 15;
+    }
+    
+    // Get hours from Hackatime or default to 0
+    // Use the hours passed via props
+    const rawHours = (project as any).hours || 0;
+    console.log(`ProjectDetail: ${project.name} raw hours = ${rawHours}, hackatime = ${project.hackatime}`);
+    
+    // Cap hours per project at 15
+    let cappedHours = Math.min(rawHours, 15);
+    
+    // If the project is not shipped, cap it at 14.75 hours
+    if (!project.shipped && cappedHours > 14.75) {
+      cappedHours = 14.75;
+      console.log(`ProjectDetail: ${project.name} not shipped, capped at 14.75 hours`);
+    }
+    
+    console.log(`ProjectDetail: ${project.name} final hours = ${cappedHours}`);
+    return cappedHours;
+  };
+  
+  const projectHours = getProjectHours();
+  const contributionPercentage = Math.round((projectHours / 60) * 100);
+  
   const handleEdit = () => {
     // Explicitly call onEdit with the full project data to ensure proper form initialization
     onEdit();
   };
+  
+  console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
   
   return (
     <div className={`${styles.editForm}`}>
@@ -148,6 +179,29 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
           <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Contribution to Journey</h3>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-xl">👤</span>
+            <div className="flex-grow">
+              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full"
+                  style={{ width: `${contributionPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+            <span className="text-xl">🏝️</span>
+          </div>
+          <div className="text-center text-sm">
+            <p>This project contributes <strong>{projectHours}</strong> hours (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Project status: {project.viral ? '✅ Viral' : '❌ Not Viral'}, 
+              {project.shipped ? '✅ Shipped' : '❌ Not Shipped'}
+            </p>
+          </div>
         </div>
         
         {project.hackatime && (
@@ -240,6 +294,7 @@ export default function Bay() {
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState<boolean>(false);
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState<boolean>(false);
   const [isProjectDetailModalOpen, setIsProjectDetailModalOpen] = useState<boolean>(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
   const [projects, setProjects] = useState<ProjectType[]>([]);
   const [hackatimeProjects, setHackatimeProjects] = useState<Record<string, string>>({});
   const [projectHours, setProjectHours] = useState<Record<string, number>>({});
@@ -248,7 +303,6 @@ export default function Bay() {
   const [isMobile, setIsMobile] = useState(false);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
-  const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
@@ -507,6 +561,7 @@ export default function Bay() {
     const total = projects.reduce((sum, project) => {
       // If project is viral, it automatically counts as 15 hours
       if (project.viral) {
+        console.log(`Project ${project.name} is viral, contributing 15 hours`);
         return sum + 15;
       }
       
@@ -514,30 +569,42 @@ export default function Bay() {
       let hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
       
       // Cap hours per project at 15
-      hours = Math.min(hours, 15);
+      let cappedHours = Math.min(hours, 15);
       
       // If the project is not shipped, cap it at 14.75 hours
-      if (!project.shipped && hours > 14.75) {
-        hours = 14.75;
+      if (!project.shipped && cappedHours > 14.75) {
+        cappedHours = 14.75;
+        console.log(`Project ${project.name} not shipped, capping at 14.75 hours`);
       }
       
-      return sum + hours;
+      console.log(`Project ${project.name}: Raw hours=${hours}, Final contribution=${cappedHours}`);
+      return sum + cappedHours;
     }, 0);
     
     // Calculate percentage (0-100)
     const percentage = Math.min(Math.round((total / 60) * 100), 100);
     
-    console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects);
+    console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects.length);
+    console.log('Project status flags: viral, shipped:', 
+      projects.map(p => ({ 
+        name: p.name, 
+        viral: !!p.viral, 
+        shipped: !!p.shipped, 
+        hackatime: p.hackatime,
+        hours: p.hackatime ? (projectHours[p.hackatime] || 0) : 0 
+      }))
+    );
+    
     setTotalHours(percentage);
   }, [projects, projectHours]);
 
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
-        <div className="w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
-          <div className="px-4 sm:px-0">
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-4xl md:text-5xl">👤</span>
+        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
+          <div className="flex-grow px-4 sm:px-0">
+            <div className="flex items-center gap-3 mb-1 mt-2 md:mt-0">
+              <span className="text-xl">🧑‍💻</span>
               <div className="flex-grow cursor-pointer" onClick={() => setIsProgressModalOpen(true)}>
                 <ProgressBar 
                   value={totalHours} 
@@ -547,9 +614,9 @@ export default function Bay() {
                   animated={totalHours < 100}
                 />
               </div>
-              <span className="text-4xl md:text-5xl">🏝️</span>
+              <span className="text-xl">🏝️</span>
             </div>
-            <div className="text-center mt-1 mb-1">
+            <div className="text-center mt-1 mb-3 md:mb-1">
               <h3 className="font-medium text-lg">
                 {totalHours}%
               </h3>
@@ -557,6 +624,7 @@ export default function Bay() {
           </div>
         </div>
       </div>
+      
       {/* Progress Information Modal */}
       <Modal
         isOpen={isProgressModalOpen}
@@ -647,9 +715,14 @@ export default function Bay() {
                 Make at least one of your projects go viral according to our <a href="/info/go-viral" className="text-blue-600 hover:underline">defined criteria</a>
               </li>
             </ol>
-          </div>          
+          </div>
+          
+          <p>
+            Your current progress: <span className="font-bold">{totalHours}%</span> toward the 60-hour requirement
+          </p>
         </div>
       </Modal>
+      
       <div className={styles.content}>
         <div className={styles.projectList}>
           <div className="mt-2 md:mt-6 w-full">
@@ -679,41 +752,55 @@ export default function Bay() {
                   // Sort by hours in descending order (highest first)
                   return hoursB - hoursA;
                 })
-                .map((project, index) => (
-                <Project
-                  key={project.projectID}
-                  {...project}
-                  hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
-                  editHandler={(project) => {
-                    // Check if the edit request is coming from the edit button
-                    const isEditRequest = 'isEditing' in project;
-                    
-                    // For mobile devices, show project details first
-                    if (isMobile) {
-                      setSelectedProjectId(project.projectID);
-                      setInitialEditState(project);
-                      setIsProjectDetailModalOpen(true);
-                      return;
-                    }
-                    
-                    // For desktop: if clicking the same project and not an edit request, toggle selection
-                    if (selectedProjectId === project.projectID && !isEditRequest) {
-                      setSelectedProjectId(null);
-                    } else {
-                      // Otherwise, select the new project and update form state
-                      setSelectedProjectId(project.projectID);
-                      setInitialEditState(project);
-                      
-                      // Only show edit modal if explicitly requested
-                      if (isEditRequest) {
-                        setIsProjectEditModalOpen(true);
-                      }
-                    }
-                  }}
-                  // Only show selected state on desktop
-                  selected={!isMobile && selectedProjectId === project.projectID}
-                />
-              ))}
+                .map((project, index) => {
+                  console.log(`Rendering project ${project.name}:`, {
+                    id: project.projectID,
+                    viral: !!project.viral, 
+                    shipped: !!project.shipped,
+                    hackatime: project.hackatime || 'none',
+                    hours: project.hackatime ? (projectHours[project.hackatime] || 0) : 0
+                  });
+                  
+                  return (
+                    <Project
+                      key={project.projectID}
+                      {...project}
+                      hours={project.hackatime ? (projectHours[project.hackatime] || 0) : 0}
+                      viral={!!project.viral}
+                      shipped={!!project.shipped}
+                      in_review={!!project.in_review}
+                      approved={!!project.approved}
+                      editHandler={(project) => {
+                        // Check if the edit request is coming from the edit button
+                        const isEditRequest = 'isEditing' in project;
+                        
+                        // For mobile devices, show project details first
+                        if (isMobile) {
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
+                          setIsProjectDetailModalOpen(true);
+                          return;
+                        }
+                        
+                        // For desktop: if clicking the same project and not an edit request, toggle selection
+                        if (selectedProjectId === project.projectID && !isEditRequest) {
+                          setSelectedProjectId(null);
+                        } else {
+                          // Otherwise, select the new project and update form state
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
+                          
+                          // Only show edit modal if explicitly requested
+                          if (isEditRequest) {
+                            setIsProjectEditModalOpen(true);
+                          }
+                        }
+                      }}
+                      // Only show selected state on desktop
+                      selected={!isMobile && selectedProjectId === project.projectID}
+                    />
+                  );
+                })}
               {projects.length === 0 && (
                 <div className="p-4 text-center text-gray-500">
                   No projects yet. Click "Add Project" to get started!
@@ -934,10 +1021,27 @@ export default function Bay() {
                   );
                 }
                 
+                console.log(`Rendering ProjectDetail for ${selectedProject.name}:`, {
+                  hackatime: selectedProject.hackatime,
+                  hours: selectedProject.hackatime ? (projectHours[selectedProject.hackatime] || 0) : 0,
+                  viral: !!selectedProject.viral,
+                  shipped: !!selectedProject.shipped
+                });
+                
+                // Create an object with all the necessary properties
+                const projectWithProps = {
+                  ...selectedProject,
+                  hours: selectedProject.hackatime ? (projectHours[selectedProject.hackatime] || 0) : 0,
+                  viral: !!selectedProject.viral,
+                  shipped: !!selectedProject.shipped,
+                  in_review: !!selectedProject.in_review,
+                  approved: !!selectedProject.approved
+                };
+                
                 // Otherwise show the project details
                 return (
                   <ProjectDetail 
-                    project={selectedProject}
+                    project={projectWithProps}
                     onEdit={() => {
                       // Make sure to set initialEditState with the full project data
                       const projectWithDefaults = {
@@ -1001,12 +1105,74 @@ export default function Bay() {
               );
             }
             
+            // Calculate project's contribution percentage
+            const getSelectedProjectHours = () => {
+              // If viral, it's 15 hours (25% toward the 60-hour goal)
+              if (selectedProject.viral) {
+                console.log(`Modal: ${selectedProject.name} is viral, returning 15 hours`);
+                return 15;
+              }
+              
+              // Get hours from Hackatime or default to 0
+              const hackatimeProjectName = selectedProject.hackatime || '';
+              console.log(`Modal: ${selectedProject.name} hackatime = "${hackatimeProjectName}"`);
+              
+              // Safely access projectHours with correct typing
+              const rawHours = hackatimeProjectName && 
+                typeof projectHours === 'object' && 
+                projectHours !== null && 
+                hackatimeProjectName in projectHours ? 
+                (projectHours as any)[hackatimeProjectName] : 0;
+              
+              console.log(`Modal: ${selectedProject.name} rawHours = ${rawHours}, projectHours keys:`, Object.keys(projectHours));
+              
+              // Cap hours per project at 15
+              let cappedHours = Math.min(rawHours, 15);
+              
+              // If the project is not shipped, cap it at 14.75 hours
+              if (!selectedProject.shipped && cappedHours > 14.75) {
+                cappedHours = 14.75;
+                console.log(`Modal: ${selectedProject.name} not shipped, capped at 14.75 hours`);
+              }
+              
+              console.log(`Modal: ${selectedProject.name} final hours = ${cappedHours}`);
+              return cappedHours;
+            };
+            
+            const selectedProjectContribution = getSelectedProjectHours();
+            const contributionPercentage = Math.round((selectedProjectContribution / 60) * 100);
+            
+            console.log(`Modal rendering: ${selectedProject.name}, hours=${selectedProjectContribution}, viral=${selectedProject.viral}, shipped=${selectedProject.shipped}`);
+            
             return (
               <div className="p-4">
                 <div className="space-y-5 pb-8">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
                     <p className="text-base text-gray-900">{selectedProject.description || "No description provided."}</p>
+                  </div>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Contribution to Journey</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xl">👤</span>
+                      <div className="flex-grow">
+                        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${contributionPercentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <span className="text-xl">🏝️</span>
+                    </div>
+                    <div className="text-center text-sm">
+                      <p>This project contributes <strong>{selectedProjectContribution}</strong> hours (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Project status: {selectedProject.viral ? '✅ Viral' : '❌ Not Viral'}, 
+                        {selectedProject.shipped ? '✅ Shipped' : '❌ Not Shipped'}
+                      </p>
+                    </div>
                   </div>
                   
                   {selectedProject.hackatime && (

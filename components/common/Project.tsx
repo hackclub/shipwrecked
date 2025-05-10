@@ -11,7 +11,7 @@ type ProjectProps = Project & {
     selected?: boolean
 };
 
-export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hours, selected }: ProjectProps) {
+export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hours, selected, viral, shipped, in_review, approved }: ProjectProps) {
     const [isMobile, setIsMobile] = useState<boolean>(false);
     
     // Detect mobile screen size
@@ -38,10 +38,10 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
                 userId, 
                 projectID, 
                 submitted,
-                viral: false,
-                shipped: false,
-                in_review: false,
-                approved: false
+                viral: !!viral,
+                shipped: !!shipped,
+                in_review: !!in_review,
+                approved: !!approved
             });
         }
     };
