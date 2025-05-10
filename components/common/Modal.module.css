@@ -23,6 +23,8 @@
   overflow-y: auto;
   position: relative;
   animation: slideIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -31,6 +33,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: white;
 }
 
 .title {
@@ -58,8 +61,12 @@
 
 .content {
   padding: 1.25rem;
+  padding-bottom: 2rem;
   color: #374151;
   line-height: 1.5;
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative;
 }
 
 .footer {
@@ -67,6 +74,7 @@
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
+  background: white;
 }
 
 .okButton {

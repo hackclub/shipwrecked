@@ -107,92 +107,98 @@ async function getHackatimeProjects() {
 
 // Project Detail Component
 function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () => void }) {
+  const handleEdit = () => {
+    // Explicitly call onEdit with the full project data to ensure proper form initialization
+    onEdit();
+  };
+  
   return (
-    <div className={styles.editForm}>
-      <div className="flex justify-between items-center mb-6 border-b pb-4">
+    <div className={`${styles.editForm}`}>
+      <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10">
         <h2 className="text-2xl font-bold">{project.name}</h2>
         <button
           className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-          onClick={onEdit}
+          onClick={handleEdit}
           aria-label="Edit project"
         >
-          <Icon glyph="edit" size={16} />
           <span>Edit</span>
         </button>
       </div>
       
-      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
-        <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
-      </div>
-      
-      {project.hackatime && (
-        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-1">Hackatime Project</h3>
-          <p className="text-base text-gray-900">{project.hackatime}</p>
+      <div className="space-y-5 pb-8">
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
+          <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
         </div>
-      )}
-      
-      <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded-full mr-2 ${project.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-700">Viral</span>
-        </div>
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded-full mr-2 ${project.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-700">Shipped</span>
-        </div>
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded-full mr-2 ${project.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-700">In Review</span>
-        </div>
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded-full mr-2 ${project.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-700">Approved</span>
-        </div>
-      </div>
-      
-      {(project.codeUrl || project.playableUrl) && (
-        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Links</h3>
-          <div className="flex flex-col gap-2">
-            {project.codeUrl && (
-              <a 
-                href={project.codeUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline flex items-center gap-2"
-              >
-                <Icon glyph="github" size={16} />
-                View Code Repository
-              </a>
-            )}
-            {project.playableUrl && (
-              <a 
-                href={project.playableUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline flex items-center gap-2"
-              >
-                <Icon glyph="link" size={16} />
-                Try It Out
-              </a>
-            )}
+        
+        {project.hackatime && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Hackatime Project</h3>
+            <p className="text-base text-gray-900">{project.hackatime}</p>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${project.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <span className="text-sm text-gray-700">Viral</span>
+          </div>
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${project.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <span className="text-sm text-gray-700">Shipped</span>
+          </div>
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${project.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <span className="text-sm text-gray-700">In Review</span>
+          </div>
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${project.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <span className="text-sm text-gray-700">Approved</span>
           </div>
         </div>
-      )}
-      
-      {project.screenshot && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-1">Screenshot</h3>
-          <img 
-            src={project.screenshot} 
-            alt={`Screenshot of ${project.name}`}
-            className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
-          />
-        </div>
-      )}
+        
+        {(project.codeUrl || project.playableUrl) && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Links</h3>
+            <div className="flex flex-col gap-2">
+              {project.codeUrl && (
+                <a 
+                  href={project.codeUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-2"
+                >
+                  <Icon glyph="github" size={16} />
+                  View Code Repository
+                </a>
+              )}
+              {project.playableUrl && (
+                <a 
+                  href={project.playableUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-2"
+                >
+                  <Icon glyph="link" size={16} />
+                  Try It Out
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {project.screenshot && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Screenshot</h3>
+            <img 
+              src={project.screenshot} 
+              alt={`Screenshot of ${project.name}`}
+              className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -376,10 +382,6 @@ export default function Bay() {
     }
   });
 
-  const deleteProjectId = (index: number, projectID: string, userId: string) => (cb: (projectID: string, userId: string) => Promise<unknown>) => {
-    cb(projectID, userId).then(() => setProjects(projects.filter((_, i) => i !== index)));
-  }
-
   async function getUserProjects() {
     const response = await fetch("/api/projects");
     const data = await response.json();
@@ -404,14 +406,22 @@ export default function Bay() {
           setSelectedProjectId(null);
         }
       } else if (e.key === 'e' && selectedProjectId && !isProjectEditModalOpen) {
-        // Press 'e' to edit selected project
-        setIsProjectEditModalOpen(true);
+        // Only open edit if the project still exists
+        const projectExists = projects.some(p => p.projectID === selectedProjectId);
+        if (projectExists) {
+          // Press 'e' to edit selected project
+          setIsProjectEditModalOpen(true);
+        } else {
+          // Clear selection if project doesn't exist
+          setSelectedProjectId(null);
+          toast.error("Project not found. It may have been deleted.");
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen]);
+  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen, projects]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -422,6 +432,35 @@ export default function Bay() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // This useEffect watches for changes to selectedProjectId and initialEditState
+  // and ensures the project edit form fields are properly synchronized
+  useEffect(() => {
+    if (selectedProjectId && initialEditState.projectID) {
+      // Update projectEditState with initialEditState values
+      projectEditState.data = {
+        ...projectEditState.data,
+        name: initialEditState.name || "",
+        description: initialEditState.description || "",
+        hackatime: initialEditState.hackatime || "",
+        codeUrl: initialEditState.codeUrl || "",
+        playableUrl: initialEditState.playableUrl || "",
+        screenshot: initialEditState.screenshot || "",
+        userId: initialEditState.userId || "",
+        projectID: initialEditState.projectID || "",
+        viral: initialEditState.viral || false,
+        shipped: initialEditState.shipped || false,
+        in_review: initialEditState.in_review || false,
+        approved: initialEditState.approved || false
+      };
+      
+      console.log("Project edit state synchronized:", {
+        selectedProjectId,
+        initialEditState,
+        projectEditState
+      });
+    }
+  }, [selectedProjectId, initialEditState, projectEditState]);
 
   return (
     <div className={styles.container}>
@@ -454,7 +493,7 @@ export default function Bay() {
                 Click a project to select it. Use <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">E</kbd> to edit, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
               </p>
               <p className="md:hidden">
-                Tap a project to edit it.
+                Tap a project to edit it directly.
               </p>
             </div>
             <div className="bg-white rounded-lg shadow">
@@ -463,7 +502,31 @@ export default function Bay() {
                   key={project.projectID}
                   {...project}
                   hours={project.hackatime ? projectHours[project.hackatime] || 0 : 0}
-                  deleteHandler={deleteProjectId(index, project.projectID, project.userId)}
+                  deleteHandler={(cb) => {
+                    // Create a wrapper function to provide feedback and update UI
+                    const deleteWrapper = async (projectID: string, userId: string) => {
+                      try {
+                        // Call the original delete callback
+                        await cb(projectID, userId);
+                        // If successful, show confirmation and filter out the deleted project
+                        toast.success(`Project "${project.name}" deleted successfully`);
+                        
+                        // If this was the selected project, clear selection
+                        if (selectedProjectId === project.projectID) {
+                          setSelectedProjectId(null);
+                          setIsProjectEditModalOpen(false);
+                        }
+                        
+                        return { success: true };
+                      } catch (error) {
+                        // If there was an error, show error message
+                        toast.error(`Failed to delete project: ${error}`);
+                        throw error;
+                      }
+                    };
+                    
+                    return deleteWrapper(project.projectID, project.userId);
+                  }}
                   editHandler={(project) => {
                     // Check if the edit request is coming from the edit button
                     const isEditRequest = 'isEditing' in project;
@@ -490,7 +553,8 @@ export default function Bay() {
                       }
                     }
                   }}
-                  selected={selectedProjectId === project.projectID}
+                  // Only show selected state on desktop
+                  selected={!isMobile && selectedProjectId === project.projectID}
                 />
               ))}
               {projects.length === 0 && (
@@ -506,8 +570,8 @@ export default function Bay() {
           <>
             {isProjectEditModalOpen ? (
               // Edit Form
-              <div className={styles.editForm}>
-                <div className="flex justify-between items-center mb-6 border-b pb-4">
+              <div className={`${styles.editForm} relative`}>
+                <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10">
                   <h2 className="text-2xl font-bold">Edit Project</h2>
                   <button
                     className="flex items-center gap-1 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
@@ -519,8 +583,7 @@ export default function Bay() {
                     <span className="text-xl leading-none">&times;</span>
                   </button>
                 </div>
-                <form action={projectEditFormAction}>
-                  {/* Form inputs remain the same */}
+                <form action={projectEditFormAction} className="pb-20">
                   <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
                     <FormInput
                       fieldName='projectID'
@@ -531,13 +594,19 @@ export default function Bay() {
                       {""}
                     </FormInput>
                   </span>
-                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-5 bg-gray-50 p-4 rounded-lg">
                     <FormInput
                       fieldName='name'
                       placeholder='Project Name'
                       state={projectEditState}
                       required
-                      defaultValue={initialEditState.name}
+                      value={initialEditState.name}
+                      onChange={(e) => {
+                        setInitialEditState((prev: typeof initialEditState) => ({
+                          ...prev,
+                          name: e.target.value
+                        }));
+                      }}
                     >
                       Project Name
                     </FormInput>
@@ -545,20 +614,32 @@ export default function Bay() {
                       fieldName='description'
                       placeholder='Description'
                       state={projectEditState}
-                      defaultValue={initialEditState.description}
+                      value={initialEditState.description}
+                      onChange={(e) => {
+                        setInitialEditState((prev: typeof initialEditState) => ({
+                          ...prev,
+                          description: e.target.value
+                        }));
+                      }}
                       required
                     >
                       Description
                     </FormInput>
                   </div>
                   
-                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-5 bg-gray-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
                     <FormInput
                       fieldName='codeUrl'
                       placeholder='Code URL'
                       state={projectEditState}
-                      {...(initialEditState.codeUrl && { defaultValue: initialEditState.codeUrl})}
+                      value={initialEditState.codeUrl}
+                      onChange={(e) => {
+                        setInitialEditState((prev: typeof initialEditState) => ({
+                          ...prev,
+                          codeUrl: e.target.value
+                        }));
+                      }}
                     >
                       Code URL
                     </FormInput>
@@ -566,7 +647,13 @@ export default function Bay() {
                       fieldName='playableUrl'
                       placeholder='Playable URL'
                       state={projectEditState}
-                      defaultValue={initialEditState.playableUrl}
+                      value={initialEditState.playableUrl}
+                      onChange={(e) => {
+                        setInitialEditState((prev: typeof initialEditState) => ({
+                          ...prev,
+                          playableUrl: e.target.value
+                        }));
+                      }}
                     >
                       Playable URL
                     </FormInput>
@@ -574,13 +661,19 @@ export default function Bay() {
                       fieldName='screenshot'
                       placeholder='Screenshot URL'
                       state={projectEditState}
-                      defaultValue={initialEditState.screenshot}
+                      value={initialEditState.screenshot}
+                      onChange={(e) => {
+                        setInitialEditState((prev: typeof initialEditState) => ({
+                          ...prev,
+                          screenshot: e.target.value
+                        }));
+                      }}
                     >
                       Screenshot URL
                     </FormInput>
                   </div>
                   
-                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-5 bg-gray-50 p-4 rounded-lg">
                     <FormSelect 
                       fieldName='hackatime'
                       placeholder={isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
@@ -593,8 +686,8 @@ export default function Bay() {
                     </FormSelect>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 mb-6 bg-gray-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
                     <label className="flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
                     </label>
@@ -608,22 +701,80 @@ export default function Bay() {
                       <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
                     </label>
                   </div>
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-                    disabled={projectEditPending || isLoadingHackatime}
-                  >
-                    <Icon glyph="edit" size={18} />
-                    Save Changes
-                  </button>
+                  
+                  {/* Debug info */}
+                  <div className="mb-5 p-3 border border-gray-200 rounded-lg text-xs text-gray-500" style={{ display: 'none' }}>
+                    <pre>
+                      {JSON.stringify({
+                        initialEditState,
+                        projectEditState: projectEditState.data
+                      }, null, 2)}
+                    </pre>
+                  </div>
+                  
+                  {/* Fixed position button that stays at the bottom */}
+                  <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
+                    <button
+                      type="submit"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
+                      disabled={projectEditPending || isLoadingHackatime}
+                    >
+                      Save Changes
+                    </button>
+                  </div>
                 </form>
               </div>
             ) : (
               // Project Detail View
-              <ProjectDetail 
-                project={projects.find(p => p.projectID === selectedProjectId)!}
-                onEdit={() => setIsProjectEditModalOpen(true)}
-              />
+              // Check if the selected project still exists
+              (() => {
+                const selectedProject = projects.find(p => p.projectID === selectedProjectId);
+                
+                if (!selectedProject) {
+                  // If the project doesn't exist anymore, show a message and clear selection
+                  setTimeout(() => setSelectedProjectId(null), 0);
+                  return (
+                    <div className={`${styles.editForm}`}>
+                      <div className="flex justify-center items-center h-64">
+                        <div className="text-center">
+                          <h3 className="text-xl font-medium text-gray-500 mb-2">Project not found</h3>
+                          <p className="text-gray-400">The project may have been deleted</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Otherwise show the project details
+                return (
+                  <ProjectDetail 
+                    project={selectedProject}
+                    onEdit={() => {
+                      // Make sure to set initialEditState with the full project data
+                      const projectWithDefaults = {
+                        ...selectedProject,
+                        codeUrl: selectedProject.codeUrl || "",
+                        playableUrl: selectedProject.playableUrl || "",
+                        screenshot: selectedProject.screenshot || "",
+                        viral: !!selectedProject.viral,
+                        shipped: !!selectedProject.shipped,
+                        in_review: !!selectedProject.in_review,
+                        approved: !!selectedProject.approved
+                      };
+                      
+                      console.log("Opening edit form with data:", projectWithDefaults);
+                      
+                      // Update the form state
+                      setInitialEditState(projectWithDefaults);
+                      
+                      // Wait for state to be updated before showing the form
+                      setTimeout(() => {
+                        setIsProjectEditModalOpen(true);
+                      }, 0);
+                    }}
+                  />
+                );
+              })()
             )}
           </>
         )}
@@ -637,20 +788,24 @@ export default function Bay() {
           modalTitle='Create New Project!'
           hackatimeProjects={hackatimeProjects}
           isLoadingHackatime={isLoadingHackatime}
+          hideFooter={true}
         />
         {/* Edit Project Modal - Mobile Only */}
         <div className="md:hidden">
-          <ProjectModal
-            isOpen={isProjectEditModalOpen}
-            setIsOpen={setIsProjectEditModalOpen}
-            formAction={projectEditFormAction}
-            state={projectEditState}
-            pending={projectEditPending}
-            modalTitle='Edit Project!'
-            hackatimeProjects={hackatimeProjects}
-            isLoadingHackatime={isLoadingHackatime}
-            {...initialEditState}
-          />
+          {selectedProjectId && projects.find(p => p.projectID === selectedProjectId) && (
+            <ProjectModal
+              isOpen={isProjectEditModalOpen}
+              setIsOpen={setIsProjectEditModalOpen}
+              formAction={projectEditFormAction}
+              state={projectEditState}
+              pending={projectEditPending}
+              modalTitle='Edit Project!'
+              hackatimeProjects={hackatimeProjects}
+              isLoadingHackatime={isLoadingHackatime}
+              hideFooter={true}
+              {...initialEditState}
+            />
+          )}
         </div>
         <Toaster richColors />
         {toastMessage && (
@@ -673,7 +828,8 @@ type ProjectModalProps = Partial<ProjectType> & {
   pending: boolean,
   modalTitle: string,
   hackatimeProjects: Record<string, string>,
-  isLoadingHackatime: boolean
+  isLoadingHackatime: boolean,
+  hideFooter?: boolean
 }
 
 function ProjectModal(props: ProjectModalProps) {
@@ -683,10 +839,10 @@ function ProjectModal(props: ProjectModalProps) {
       isOpen={props.isOpen}
       onClose={() => props.setIsOpen(false)}
       title={props.modalTitle}
-      {...(!isCreate && { okText: "Done" })}
-      hideFooter={isCreate}
+      okText="Done"
+      hideFooter={props.hideFooter || isCreate}
     >
-      <form action={props.formAction}>
+      <form action={props.formAction} className="pb-16 relative">
         <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
           <FormInput
             fieldName='projectID'
@@ -698,7 +854,7 @@ function ProjectModal(props: ProjectModalProps) {
           </FormInput>
         </span>
         
-        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+        <div className="mb-5 bg-gray-50 p-4 rounded-lg">
           <FormInput
             fieldName='name'
             placeholder='Project Name'
@@ -721,7 +877,7 @@ function ProjectModal(props: ProjectModalProps) {
         
         {!isCreate && (
           <>
-            <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+            <div className="mb-5 bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Project URLs</h3>
               <FormInput
                 fieldName='codeUrl'
@@ -733,24 +889,24 @@ function ProjectModal(props: ProjectModalProps) {
               </FormInput>
               <FormInput
                 fieldName='playableUrl'
-                placeholder='Playable URL (optional)'
+                placeholder='Playable URL'
                 state={props.state}
                 {...(props.playableUrl && { defaultValue: props.playableUrl})}
               >
-                Playable URL (optional)
+                Playable URL
               </FormInput>
               <FormInput
                 fieldName='screenshot'
-                placeholder='Screenshot URL (optional)'
+                placeholder='Screenshot URL'
                 state={props.state}
                 {...(props.screenshot && { defaultValue: props.screenshot})}
               >
-                Screenshot URL (optional)
+                Screenshot URL
               </FormInput>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mb-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2 col-span-2">Project Status</h3>
+            <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
               </label>
@@ -767,7 +923,7 @@ function ProjectModal(props: ProjectModalProps) {
           </>
         )}
         
-        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+        <div className="mb-5 bg-gray-50 p-4 rounded-lg">
           <FormSelect 
             fieldName='hackatime'
             placeholder={props.isLoadingHackatime ? 'Loading projects...' : 'Your Hackatime Projects'}
@@ -780,14 +936,16 @@ function ProjectModal(props: ProjectModalProps) {
           </FormSelect>
         </div>
         
-        <button
-          type="submit"
-          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-          disabled={props.pending || props.isLoadingHackatime}
-        >
-          <Icon glyph={isCreate ? "plus" : "edit"} size={18} />
-          {isCreate ? "Create Project" : "Save Changes"}
-        </button>
+        {/* Fixed button at bottom of modal */}
+        <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-10">
+          <button
+            type="submit"
+            className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
+            disabled={props.pending || props.isLoadingHackatime}
+          >
+            {isCreate ? "Create Project" : "Save Changes"}
+          </button>
+        </div>
       </form>
     </Modal>
   );

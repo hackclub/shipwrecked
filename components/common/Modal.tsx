@@ -21,6 +21,7 @@ export default function Modal({
   hideFooter = false
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Close on escape key
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function Modal({
         aria-labelledby="modal-title"
         aria-modal="true"
       >
-        <div className={styles.header}>
+        <div className={`${styles.header} sticky top-0 z-10 bg-white`}>
           <span className='flex flex-row items-center'>
           <img src="/bottle.png" className="w-[60px] -rotate-45" />
           <h2 id="modal-title" className={styles.title}>{title}</h2>
@@ -85,11 +86,11 @@ export default function Modal({
             <img className='w-[40px]' src="/mark-cross.svg" />
           </button>
         </div>
-        <div className={styles.content}>
+        <div className={styles.content} ref={contentRef}>
           {children}
         </div>
         {!hideFooter && (
-          <div className={styles.footer}>
+          <div className={`${styles.footer} sticky bottom-0 z-10 bg-white`}>
             <button 
               onClick={handleClose}
               className={styles.okButton}
