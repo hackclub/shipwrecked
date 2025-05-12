@@ -14,9 +14,6 @@ import type { ProjectType } from '../api/projects/route';
 import { useRouter } from 'next/navigation';
 import type { HackatimeProject } from "@/types/hackatime";
 import Icon from "@hackclub/icons";
-import Tooltip from '../components/common/Tooltip';
-import Link from 'next/link';
-import Header from '@/components/common/Header';
 
 function Loading() {
   return (
@@ -185,8 +182,21 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
         </div>
         
         <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Contribution to Journey</h3>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-xl">👤</span>
+            <div className="flex-grow">
+              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full"
+                  style={{ width: `${contributionPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+            <span className="text-xl">🏝️</span>
+          </div>
           <div className="text-center text-sm">
-            <p>This project contributes <strong>{projectHours}</strong> hour{projectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
+            <p>This project contributes <strong>{projectHours}</strong> hours (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
             <p className="text-xs text-gray-500 mt-1">
               Project status: {project.viral ? '✅ Viral' : '❌ Not Viral'}, 
               {project.shipped ? '✅ Shipped' : '❌ Not Shipped'}
@@ -293,6 +303,7 @@ export default function Bay() {
   const [isMobile, setIsMobile] = useState(false);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
@@ -551,7 +562,10 @@ export default function Bay() {
     const total = projects.reduce((sum, project) => {
       // If project is viral, it automatically counts as 15 hours
       if (project.viral) {
+<<<<<<< HEAD
+=======
         console.log(`Project ${project.name} is viral, contributing 15 hours`);
+>>>>>>> 649d82c (add more detail to each project view)
         return sum + 15;
       }
       
@@ -559,6 +573,16 @@ export default function Bay() {
       let hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
       
       // Cap hours per project at 15
+<<<<<<< HEAD
+      hours = Math.min(hours, 15);
+      
+      // If the project is not shipped, cap it at 14.75 hours
+      if (!project.shipped && hours > 14.75) {
+        hours = 14.75;
+      }
+      
+      return sum + hours;
+=======
       let cappedHours = Math.min(hours, 15);
       
       // If the project is not shipped, cap it at 14.75 hours
@@ -569,6 +593,7 @@ export default function Bay() {
       
       console.log(`Project ${project.name}: Raw hours=${hours}, Final contribution=${cappedHours}`);
       return sum + cappedHours;
+>>>>>>> 649d82c (add more detail to each project view)
     }, 0);
     
     // Calculate percentage (0-100)
@@ -588,42 +613,32 @@ export default function Bay() {
     setTotalHours(percentage);
   }, [projects, projectHours]);
 
-  // Add a function to calculate the total raw hours before component return
-  const calculateTotalRawHours = () => {
-    return projects.reduce((sum, project) => {
-      // Get the raw hours before any capping
-      const hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
-      return Math.round(sum + hours);
-    }, 0);
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
+<<<<<<< HEAD
+        <div className="w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
+          <div className="px-4 sm:px-0">
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-4xl md:text-5xl">👤</span>
+=======
         <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
           <div className="flex-grow px-4 sm:px-0">
             <div className="flex items-center gap-3 mb-1 mt-2 md:mt-0">
-              <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${calculateTotalRawHours()} hour${calculateTotalRawHours() !== 1 ? 's' : ''} thus far`}>
-                <span className="text-4xl md:text-6xl">👤</span>
-              </Tooltip>
-              <div 
-                className="flex-grow cursor-pointer" 
-                onClick={() => setIsProgressModalOpen(true)}
-                title="When this progress bar reaches 100%, you're eligible for going to the island!"
-              >
+              <span className="text-xl">🧑‍💻</span>
+>>>>>>> 649d82c (add more detail to each project view)
+              <div className="flex-grow cursor-pointer" onClick={() => setIsProgressModalOpen(true)}>
                 <ProgressBar 
                   value={totalHours} 
                   max={100} 
-                  height={12}
+                  height={8}
                   variant={totalHours >= 100 ? 'success' : 'default'}
                   animated={totalHours < 100}
                 />
               </div>
-              <Tooltip content="Your prize - a fantastic island adventure with friends">
-                <span className="text-4xl md:text-6xl">🏝️</span>
-              </Tooltip>
+              <span className="text-4xl md:text-5xl">🏝️</span>
             </div>
-            <div className="text-center mt-1 mb-3 md:mb-1">
+            <div className="text-center mt-1 mb-1">
               <h3 className="font-medium text-lg">
                 {totalHours}%
               </h3>
@@ -631,7 +646,10 @@ export default function Bay() {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
+=======
       
+>>>>>>> 649d82c (add more detail to each project view)
       {/* Progress Information Modal */}
       <Modal
         isOpen={isProgressModalOpen}
@@ -722,6 +740,11 @@ export default function Bay() {
                 Make at least one of your projects go viral according to our <a href="/info/go-viral" className="text-blue-600 hover:underline">defined criteria</a>
               </li>
             </ol>
+<<<<<<< HEAD
+          </div>          
+        </div>
+      </Modal>
+=======
           </div>
           
           <p>
@@ -730,19 +753,18 @@ export default function Bay() {
         </div>
       </Modal>
       
+>>>>>>> 649d82c (add more detail to each project view)
       <div className={styles.content}>
         <div className={styles.projectList}>
           <div className="mt-2 md:mt-6 w-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Projects</h2>
-              <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
-                <button 
-                  className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
-                  onClick={() => setIsProjectCreateModalOpen(true)}
-                >
-                  <Icon glyph="plus" size={24} />
-                </button>
-              </Tooltip>
+              <button 
+                className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
+                onClick={() => setIsProjectCreateModalOpen(true)}
+              >
+                <Icon glyph="plus" size={24} />
+              </button>
             </div>
             <div className="text-sm text-gray-500 mb-2">
               <p className="hidden md:block">
@@ -1162,8 +1184,21 @@ export default function Bay() {
                   </div>
                   
                   <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Contribution to Journey</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xl">👤</span>
+                      <div className="flex-grow">
+                        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${contributionPercentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <span className="text-xl">🏝️</span>
+                    </div>
                     <div className="text-center text-sm">
-                      <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
+                      <p>This project contributes <strong>{selectedProjectContribution}</strong> hours (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
                       <p className="text-xs text-gray-500 mt-1">
                         Project status: {selectedProject.viral ? '✅ Viral' : '❌ Not Viral'}, 
                         {selectedProject.shipped ? '✅ Shipped' : '❌ Not Shipped'}

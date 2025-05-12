@@ -1,0 +1,115 @@
+/* Tooltip container */
+.tooltipContainer {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip text - base styles */
+.tooltipContent {
+  visibility: hidden;
+  opacity: 0;
+  width: max-content;
+  max-width: 200px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 100;
+  
+  /* Animation */
+  transition: opacity 0.3s;
+  
+  /* Hide on mobile */
+  display: none;
+}
+
+/* Position: top (default) */
+.top {
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Position: bottom */
+.bottom {
+  top: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Position: left */
+.left {
+  right: 125%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Position: right */
+.right {
+  left: 125%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Show the tooltip on hover */
+.tooltipContainer:hover .tooltipContent {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Arrow indicators for each position */
+.top::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+.bottom::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+.left::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  margin-top: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent transparent #333;
+}
+
+.right::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  margin-top: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #333 transparent transparent;
+}
+
+/* Media query to show tooltips only on desktop */
+@media (min-width: 768px) {
+  .tooltipContent {
+    display: block;
+  }
+} 
