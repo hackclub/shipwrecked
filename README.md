@@ -57,7 +57,7 @@ We provide two simple scripts for local development:
 2. **Clean Database Setup** (use this if you need a fresh database)
    ```bash
    ./run-debug-cleandb.sh
-```
+   ```
    This script:
    - Removes any existing database volume
    - Performs all the steps in the standard setup with a clean database
