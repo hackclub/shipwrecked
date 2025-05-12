@@ -92,21 +92,21 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 
       // Group RSVPs by type and date
       const referralsByTypeAndDate = rsvps.reduce((acc: Record<string, Record<string, number>>, rsvp: RSVP) => {
-        // Determine the proper category:
-        // - 'direct': No referral code at all
-        // - 'referred': Has a referral code but no specific type
-        // - otherwise: Use the referral type
+        // Determine the type:
+        // - If it has a referral type, use that exact type (yt, p, etc.)
+        // - If it has no referral code, it's true "direct"
+        // - If it has a referral code but no type, it's "referred"
         let type;
         
-        if (!rsvp.referralCode) {
-          // No referral code = truly direct (not referred by anyone)
-          type = 'direct';
-        } else if (!rsvp.referralType) {
-          // Has referral code but no type = generic referral
-          type = 'referred';
-        } else {
-          // Has both code and type = specific referral channel
+        if (rsvp.referralType) {
+          // Keep exact case and use the referral type as-is
           type = rsvp.referralType;
+        } else if (!rsvp.referralCode) {
+          // No referral code = truly direct traffic
+          type = 'direct';
+        } else {
+          // Has referral code but no type
+          type = 'referred';
         }
         
         const date = new Date(rsvp.createdAt);
@@ -131,15 +131,8 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
         });
       });
 
-      // Sort by date and log the final results
-      const sortedResult = result.sort((a, b) => a.date.localeCompare(b.date));
-      console.log('Debug: Final date range:', {
-        firstDate: sortedResult[0]?.date,
-        lastDate: sortedResult[sortedResult.length - 1]?.date,
-        totalEntries: sortedResult.length
-      });
-
-      return sortedResult;
+      // Sort by date
+      return result.sort((a, b) => a.date.localeCompare(b.date));
     } catch (error) {
       console.error('Error getting referral type data:', error);
       return [];
@@ -160,7 +153,6 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const rsvpDate = new Date(rsvp.createdAt);
         if (rsvpDate >= oneDayAgo) {
-          // Use 'direct' only for truly direct entries (no referral code)
           const referrer = rsvp.referralCode || 'direct';
 
           // Skip test user '3' (test user)
@@ -197,7 +189,6 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 
       // Group all RSVPs by referrer
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
-        // Use 'direct' only for truly direct entries (no referral code)
         const referrer = rsvp.referralCode || 'direct';
         if (referrer !== '3') {
           acc[referrer] = (acc[referrer] || 0) + 1;

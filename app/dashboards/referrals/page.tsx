@@ -8,12 +8,16 @@ import { getReferralDataProvider, ReferralData } from './service';
 const getSeriesColor = (name: string): string => {
   const colorMap: Record<string, string> = {
     'direct': '#8884d8',          // Purple
-    'referred': '#ff8042',        // Coral/orange - new distinct color for generic referrals
+    'referred': '#ff8042',        // Coral/orange - for generic referrals (with referral ID but no type)
     'social_media': '#82ca9d',    // Green
     'email': '#ffc658',          // Gold
     'friend': '#ff7300',         // Orange
     'search': '#0088fe',         // Blue
     'other': '#00C49F',          // Teal
+    'yt': '#FF0000',             // YouTube red
+    'p': '#00ADEE',              // Parse blue
+    'ig-bio': '#C13584',         // Instagram purple/pink
+    'ldrs': '#50AF95',           // Leaders - teal green
   };
   
   // Return mapped color or generate one for unknown types
@@ -126,7 +130,9 @@ export default function ReferralsDashboard() {
     const chartData = dates.map(date => {
       const point: any = { date };
       Object.entries(groupedData).forEach(([name, items]) => {
-        // Skip 'direct' series if showDirect is false and this is the type chart
+        // Only hide the 'direct' series when showDirect is false
+        // All other series (including 'referred' and specific types like 'yt') 
+        // should always be shown
         if (isTypeChart && name === 'direct' && !showDirect) {
           return;
         }
@@ -173,7 +179,8 @@ export default function ReferralsDashboard() {
               />
               <Legend />
               {Object.keys(groupedData).map((name) => {
-                // Skip rendering the 'direct' line if showDirect is false and this is the type chart
+                // Only hide the 'direct' series when toggle is off
+                // All other series should always be shown
                 if (isTypeChart && name === 'direct' && !showDirect) {
                   return null;
                 }
