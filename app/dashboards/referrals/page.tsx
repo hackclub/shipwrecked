@@ -8,6 +8,7 @@ import { getReferralDataProvider, ReferralData } from './service';
 const getSeriesColor = (name: string): string => {
   const colorMap: Record<string, string> = {
     'direct': '#8884d8',          // Purple
+    'referred': '#ff8042',        // Coral/orange - new distinct color for generic referrals
     'social_media': '#82ca9d',    // Green
     'email': '#ffc658',          // Gold
     'friend': '#ff7300',         // Orange

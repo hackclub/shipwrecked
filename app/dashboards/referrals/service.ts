@@ -92,7 +92,23 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 
       // Group RSVPs by type and date
       const referralsByTypeAndDate = rsvps.reduce((acc: Record<string, Record<string, number>>, rsvp: RSVP) => {
-        const type = rsvp.referralType || 'direct';
+        // Determine the proper category:
+        // - 'direct': No referral code at all
+        // - 'referred': Has a referral code but no specific type
+        // - otherwise: Use the referral type
+        let type;
+        
+        if (!rsvp.referralCode) {
+          // No referral code = truly direct (not referred by anyone)
+          type = 'direct';
+        } else if (!rsvp.referralType) {
+          // Has referral code but no type = generic referral
+          type = 'referred';
+        } else {
+          // Has both code and type = specific referral channel
+          type = rsvp.referralType;
+        }
+        
         const date = new Date(rsvp.createdAt);
         const dayKey = formatDate(date);
         
@@ -144,6 +160,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const rsvpDate = new Date(rsvp.createdAt);
         if (rsvpDate >= oneDayAgo) {
+          // Use 'direct' only for truly direct entries (no referral code)
           const referrer = rsvp.referralCode || 'direct';
 
           // Skip test user '3' (test user)
@@ -180,6 +197,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 
       // Group all RSVPs by referrer
       const referralsByReferrer = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
+        // Use 'direct' only for truly direct entries (no referral code)
         const referrer = rsvp.referralCode || 'direct';
         if (referrer !== '3') {
           acc[referrer] = (acc[referrer] || 0) + 1;
