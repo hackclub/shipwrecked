@@ -22,7 +22,23 @@ Before Shipwrecked, participants earn their spot through "The Bay" - a 3-month o
 
 ### Prerequisites
 - Docker with docker-compose
-- ``.env`` file containing necessary secrets (see #shipwrecked-hq on Hack Club Slack)
+- Environment configuration (see below)
+
+### Environment Setup
+
+1. Copy the example environment file to create your own:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in the required values in your `.env` file.
+
+3. We recommend symlinking `.env.local` to `.env` for Next.js to properly load your environment variables:
+   ```bash
+   ln -s .env .env.local
+   ```
+
+   This ensures that both the development server and any scripts directly reference the same environment file.
 
 ### Quick Start
 
