@@ -17,6 +17,7 @@ import Icon from "@hackclub/icons";
 import Tooltip from '../components/common/Tooltip';
 import Link from 'next/link';
 import Header from '@/components/common/Header';
+import ProjectStatus from '../components/common/ProjectStatus';
 
 function Loading() {
   return (
@@ -187,10 +188,7 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="text-center text-sm">
             <p>This project contributes <strong>{projectHours}</strong> hour{projectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Project status: {project.viral ? '✅ Viral' : '❌ Not Viral'}, 
-              {project.shipped ? '✅ Shipped' : '❌ Not Shipped'}
-            </p>
+            <ProjectStatus viral={project.viral} shipped={project.shipped} />
           </div>
         </div>
         
@@ -1164,10 +1162,7 @@ export default function Bay() {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="text-center text-sm">
                       <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Project status: {selectedProject.viral ? '✅ Viral' : '❌ Not Viral'}, 
-                        {selectedProject.shipped ? '✅ Shipped' : '❌ Not Shipped'}
-                      </p>
+                      <ProjectStatus viral={selectedProject.viral} shipped={selectedProject.shipped} />
                     </div>
                   </div>
                   

@@ -12,8 +12,11 @@ export default function VerifyPage() {
         <div className="flex items-center justify-center h-full">
           <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
             <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Verifying Email</h1>
+            <p className="text-gray-600 text-center mb-4">
+              Please check your email for a verification link.
+            </p>
             <p className="text-gray-600 text-center mb-6">
-              Please wait while we verify your email address...
+              <strong>Important:</strong> Be sure to check your spam or junk folder if you don't see the email in your inbox.
             </p>
           </div>
         </div>
@@ -88,8 +91,11 @@ function VerifyContent() {
       <div className="flex items-center justify-center h-full">
         <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
           <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Verifying Email</h1>
+          <p className="text-gray-600 text-center mb-4">
+            Please check your email for a verification link.
+          </p>
           <p className="text-gray-600 text-center mb-6">
-            Please wait while we verify your email address...
+            <strong>Important:</strong> Be sure to check your spam or junk folder if you don't see the email in your inbox.
           </p>
           {toastMessage && (
             <Toast
