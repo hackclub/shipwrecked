@@ -140,7 +140,7 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     // Get hours from Hackatime or default to 0
     // Use the hours passed via props
     const rawHours = (project as any).hours || 0;
-    console.log(`ProjectDetail: ${project.name} raw hours = ${rawHours}, hackatime = ${project.hackatime}`);
+    // console.log(`ProjectDetail: ${project.name} raw hours = ${rawHours}, hackatime = ${project.hackatime}`);
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
@@ -148,10 +148,10 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     // If the project is not shipped, cap it at 14.75 hours
     if (!project.shipped && cappedHours > 14.75) {
       cappedHours = 14.75;
-      console.log(`ProjectDetail: ${project.name} not shipped, capped at 14.75 hours`);
+      // console.log(`ProjectDetail: ${project.name} not shipped, capped at 14.75 hours`);
     }
     
-    console.log(`ProjectDetail: ${project.name} final hours = ${cappedHours}`);
+    // console.log(`ProjectDetail: ${project.name} final hours = ${cappedHours}`);
     return cappedHours;
   };
   
@@ -163,7 +163,7 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     onEdit();
   };
   
-  console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
+  // console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
   
   return (
     <div className={`${styles.editForm}`}>
@@ -320,7 +320,7 @@ export default function Bay() {
         
         // Ensure we have an array of projects
         const projects = Array.isArray(projectsData) ? projectsData : [];
-        console.log(`📦 Received ${projects.length} projects`);
+        // console.log(`📦 Received ${projects.length} projects`);
         
         if (projects.length === 0) {
           console.log('No projects found or invalid data received');
@@ -371,7 +371,7 @@ export default function Bay() {
   // This ensures the sorting stays current when hours data updates
   useEffect(() => {
     if (Object.keys(projectHours).length > 0) {
-      console.log('Project hours updated, triggering re-render for sorting');
+      // console.log('Project hours updated, triggering re-render for sorting');
       // Create a new array reference to force re-render with updated sort order
       setProjects([...projects]);
     }
@@ -537,11 +537,11 @@ export default function Bay() {
         approved: initialEditState.approved || false
       };
       
-      console.log("Project edit state synchronized:", {
-        selectedProjectId,
-        initialEditState,
-        projectEditState
-      });
+      // console.log("Project edit state synchronized:", {
+      //   selectedProjectId,
+      //   initialEditState,
+      //   projectEditState
+      // });
     }
   }, [selectedProjectId, initialEditState, projectEditState]);
 
@@ -564,26 +564,26 @@ export default function Bay() {
       // If the project is not shipped, cap it at 14.75 hours
       if (!project.shipped && cappedHours > 14.75) {
         cappedHours = 14.75;
-        console.log(`Project ${project.name} not shipped, capping at 14.75 hours`);
+        // console.log(`Project ${project.name} not shipped, capping at 14.75 hours`);
       }
       
-      console.log(`Project ${project.name}: Raw hours=${hours}, Final contribution=${cappedHours}`);
+      // console.log(`Project ${project.name}: Raw hours=${hours}, Final contribution=${cappedHours}`);
       return sum + cappedHours;
     }, 0);
     
     // Calculate percentage (0-100)
     const percentage = Math.min(Math.round((total / 60) * 100), 100);
     
-    console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects.length);
-    console.log('Project status flags: viral, shipped:', 
-      projects.map(p => ({ 
-        name: p.name, 
-        viral: !!p.viral, 
-        shipped: !!p.shipped, 
-        hackatime: p.hackatime,
-        hours: p.hackatime ? (projectHours[p.hackatime] || 0) : 0 
-      }))
-    );
+    // console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects.length);
+    // console.log('Project status flags: viral, shipped:', 
+    //   projects.map(p => ({ 
+    //     name: p.name, 
+    //     viral: !!p.viral, 
+    //     shipped: !!p.shipped, 
+    //     hackatime: p.hackatime,
+    //     hours: p.hackatime ? (projectHours[p.hackatime] || 0) : 0 
+    //   }))
+    // );
     
     setTotalHours(percentage);
   }, [projects, projectHours]);
@@ -762,13 +762,13 @@ export default function Bay() {
                   return hoursB - hoursA;
                 })
                 .map((project, index) => {
-                  console.log(`Rendering project ${project.name}:`, {
-                    id: project.projectID,
-                    viral: !!project.viral, 
-                    shipped: !!project.shipped,
-                    hackatime: project.hackatime || 'none',
-                    hours: project.hackatime ? (projectHours[project.hackatime] || 0) : 0
-                  });
+                  // console.log(`Rendering project ${project.name}:`, {
+                  //   id: project.projectID,
+                  //   viral: !!project.viral, 
+                  //   shipped: !!project.shipped,
+                  //   hackatime: project.hackatime || 'none',
+                  //   hours: project.hackatime ? (projectHours[project.hackatime] || 0) : 0
+                  // });
                   
                   return (
                     <Project
@@ -1118,13 +1118,13 @@ export default function Bay() {
             const getSelectedProjectHours = () => {
               // If viral, it's 15 hours (25% toward the 60-hour goal)
               if (selectedProject.viral) {
-                console.log(`Modal: ${selectedProject.name} is viral, returning 15 hours`);
+                // console.log(`Modal: ${selectedProject.name} is viral, returning 15 hours`);
                 return 15;
               }
               
               // Get hours from Hackatime or default to 0
               const hackatimeProjectName = selectedProject.hackatime || '';
-              console.log(`Modal: ${selectedProject.name} hackatime = "${hackatimeProjectName}"`);
+              // console.log(`Modal: ${selectedProject.name} hackatime = "${hackatimeProjectName}"`);
               
               // Safely access projectHours with correct typing
               const rawHours = hackatimeProjectName && 
@@ -1133,7 +1133,7 @@ export default function Bay() {
                 hackatimeProjectName in projectHours ? 
                 (projectHours as any)[hackatimeProjectName] : 0;
               
-              console.log(`Modal: ${selectedProject.name} rawHours = ${rawHours}, projectHours keys:`, Object.keys(projectHours));
+              // console.log(`Modal: ${selectedProject.name} rawHours = ${rawHours}, projectHours keys:`, Object.keys(projectHours));
               
               // Cap hours per project at 15
               let cappedHours = Math.min(rawHours, 15);
@@ -1141,17 +1141,17 @@ export default function Bay() {
               // If the project is not shipped, cap it at 14.75 hours
               if (!selectedProject.shipped && cappedHours > 14.75) {
                 cappedHours = 14.75;
-                console.log(`Modal: ${selectedProject.name} not shipped, capped at 14.75 hours`);
+                // console.log(`Modal: ${selectedProject.name} not shipped, capped at 14.75 hours`);
               }
               
-              console.log(`Modal: ${selectedProject.name} final hours = ${cappedHours}`);
+              // console.log(`Modal: ${selectedProject.name} final hours = ${cappedHours}`);
               return cappedHours;
             };
             
             const selectedProjectContribution = getSelectedProjectHours();
             const contributionPercentage = Math.round((selectedProjectContribution / 60) * 100);
             
-            console.log(`Modal rendering: ${selectedProject.name}, hours=${selectedProjectContribution}, viral=${selectedProject.viral}, shipped=${selectedProject.shipped}`);
+            // console.log(`Modal rendering: ${selectedProject.name}, hours=${selectedProjectContribution}, viral=${selectedProject.viral}, shipped=${selectedProject.shipped}`);
             
             return (
               <div className="p-4">
