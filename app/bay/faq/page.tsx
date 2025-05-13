@@ -99,7 +99,7 @@ export default function FAQ() {
             </p>
             <ul className="list-disc pl-6 text-gray-600 space-y-2">
               <li>Getting featured on the Hack Club frontpage</li>
-              <li>Having 50+ stars on GitHub</li>
+              <li>Having 150+ stars on GitHub</li>
               <li>Being shared widely on social media platforms</li>
               <li>Receiving significant engagement from other Hack Clubbers</li>
             </ul>
