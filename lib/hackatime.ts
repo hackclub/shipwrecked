@@ -22,7 +22,7 @@ export async function fetchHackatimeProjects(
 ): Promise<Array<HackatimeProject>> {
   console.log(`🎮 Fetching Hackatime projects for user ID: ${hackatimeUserId}`);
   
-  const uri = `https://hackatime.hackclub.com/api/v1/users/${hackatimeUserId}/stats?features=projects`;
+  const uri = `https://hackatime.hackclub.com/api/v1/users/${hackatimeUserId}/stats?features=projects&start_date=2025-04-22`;
   console.log(`📡 Hackatime API Request: ${uri}`);
 
   try {
