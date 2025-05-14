@@ -1,3 +1,5 @@
+# Shipwrecked
+
 Shipwrecked is a once-in-a-lifetime, four-day flagship hackathon organized by Hack Club, a 501(c)(3) nonprofit that supports a global community of over 50,000 high school makers. The event takes place on Cathleen Stone Island in the Boston Harbor, where 130 hackers will gather for a unique story-based hackathon experience.
 
 ## About the Event
