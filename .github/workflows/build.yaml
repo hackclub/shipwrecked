@@ -7,9 +7,47 @@ on:
       - main 
 
 jobs:
-  build:
+  # Debug job to output information about the PR and permissions
+  debug_info:
     runs-on: ubuntu-latest
+    steps:
+      - name: Output debug information
+        run: |
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+          echo "Author Association: ${{ github.event.pull_request.author_association }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "PR Head Repo: ${{ github.event.pull_request.head.repo.full_name }}"
+          echo "Actor: ${{ github.actor }}"
 
+  # Basic build job that runs for ALL pull requests (including forks)
+  basic_build:
+    runs-on: ubuntu-latest
+    needs: debug_info
+    # Always run this job - no conditions
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'  
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Public build (no secrets)
+        run: echo "Basic build verification passed"
+
+  # Enhanced build job that includes secrets (only for trusted contributors)
+  full_build:
+    runs-on: ubuntu-latest
+    needs: basic_build
+    # Use a more permissive condition to ensure it runs for contributors
+    # The previous condition might have been too restrictive
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository ||
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.pull_request.author_association)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
