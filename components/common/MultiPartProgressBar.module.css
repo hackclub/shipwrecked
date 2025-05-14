@@ -1,0 +1,126 @@
+.container {
+  width: 100%;
+  margin: 12px 0;
+  position: relative;
+}
+
+.track {
+  width: 100%;
+  background-color: #e5e7eb;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+
+.rounded {
+  border-radius: 9999px;
+}
+
+.segment {
+  transition: width 0.5s ease-in-out;
+  position: relative;
+}
+
+/* Animation for segments */
+.animated {
+  background-size: 30px 30px;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  animation: animate-stripes 1.5s linear infinite;
+}
+
+@keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+/* Labels styling */
+.labels {
+  display: flex;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.labelItem {
+  text-align: center;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.totalProgress {
+  text-align: right;
+  font-size: 12px;
+  margin-top: 4px;
+  color: #6b7280;
+}
+
+/* Tooltip styling */
+.segment[data-tooltip] {
+  position: relative;
+  cursor: pointer;
+}
+
+.segment[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.segment[data-tooltip-position="top"]:hover::after {
+  bottom: calc(100% + 5px);
+}
+
+.segment[data-tooltip-position="bottom"]:hover::after {
+  top: calc(100% + 5px);
+}
+
+/* Status styles */
+.completed {
+  /* Styling for completed segments */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.in-progress {
+  /* Styling for in-progress segments */
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.pending {
+  /* Styling for pending segments */
+  opacity: 0.7;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.1) 75%,
+    transparent 75%,
+    transparent
+  ) !important;
+  background-size: 8px 8px !important;
+} 

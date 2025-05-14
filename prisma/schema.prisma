@@ -45,6 +45,7 @@ model User {
 
   // shipwrecked project fields
   projects Project[]
+  reviews  Review[]  // Relation to reviews created by this user
 }
 
 model Account {
@@ -122,5 +123,25 @@ model Project {
   userId String
   user User @relation(fields: [userId], references: [id])
 
+  // Project reviews
+  reviews Review[]
+
   @@id([projectID, userId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  comment     String
+  createdAt   DateTime @default(now())
+  
+  // Relation to the project being reviewed
+  projectID   String
+  project     Project  @relation(fields: [projectID], references: [projectID])
+  
+  // Relation to the user who created the review
+  reviewerId  String
+  reviewer    User     @relation(fields: [reviewerId], references: [id])
+
+  @@index([projectID])
+  @@index([reviewerId])
 }

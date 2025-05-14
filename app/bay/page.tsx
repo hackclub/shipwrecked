@@ -10,6 +10,7 @@ import FormInput from '@/components/form/FormInput';
 import { useSession } from 'next-auth/react';
 import { Toaster, toast } from "sonner";
 import ProgressBar from '@/components/common/ProgressBar';
+import MultiPartProgressBar, { ProgressSegment } from '@/components/common/MultiPartProgressBar';
 import type { ProjectType } from '../api/projects/route';
 import { useRouter } from 'next/navigation';
 import type { HackatimeProject } from "@/types/hackatime";
@@ -19,6 +20,9 @@ import Link from 'next/link';
 import Header from '@/components/common/Header';
 import ProjectStatus from '../components/common/ProjectStatus';
 import { useIsMobile } from '@/lib/hooks';
+import ReviewSection from '@/components/common/ReviewSection';
+import { ReviewModeProvider, useReviewMode } from '@/app/contexts/ReviewModeContext';
+import ReviewModeToggle from '@/components/common/ReviewModeToggle';
 
 function Loading() {
   return (
@@ -260,6 +264,11 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
             />
           </div>
         )}
+        
+        {/* Project Reviews Section */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <ReviewSection projectID={project.projectID} />
+        </div>
       </div>
     </div>
   );
@@ -275,6 +284,18 @@ export default function Bay() {
     return <AccessDeniedHaiku />;
   }
 
+  return (
+    <ReviewModeProvider>
+      <BayWithReviewMode session={session} status={status} router={router} />
+    </ReviewModeProvider>
+  );
+}
+
+function BayWithReviewMode({ session, status, router }: { 
+  session: any; 
+  status: string;
+  router: any;
+}) {
   // Track if we've loaded projects for this user
   const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -292,6 +313,7 @@ export default function Bay() {
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
   const isMobile = useIsMobile();
+  const { isReviewMode } = useReviewMode();
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
@@ -364,7 +386,7 @@ export default function Bay() {
     }
 
     loadHackatimeProjects();
-  }, [session?.user?.id, loadedForUserId, router]); // Only depend on user ID and router
+  }, [session?.user?.id, loadedForUserId, router, session?.user?.hackatimeId]);
 
   // Trigger a re-render of projects list when projectHours changes
   // This ensures the sorting stays current when hours data updates
@@ -577,6 +599,88 @@ export default function Bay() {
     setTotalHours(percentage);
   }, [projects, projectHours]);
 
+  // Calculate total hours from shipped, viral, and other projects
+  const calculateProgressSegments = (): ProgressSegment[] => {
+    // Calculate hours from each type of project
+    let shippedHours = 0;
+    let viralHours = 0;
+    let otherHours = 0;
+
+    projects.forEach(project => {
+      const hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
+      // Cap hours per project
+      let cappedHours = Math.min(hours, 15);
+      
+      // If the project is viral, it counts as 15 hours
+      if (project.viral) {
+        viralHours += 15;
+      } 
+      // If it's shipped but not viral
+      else if (project.shipped) {
+        shippedHours += cappedHours;
+      } 
+      // Not shipped and not viral
+      else {
+        // Cap non-shipped projects at 14.75 hours
+        otherHours += Math.min(cappedHours, 14.75);
+      }
+    });
+
+    // Total progress should match totalHours
+    const total = Math.min(shippedHours + viralHours + otherHours, 100);
+    
+    // Create segments array
+    const segments: ProgressSegment[] = [];
+    
+    // Add shipped segment if there are hours
+    if (shippedHours > 0) {
+      segments.push({
+        value: shippedHours,
+        color: '#10b981', // Green
+        label: 'Shipped',
+        tooltip: `${shippedHours.toFixed(1)} hours from shipped projects`,
+        animated: false,
+        status: 'completed'
+      });
+    }
+    
+    // Add viral segment if there are hours
+    if (viralHours > 0) {
+      segments.push({
+        value: viralHours,
+        color: '#3b82f6', // Blue
+        label: 'Viral',
+        tooltip: `${viralHours.toFixed(1)} hours from viral projects`,
+        animated: false,
+        status: 'completed'
+      });
+    }
+    
+    // Add other segment if there are hours
+    if (otherHours > 0) {
+      segments.push({
+        value: otherHours,
+        color: '#f59e0b', // Yellow
+        label: 'In Progress',
+        tooltip: `${otherHours.toFixed(1)} hours from in-progress projects`,
+        animated: true,
+        status: 'in-progress'
+      });
+    }
+    
+    // Add remaining segment if total < 100
+    if (total < 100) {
+      segments.push({
+        value: 100 - total,
+        color: '#e5e7eb', // Light gray
+        tooltip: 'Remaining progress needed',
+        status: 'pending'
+      });
+    }
+    
+    return segments;
+  };
+
   // Add a function to calculate the total raw hours before component return
   const calculateTotalRawHours = () => {
     return projects.reduce((sum, project) => {
@@ -600,22 +704,23 @@ export default function Bay() {
                 onClick={() => setIsProgressModalOpen(true)}
                 title="When this progress bar reaches 100%, you're eligible for going to the island!"
               >
-                <ProgressBar 
-                  value={totalHours} 
-                  max={100} 
+                <MultiPartProgressBar 
+                  segments={calculateProgressSegments()}
+                  max={100}
                   height={12}
-                  variant={totalHours >= 100 ? 'success' : 'default'}
-                  animated={totalHours < 100}
+                  rounded={true}
+                  showLabels={false}
+                  tooltipPosition="top"
                 />
+                <div className="text-center mt-1 mb-3 md:mb-1">
+                  <h3 className="font-medium text-lg">
+                    {totalHours}%
+                  </h3>
+                </div>
               </div>
               <Tooltip content="Your prize - a fantastic island adventure with friends">
                 <span className="text-4xl md:text-6xl">🏝️</span>
               </Tooltip>
-            </div>
-            <div className="text-center mt-1 mb-3 md:mb-1">
-              <h3 className="font-medium text-lg">
-                {totalHours}%
-              </h3>
             </div>
           </div>
         </div>
@@ -633,6 +738,31 @@ export default function Bay() {
           <p className="mb-4">
             The progress bar shows your completion percentage towards the 60-hour goal required to qualify for Shipwrecked.
           </p>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <h4 className="font-medium mb-2">Progress Bar Legend:</h4>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#10b981' }}></span>
+                <strong>Green:</strong> Hours from shipped projects (projects marked as "shipped")
+              </li>
+              <li>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#3b82f6' }}></span>
+                <strong>Blue:</strong> Hours from viral projects (automatically count as 15 hours each)
+              </li>
+              <li>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#f59e0b' }}></span>
+                <strong>Yellow:</strong> Hours from in-progress projects (not yet shipped or viral)
+              </li>
+              <li>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#e5e7eb' }}></span>
+                <strong>Gray:</strong> Remaining progress needed to reach 100%
+              </li>
+            </ul>
+            <p className="mt-3 text-sm text-gray-600">
+              Hover over each segment in the progress bar to see the exact hours contributed by each category.
+            </p>
+          </div>
           
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <h4 className="font-medium mb-2">How We Calculate Your Progress:</h4>
@@ -724,15 +854,35 @@ export default function Bay() {
           <div className="mt-2 md:mt-6 w-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Projects</h2>
-              <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
-                <button 
-                  className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
-                  onClick={() => setIsProjectCreateModalOpen(true)}
-                >
-                  <Icon glyph="plus" size={24} />
-                </button>
-              </Tooltip>
+              <div className="flex items-center gap-2">
+                <ReviewModeToggle />
+                <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
+                  <button 
+                    className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
+                    onClick={() => setIsProjectCreateModalOpen(true)}
+                  >
+                    <Icon glyph="plus" size={24} />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
+            
+            {/* Review Mode Banner */}
+            {isReviewMode && (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <Icon glyph="view" size={20} className="text-blue-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Review Mode Active:</strong> You can now add and delete reviews on projects.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="text-sm text-gray-500 mb-2">
               <p className="hidden md:block">
                 Click a project to select it. Use <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">E</kbd> to edit, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
@@ -741,6 +891,7 @@ export default function Bay() {
                 Tap a project to view details.
               </p>
             </div>
+            
             <div className="bg-white rounded-lg shadow">
               {projects
                 .sort((a, b) => {
@@ -1144,6 +1295,27 @@ export default function Bay() {
             
             return (
               <div className="p-4">
+                {/* Review Mode Toggle for Mobile */}
+                <div className="mb-4 flex justify-end">
+                  <ReviewModeToggle />
+                </div>
+                
+                {/* Review Mode Banner */}
+                {isReviewMode && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <Icon glyph="view" size={20} className="text-blue-500" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-blue-700">
+                          <strong>Review Mode Active:</strong> You can now add and delete reviews on this project.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-5 pb-8">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
@@ -1224,6 +1396,11 @@ export default function Bay() {
                       />
                     </div>
                   )}
+                  
+                  {/* Project Reviews Section for Mobile */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-20">
+                    <ReviewSection projectID={selectedProject.projectID} />
+                  </div>
                   
                   {/* Edit button at bottom */}
                   <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
@@ -1357,7 +1534,7 @@ export default function Bay() {
       </div>
     </div>
   );
-} 
+}
 
 type ProjectModalProps = Partial<ProjectType> & { 
   isOpen: boolean,
