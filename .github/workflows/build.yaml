@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Build project
+      - name: Full build with secrets
         env:
           HACKATIME_API_TOKEN: "doesntmatter"
           LOOPS_TRANSACTIONAL_SIGNIN_EMAIL_ID: "notimportant"
@@ -70,5 +70,6 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
-          GRAPHITE_HOST:  ${{ secrets.GRAPHITE_HOST }}
+          GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
+          NODE_ENV: "development"
         run: yarn build
