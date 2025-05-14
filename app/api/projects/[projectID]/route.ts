@@ -10,8 +10,14 @@ export async function DELETE(
         const user = await requireUserSession();
         console.log(`[DELETE] Authenticated user ${user.id}`);
         
-        const { projectID } = params;
+        const projectID = params.projectID;
         console.log(`[DELETE] Attempting to delete project ${projectID}`);
+        
+        await prisma.review.deleteMany({
+            where: {
+                projectID: projectID
+            }
+        });
         
         await prisma.project.delete({
             where: {

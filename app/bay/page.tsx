@@ -2,7 +2,7 @@
 import styles from './page.module.css';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
-import { useState, useEffect, useActionState, useContext, useMemo } from 'react';
+import { useState, useEffect, useActionState, useContext, useMemo, ReactElement } from 'react';
 import type { FormSave } from '@/components/form/FormInput';
 import { Project } from '@/components/common/Project';
 import FormSelect from '@/components/form/FormSelect';
@@ -22,7 +22,8 @@ import ProjectStatus from '../components/common/ProjectStatus';
 import { useIsMobile } from '@/lib/hooks';
 import ReviewSection from '@/components/common/ReviewSection';
 import { ReviewModeProvider, useReviewMode } from '@/app/contexts/ReviewModeContext';
-import ReviewModeToggle from '@/components/common/ReviewModeToggle';
+import ProjectFlagsEditor, { ProjectFlags } from '@/components/common/ProjectFlagsEditor';
+import ProjectReviewRequest from '@/components/common/ProjectReviewRequest';
 
 function Loading() {
   return (
@@ -134,11 +135,40 @@ async function getHackatimeProjects() {
 }
 
 // Project Detail Component
-function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () => void }) {
+function ProjectDetail({ 
+  project, 
+  onEdit,
+  setProjects
+}: { 
+  project: ProjectType, 
+  onEdit: () => void,
+  setProjects: React.Dispatch<React.SetStateAction<ProjectType[]>>
+}): ReactElement {
+  const { isReviewMode } = useReviewMode();
+  const [projectFlags, setProjectFlags] = useState<ProjectFlags>({
+    shipped: !!project.shipped,
+    viral: !!project.viral,
+    in_review: !!project.in_review,
+    approved: !!project.approved
+  });
+  
+  // Determine if editing is allowed based on review mode and project status
+  const isEditingAllowed = isReviewMode || !projectFlags.in_review;
+  
+  // Update projectFlags when project prop changes
+  useEffect(() => {
+    setProjectFlags({
+      shipped: !!project.shipped,
+      viral: !!project.viral,
+      in_review: !!project.in_review,
+      approved: !!project.approved
+    });
+  }, [project]);
+
   // Calculate project's contribution percentage
   const getProjectHours = () => {
     // If viral, it's 15 hours (25% toward the 60-hour goal)
-    if (project.viral) {
+    if (projectFlags.viral) {
       console.log(`ProjectDetail: ${project.name} is viral, returning 15 hours`);
       return 15;
     }
@@ -146,18 +176,15 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     // Get hours from Hackatime or default to 0
     // Use the hours passed via props
     const rawHours = (project as any).hours || 0;
-    // console.log(`ProjectDetail: ${project.name} raw hours = ${rawHours}, hackatime = ${project.hackatime}`);
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
     
     // If the project is not shipped, cap it at 14.75 hours
-    if (!project.shipped && cappedHours > 14.75) {
+    if (!projectFlags.shipped && cappedHours > 14.75) {
       cappedHours = 14.75;
-      // console.log(`ProjectDetail: ${project.name} not shipped, capped at 14.75 hours`);
     }
     
-    // console.log(`ProjectDetail: ${project.name} final hours = ${cappedHours}`);
     return cappedHours;
   };
   
@@ -168,6 +195,39 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     // Explicitly call onEdit with the full project data to ensure proper form initialization
     onEdit();
   };
+
+  const handleFlagsUpdated = (updatedProject: any) => {
+    setProjectFlags({
+      shipped: !!updatedProject.shipped,
+      viral: !!updatedProject.viral,
+      in_review: !!updatedProject.in_review,
+      approved: !!updatedProject.approved
+    });
+    
+    // Also update the project in the projects array
+    const updatedProjectData = {
+      ...project,
+      shipped: updatedProject.shipped,
+      viral: updatedProject.viral,
+      in_review: updatedProject.in_review,
+      approved: updatedProject.approved
+    };
+    
+    // Update the projects array
+    setProjects(prevProjects => 
+      prevProjects.map(p => 
+        p.projectID === project.projectID ? updatedProjectData as ProjectType : p
+      )
+    );
+  };
+  
+  // Track the current flag changes from the editor
+  const [currentEditorFlags, setCurrentEditorFlags] = useState<ProjectFlags>(projectFlags);
+  
+  // Handle changes from the flag editor
+  const handleFlagEditorChange = (flags: ProjectFlags) => {
+    setCurrentEditorFlags(flags);
+  };
   
   // console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
   
@@ -175,13 +235,19 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
     <div className={`${styles.editForm}`}>
       <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10">
         <h2 className="text-2xl font-bold">{project.name}</h2>
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-          onClick={handleEdit}
-          aria-label="Edit project"
-        >
-          <span>Edit</span>
-        </button>
+        {isEditingAllowed ? (
+          <button
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            onClick={handleEdit}
+            aria-label="Edit project"
+          >
+            <span>Edit</span>
+          </button>
+        ) : (
+          <span className="text-sm text-gray-500 italic">
+            Cannot edit while in review
+          </span>
+        )}
       </div>
       
       <div className="space-y-5 pb-8">
@@ -193,9 +259,38 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="text-center text-sm">
             <p>This project contributes <strong>{projectHours}</strong> hour{projectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-            <ProjectStatus viral={project.viral} shipped={project.shipped} />
+            <ProjectStatus 
+              viral={projectFlags.viral} 
+              shipped={projectFlags.shipped} 
+              in_review={projectFlags.in_review}
+              approved={projectFlags.approved}
+            />
           </div>
         </div>
+        
+        {/* Project Review Request - only visible when NOT in review mode and not already in review */}
+        <ProjectReviewRequest
+          projectID={project.projectID}
+          isInReview={projectFlags.in_review}
+          onRequestSubmitted={(updatedProject, review) => {
+            // Update projectFlags with the updated data
+            setProjectFlags(prev => ({
+              ...prev,
+              in_review: true
+            }));
+            
+            // Update projects array
+            setProjects(prevProjects => 
+              prevProjects.map(p => 
+                p.projectID === project.projectID ? {...p, in_review: true} as ProjectType : p
+              )
+            );
+            
+            // Force a refresh of reviews
+            // This would normally be handled by the ReviewSection component itself
+            // but we can notify it explicitly if needed
+          }}
+        />
         
         {project.hackatime && (
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -204,25 +299,28 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
           </div>
         )}
         
-        <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${project.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className="text-sm text-gray-700">Viral</span>
+        {/* Project Status section - only visible when NOT in review mode */}
+        {!isReviewMode && (
+          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className="text-sm text-gray-700">Viral</span>
+            </div>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className="text-sm text-gray-700">Shipped</span>
+            </div>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className="text-sm text-gray-700">In Review</span>
+            </div>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className="text-sm text-gray-700">Approved</span>
+            </div>
           </div>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${project.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className="text-sm text-gray-700">Shipped</span>
-          </div>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${project.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className="text-sm text-gray-700">In Review</span>
-          </div>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${project.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className="text-sm text-gray-700">Approved</span>
-          </div>
-        </div>
+        )}
         
         {(project.codeUrl || project.playableUrl) && (
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -267,7 +365,11 @@ function ProjectDetail({ project, onEdit }: { project: ProjectType, onEdit: () =
         
         {/* Project Reviews Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <ReviewSection projectID={project.projectID} />
+          <ReviewSection 
+            projectID={project.projectID} 
+            initialFlags={projectFlags}
+            onFlagsUpdated={handleFlagsUpdated}
+          />
         </div>
       </div>
     </div>
@@ -855,7 +957,6 @@ function BayWithReviewMode({ session, status, router }: {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Projects</h2>
               <div className="flex items-center gap-2">
-                <ReviewModeToggle />
                 <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
                   <button 
                     className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
@@ -1214,6 +1315,7 @@ function BayWithReviewMode({ session, status, router }: {
                         setIsProjectEditModalOpen(true);
                       }, 0);
                     }}
+                    setProjects={setProjects}
                   />
                 );
               })()
@@ -1295,11 +1397,6 @@ function BayWithReviewMode({ session, status, router }: {
             
             return (
               <div className="p-4">
-                {/* Review Mode Toggle for Mobile */}
-                <div className="mb-4 flex justify-end">
-                  <ReviewModeToggle />
-                </div>
-                
                 {/* Review Mode Banner */}
                 {isReviewMode && (
                   <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r">
@@ -1325,9 +1422,56 @@ function BayWithReviewMode({ session, status, router }: {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="text-center text-sm">
                       <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-                      <ProjectStatus viral={selectedProject.viral} shipped={selectedProject.shipped} />
+                      <ProjectStatus 
+                        viral={selectedProject.viral} 
+                        shipped={selectedProject.shipped}
+                        in_review={selectedProject.in_review}
+                        approved={selectedProject.approved}
+                      />
                     </div>
                   </div>
+                  
+                  {/* Project Review Request for Mobile - only visible when NOT in review mode and not already in review */}
+                  <ProjectReviewRequest
+                    projectID={selectedProject.projectID}
+                    isInReview={selectedProject.in_review}
+                    onRequestSubmitted={(updatedProject, review) => {
+                      // Update the project in the projects array
+                      setProjects(prevProjects => 
+                        prevProjects.map(p => 
+                          p.projectID === selectedProject.projectID ? {...p, in_review: true} as ProjectType : p
+                        )
+                      );
+                      
+                      // Close the modal after successful submission
+                      setTimeout(() => {
+                        setIsProjectDetailModalOpen(false);
+                        toast.success("Project submitted for review!");
+                      }, 500);
+                    }}
+                  />
+                  
+                  {/* Project Flags Editor for Mobile - only visible in review mode */}
+                  <ProjectFlagsEditor
+                    projectID={selectedProject.projectID}
+                    initialShipped={!!selectedProject.shipped}
+                    initialViral={!!selectedProject.viral}
+                    initialApproved={!!selectedProject.approved}
+                    initialInReview={!!selectedProject.in_review}
+                    onChange={(flags: ProjectFlags) => {
+                      // Create a new object with the updated flags
+                      const updatedSelectedProject = {
+                        ...selectedProject,
+                      };
+                      
+                      // Update the project in the projects array
+                      setProjects(prevProjects => 
+                        prevProjects.map(p => 
+                          p.projectID === selectedProject.projectID ? updatedSelectedProject : p
+                        )
+                      );
+                    }}
+                  />
                   
                   {selectedProject.hackatime && (
                     <div className="bg-gray-50 p-4 rounded-lg">
@@ -1336,25 +1480,28 @@ function BayWithReviewMode({ session, status, router }: {
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-sm text-gray-700">Viral</span>
+                  {/* Project Status section - only visible when NOT in review mode */}
+                  {!isReviewMode && (
+                    <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">Viral</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">Shipped</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">In Review</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">Approved</span>
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-sm text-gray-700">Shipped</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-sm text-gray-700">In Review</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-sm text-gray-700">Approved</span>
-                    </div>
-                  </div>
+                  )}
                   
                   {(selectedProject.codeUrl || selectedProject.playableUrl) && (
                     <div className="bg-gray-50 p-4 rounded-lg">
@@ -1399,40 +1546,71 @@ function BayWithReviewMode({ session, status, router }: {
                   
                   {/* Project Reviews Section for Mobile */}
                   <div className="bg-gray-50 p-4 rounded-lg mb-20">
-                    <ReviewSection projectID={selectedProject.projectID} />
+                    <ReviewSection 
+                      projectID={selectedProject.projectID}
+                      initialFlags={{
+                        shipped: !!selectedProject.shipped,
+                        viral: !!selectedProject.viral,
+                        approved: !!selectedProject.approved,
+                        in_review: !!selectedProject.in_review
+                      }}
+                      onFlagsUpdated={(updatedProject) => {
+                        // Create a new object with the updated flags
+                        const updatedSelectedProject = {
+                          ...selectedProject,
+                          shipped: updatedProject.shipped,
+                          viral: updatedProject.viral,
+                          in_review: updatedProject.in_review,
+                          approved: updatedProject.approved
+                        };
+                        
+                        // Update the project in the projects array
+                        setProjects(prevProjects => 
+                          prevProjects.map(p => 
+                            p.projectID === selectedProject.projectID ? updatedSelectedProject : p
+                          )
+                        );
+                      }}
+                    />
                   </div>
                   
                   {/* Edit button at bottom */}
                   <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
-                    <button
-                      type="button"
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-                      onClick={() => {
-                        setIsProjectDetailModalOpen(false);
-                        
-                        // Make sure to set initialEditState with the full project data
-                        const projectWithDefaults = {
-                          ...selectedProject,
-                          codeUrl: selectedProject.codeUrl || "",
-                          playableUrl: selectedProject.playableUrl || "",
-                          screenshot: selectedProject.screenshot || "",
-                          viral: !!selectedProject.viral,
-                          shipped: !!selectedProject.shipped,
-                          in_review: !!selectedProject.in_review,
-                          approved: !!selectedProject.approved
-                        };
-                        
-                        // Update the form state
-                        setInitialEditState(projectWithDefaults);
-                        
-                        // Wait for state to be updated before showing the form
-                        setTimeout(() => {
-                          setIsProjectEditModalOpen(true);
-                        }, 100);
-                      }}
-                    >
-                      Edit Project
-                    </button>
+                    {isReviewMode || !selectedProject.in_review ? (
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
+                        onClick={() => {
+                          setIsProjectDetailModalOpen(false);
+                          
+                          // Make sure to set initialEditState with the full project data
+                          const projectWithDefaults = {
+                            ...selectedProject,
+                            codeUrl: selectedProject.codeUrl || "",
+                            playableUrl: selectedProject.playableUrl || "",
+                            screenshot: selectedProject.screenshot || "",
+                            viral: !!selectedProject.viral,
+                            shipped: !!selectedProject.shipped,
+                            in_review: !!selectedProject.in_review,
+                            approved: !!selectedProject.approved
+                          };
+                          
+                          // Update the form state
+                          setInitialEditState(projectWithDefaults);
+                          
+                          // Wait for state to be updated before showing the form
+                          setTimeout(() => {
+                            setIsProjectEditModalOpen(true);
+                          }, 100);
+                        }}
+                      >
+                        Edit Project
+                      </button>
+                    ) : (
+                      <div className="w-full py-3 text-center text-gray-500 italic bg-gray-100 rounded">
+                        Cannot edit while in review
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1549,7 +1727,7 @@ type ProjectModalProps = Partial<ProjectType> & {
   existingProjects?: ProjectType[]
 }
 
-function ProjectModal(props: ProjectModalProps) {
+function ProjectModal(props: ProjectModalProps): ReactElement {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   
@@ -1608,10 +1786,16 @@ function ProjectModal(props: ProjectModalProps) {
         // Notify success
         toast.success(`Project "${props.name}" deleted successfully`);
         
-        // Refresh the projects list
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Update projects directly using the parent's setProjects function
+        if (props.existingProjects && props.projectID) {
+          const updatedProjects = props.existingProjects.filter(p => p.projectID !== props.projectID);
+          window.location.href = '/bay'; // Navigate to bay homepage
+        } else {
+          // Fallback to reload if we can't update directly
+          setTimeout(() => {
+            window.location.href = '/bay';
+          }, 1000);
+        }
       } catch (error) {
         toast.error(`Failed to delete project: ${error}`);
         console.error('Error deleting project:', error);

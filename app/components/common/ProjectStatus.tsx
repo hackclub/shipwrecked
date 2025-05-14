@@ -3,13 +3,15 @@ import React from 'react';
 interface ProjectStatusProps {
   viral: boolean;
   shipped: boolean;
+  in_review?: boolean;
+  approved?: boolean;
   className?: string;
 }
 
-export default function ProjectStatus({ viral, shipped, className = '' }: ProjectStatusProps) {
+export default function ProjectStatus({ viral, shipped, in_review = false, approved = false, className = '' }: ProjectStatusProps) {
   return (
     <div className={`flex justify-center mt-2 ${className}`}>
-      <div className="grid grid-cols-2 gap-x-6 w-48">
+      <div className="grid grid-cols-3 gap-x-3 min-w-[200px]">
         <div className="text-xs text-gray-500 flex items-center justify-center">
           <span className="mr-1">{viral ? '✅' : '❌'}</span>
           <span>Viral</span>
@@ -17,6 +19,10 @@ export default function ProjectStatus({ viral, shipped, className = '' }: Projec
         <div className="text-xs text-gray-500 flex items-center justify-center">
           <span className="mr-1">{shipped ? '✅' : '❌'}</span>
           <span>Shipped</span>
+        </div>
+        <div className="text-xs text-gray-500 flex items-center justify-center">
+          <span className="mr-1">{approved ? '✅' : '❌'}</span>
+          <span>Approved</span>
         </div>
       </div>
     </div>

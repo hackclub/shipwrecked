@@ -39,7 +39,7 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
     return (
         <div 
             className={`flex items-center p-3 hover:bg-gray-50 border-b border-gray-200 cursor-pointer transition-colors ${
-                selected ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-white'
+                selected ? 'bg-blue-50 border-l-4 border-l-blue-500' : in_review ? 'bg-white border-l-4 border-l-red-400' : 'bg-white'
             } ${
                 isMobile ? 'active:bg-gray-100' : ''
             }`}
@@ -47,7 +47,10 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
         >
             <div className="flex items-center gap-2 min-w-0 w-full">
                 <span className="text-gray-600">{hours}h</span>
-                <span className={`font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem] ${selected ? 'text-blue-700' : ''}`}>{name}</span>
+                <span className={`font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem] ${selected ? 'text-blue-700' : ''}`}>
+                    {name}
+                    {in_review && <span className="ml-2 text-xs text-red-600 font-semibold">(IN REVIEW)</span>}
+                </span>
                 {description && (
                   <span className="text-gray-500 flex-grow truncate min-w-0 ml-2">{description}</span>
                 )}

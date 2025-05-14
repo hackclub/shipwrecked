@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import Icon from '@hackclub/icons';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
+import ProjectFlagsEditor, { ProjectFlags } from './ProjectFlagsEditor';
 
 interface ReviewerInfo {
   id: string;
@@ -24,9 +25,15 @@ export interface ReviewType {
 
 interface ReviewSectionProps {
   projectID: string;
+  initialFlags?: ProjectFlags;
+  onFlagsUpdated?: (updatedProject: any) => void;
 }
 
-export default function ReviewSection({ projectID }: ReviewSectionProps) {
+export default function ReviewSection({ 
+  projectID, 
+  initialFlags,
+  onFlagsUpdated
+}: ReviewSectionProps) {
   const { data: session } = useSession();
   const { isReviewMode } = useReviewMode();
   const [reviews, setReviews] = useState<ReviewType[]>([]);
@@ -35,6 +42,29 @@ export default function ReviewSection({ projectID }: ReviewSectionProps) {
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [isDeletingReview, setIsDeletingReview] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  
+  // State to track flag changes
+  const [flagsChanged, setFlagsChanged] = useState(false);
+  const [currentFlags, setCurrentFlags] = useState<ProjectFlags>(initialFlags || {
+    shipped: false,
+    viral: false,
+    approved: false,
+    in_review: false
+  });
+  const [originalFlags, setOriginalFlags] = useState<ProjectFlags>(initialFlags || {
+    shipped: false,
+    viral: false,
+    approved: false,
+    in_review: false
+  });
+
+  // Update flags when initialFlags changes
+  useEffect(() => {
+    if (initialFlags) {
+      setCurrentFlags(initialFlags);
+      setOriginalFlags(initialFlags);
+    }
+  }, [initialFlags]);
 
   // Fetch reviews for the project
   const fetchReviews = async () => {
@@ -61,6 +91,54 @@ export default function ReviewSection({ projectID }: ReviewSectionProps) {
   useEffect(() => {
     fetchReviews();
   }, [projectID]);
+  
+  // Handle flag changes from ProjectFlagsEditor
+  const handleFlagsChange = (flags: ProjectFlags) => {
+    setCurrentFlags(flags);
+    
+    // Check if any flags have changed
+    const hasChanges = 
+      flags.shipped !== originalFlags.shipped ||
+      flags.viral !== originalFlags.viral ||
+      flags.approved !== originalFlags.approved ||
+      flags.in_review !== originalFlags.in_review;
+      
+    setFlagsChanged(hasChanges);
+  };
+  
+  // Generate a description of flag changes for the review comment
+  const getFlagChangesDescription = (): string => {
+    const changes: string[] = [];
+    
+    if (currentFlags.shipped !== originalFlags.shipped) {
+      changes.push(`Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`);
+    }
+    
+    if (currentFlags.viral !== originalFlags.viral) {
+      changes.push(`Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`);
+    }
+    
+    if (currentFlags.approved !== originalFlags.approved) {
+      changes.push(`Approved: ${originalFlags.approved ? 'Yes' : 'No'} → ${currentFlags.approved ? 'Yes' : 'No'}`);
+    }
+    
+    if (currentFlags.in_review !== originalFlags.in_review) {
+      changes.push(`In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`);
+    }
+    
+    // Add "Review completed" indicator if the project was in review
+    const reviewCompleted = originalFlags.in_review && !currentFlags.in_review;
+    
+    // If there are no flag changes but the review was completed, still add the completion message
+    if (changes.length === 0 && !reviewCompleted) return '';
+
+    // Always include the review completed message if the project was in review
+    if (reviewCompleted) {
+      return '\n\n[✓ Review completed' + (changes.length > 0 ? '. Status changes: ' + changes.join(', ') : '') + ']';
+    } else {
+      return '\n\n[Status changes: ' + changes.join(', ') + ']';
+    }
+  };
 
   // Submit a new review
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -73,22 +151,80 @@ export default function ReviewSection({ projectID }: ReviewSectionProps) {
     
     try {
       setIsLoading(true);
-      const response = await fetch('/api/reviews', {
+      
+      // Store whether the project was in review before changes
+      const wasInReview = originalFlags.in_review;
+      
+      // Always set in_review to false when submitting a review
+      const updatedFlags = {
+        ...currentFlags,
+        in_review: false
+      };
+      
+      // Check if flags are different after setting in_review to false
+      const hasChanges = 
+        updatedFlags.shipped !== originalFlags.shipped ||
+        updatedFlags.viral !== originalFlags.viral ||
+        updatedFlags.approved !== originalFlags.approved ||
+        updatedFlags.in_review !== originalFlags.in_review;
+      
+      // Update current flags and mark as changed
+      setCurrentFlags(updatedFlags);
+      setFlagsChanged(hasChanges || wasInReview);
+      
+      // Update flags if they've changed or if review is completed
+      if (hasChanges || wasInReview) {
+        const flagsResponse = await fetch('/api/projects/flags', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectID,
+            ...updatedFlags
+          }),
+        });
+        
+        if (!flagsResponse.ok) {
+          throw new Error('Failed to update project flags');
+        }
+        
+        const updatedProject = await flagsResponse.json();
+        
+        // Notify parent component of the flag updates
+        if (onFlagsUpdated) {
+          onFlagsUpdated(updatedProject);
+        }
+        
+        // Update original flags to match current flags
+        setOriginalFlags(updatedFlags);
+        setFlagsChanged(false);
+      }
+      
+      // Then submit the review with flag changes noted in the comment
+      const finalComment = newComment.trim() + getFlagChangesDescription();
+      
+      // Double check that the review completed message is included if this was in review
+      const reviewComment = finalComment.includes('Review completed') || !wasInReview
+        ? finalComment
+        : finalComment + '\n\n[✓ Review completed]';
+      
+      const reviewResponse = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           projectID,
-          comment: newComment.trim(),
+          comment: reviewComment,
         }),
       });
       
-      if (!response.ok) {
+      if (!reviewResponse.ok) {
         throw new Error('Failed to submit review');
       }
       
-      const newReview = await response.json();
+      const newReview = await reviewResponse.json();
       
       // Add the new review to the top of the list
       setReviews([newReview, ...reviews]);
@@ -147,6 +283,18 @@ export default function ReviewSection({ projectID }: ReviewSectionProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Project Reviews</h3>
       
+      {/* Project Flags Editor */}
+      {isReviewMode && initialFlags && (
+        <ProjectFlagsEditor
+          projectID={projectID}
+          initialShipped={initialFlags.shipped}
+          initialViral={initialFlags.viral}
+          initialApproved={initialFlags.approved}
+          initialInReview={initialFlags.in_review}
+          onChange={handleFlagsChange}
+        />
+      )}
+      
       {/* Add new review form - only visible in review mode */}
       {isReviewMode && (
         <form onSubmit={handleSubmitReview} className="mb-6">
@@ -167,10 +315,22 @@ export default function ReviewSection({ projectID }: ReviewSectionProps) {
           <button
             type="submit"
             disabled={isLoading || !newComment.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Submitting...' : 'Submit Review'}
+            {isLoading ? 'Submitting...' : (flagsChanged ? 'Submit Review with Flag Changes' : 'Submit Review')}
           </button>
+          {flagsChanged && (
+            <div className="mt-2 text-xs text-blue-600">
+              <p>Your review will include the following message:</p>
+              <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">{getFlagChangesDescription()}</pre>
+            </div>
+          )}
+          {!flagsChanged && initialFlags?.in_review && (
+            <div className="mt-2 text-xs text-green-600">
+              <p>Your review will include: </p>
+              <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">{'\n\n[✓ Review completed]'}</pre>
+            </div>
+          )}
         </form>
       )}
       
