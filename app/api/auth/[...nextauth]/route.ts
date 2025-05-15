@@ -17,16 +17,58 @@ const adapter = {
     // If this is a Slack account, update the user with their Slack ID
     if (data.provider === 'slack') {
       console.log('Updating user with Slack ID');
+      console.log('Slack data received:', { 
+        providerAccountId: data.providerAccountId,
+        profile: data.profile,
+        userData: data
+      });
 
       try {
+        // Get existing user data to check if name is already set
+        const user = await prisma.user.findUnique({
+          where: { id: data.userId },
+          select: { name: true }
+        });
+        
+        // Prepare update data with Slack user ID
+        const updateData: any = {
+          slack: data.providerAccountId  // Slack's user ID
+        };
+        
+        // Extract name from ID token if available
+        let userName = null;
+        if (data.id_token) {
+          try {
+            // Decode the JWT token without verification (we just need the payload)
+            const tokenParts = data.id_token.split('.');
+            if (tokenParts.length >= 2) {
+              const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+              if (payload.name) {
+                userName = payload.name;
+                console.log('Extracted name from ID token:', userName);
+              }
+            }
+          } catch (err) {
+            console.error('Error extracting name from ID token:', err);
+          }
+        }
+        
+        // Use name from profile or ID token
+        if (data.profile?.name || userName) {
+          const nameToUse = data.profile?.name || userName;
+          console.log('Setting user name from Slack:', nameToUse);
+          updateData.name = nameToUse;
+        }
+        
+        // Update the user with Slack ID and potentially name
         await prisma.user.update({
           where: { id: data.userId },
-          data: {
-            slack: data.providerAccountId  // Slack's user ID
-          }
+          data: updateData
         });
+        
         metrics.increment("success.link_account_id", 1);
       } catch (err) {
+        console.error('Error updating user with Slack data:', err);
         metrics.increment("errors.link_account_id", 1);
       }
     }
@@ -134,6 +176,11 @@ export const opts: NextAuthOptions = {
       return true;
     },
     async redirect({ url, baseUrl }) {
+      // Check if the URL is a callback URL with slackConnected parameter
+      if (url.includes('slackConnected=true')) {
+        console.log('Redirecting to:', url);
+        return url;
+      }
       return `${baseUrl}/bay`;
     }
   },

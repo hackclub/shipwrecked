@@ -1,9 +1,9 @@
 'use client';
 
 import styles from '../page.module.css';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession, signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Toaster, toast } from "sonner";
 
 function Loading() {
@@ -63,10 +63,51 @@ function AccessDeniedHaiku() {
   );
 }
 
-export default function Settings() {
-  const { data: session, status } = useSession();
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string | null;
+  emailVerified: Date | null;
+  slack: string | null;
+  isAdmin: boolean;
+}
+
+// Content component that will be wrapped in Suspense
+function SettingsContent() {
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [isRequestingVerification, setIsRequestingVerification] = useState(false);
+  const [isConnectingSlack, setIsConnectingSlack] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch fresh user data directly from the server
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (status !== 'authenticated' || !session?.user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/users/me`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        
+        const data = await response.json();
+        setUserData(data);
+        console.log('Fetched user data:', data); // Debug log
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (status === 'authenticated') {
+      fetchUserData();
+    }
+  }, [status, session]);
 
   // Early return if not authenticated
   if (status === "loading") return <Loading />
@@ -107,6 +148,33 @@ export default function Settings() {
     }
   };
 
+  // Function to connect Slack
+  const handleConnectSlack = async () => {
+    setIsConnectingSlack(true);
+    try {
+      // Use the Slack provider for authentication with a query param to identify return from Slack
+      // Create a full absolute URL to ensure proper redirection
+      const callbackUrl = new URL("/bay/settings", window.location.origin);
+      callbackUrl.searchParams.set("slackConnected", "true");
+      
+      await signIn("slack", { 
+        callbackUrl: callbackUrl.toString(),
+        redirect: true
+      });
+      // Note: We don't reset isConnectingSlack here because we're redirecting away
+    } catch (error) {
+      console.error("Error connecting to Slack:", error);
+      toast.error("Failed to connect to Slack. Please try again.");
+      setIsConnectingSlack(false);
+    }
+  };
+
+  // Determine which data to use - prefer directly fetched userData if available
+  const userEmail = userData?.email || session?.user?.email;
+  const userName = userData?.name || session?.user?.name;
+  const userEmailVerified = userData?.emailVerified || session?.user?.emailVerified;
+  const userSlack = userData?.slack || session?.user?.slack;
+
   return (
     <div className={styles.container}>
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
@@ -118,19 +186,19 @@ export default function Settings() {
             
             <div className="space-y-4">
               <div>
-                <p className="text-gray-600 mb-1">Email</p>
-                <p className="font-medium">{session?.user?.email}</p>
+                <p className="text-gray-600 mb-1">Name</p>
+                <p className="font-medium">{userName || "Unknown"}</p>
               </div>
               
               <div>
-                <p className="text-gray-600 mb-1">Name</p>
-                <p className="font-medium">{session?.user?.name || "Not set"}</p>
+                <p className="text-gray-600 mb-1">Email</p>
+                <p className="font-medium">{userEmail}</p>
               </div>
               
               <div>
                 <p className="text-gray-600 mb-1">Email Verified?</p>
                 <div className="flex items-center">
-                  {session?.user?.emailVerified ? (
+                  {userEmailVerified ? (
                     <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                       Yes
                     </span>
@@ -145,6 +213,30 @@ export default function Settings() {
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                       >
                         {isRequestingVerification ? "Sending..." : "Fix this..."}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-gray-600 mb-1">Slack Connected?</p>
+                <div className="flex items-center">
+                  {userSlack ? (
+                    <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Yes
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        No
+                      </span>
+                      <button
+                        onClick={handleConnectSlack}
+                        disabled={isConnectingSlack}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
+                      >
+                        {isConnectingSlack ? "Connecting..." : "Fix this..."}
                       </button>
                     </div>
                   )}
@@ -165,5 +257,52 @@ export default function Settings() {
       </div>
       <Toaster richColors />
     </div>
+  );
+}
+
+// Component that handles useSearchParams with Suspense
+function SettingsWithSearchParams() {
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  
+  // Import useSearchParams in component that's wrapped in Suspense
+  const { useSearchParams } = require('next/navigation');
+  const searchParams = useSearchParams();
+  
+  // Refresh data when returning from Slack auth
+  useEffect(() => {
+    const justConnectedSlack = searchParams.get('slackConnected') === 'true';
+    
+    if (justConnectedSlack && status === 'authenticated') {
+      // Refetch user data and force a hard reload
+      const handleSlackConnection = async () => {
+        try {
+          toast.success("Slack account connected successfully!");
+          
+          // Update URL to remove the query parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete('slackConnected');
+          
+          // Force a complete page reload to get fresh session data
+          window.location.href = url.toString();
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+      };
+      
+      handleSlackConnection();
+    }
+  }, [searchParams, status, router]);
+  
+  return <SettingsContent />;
+}
+
+// Main export that wraps the component with Suspense
+export default function Settings() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <SettingsWithSearchParams />
+    </Suspense>
   );
 } 

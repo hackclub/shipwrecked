@@ -162,7 +162,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
               </div>
             )}
             <div>
-              <h2 className="text-xl font-semibold">{user.name || 'Unnamed User'}</h2>
+              <h2 className="text-xl font-semibold">{user.name || 'Unknown'}</h2>
               <p className="text-gray-600">{user.email}</p>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
                         Direct message...
                       </a>
                     ) : (
-                      'Not connected'
+                      'Unknown'
                     )}
                   </p>
                 </div>

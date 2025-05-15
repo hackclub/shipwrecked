@@ -226,7 +226,7 @@ function AdminUsersContent() {
                           )}
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {user.name || 'Unnamed User'}
+                              {user.name || 'Unknown'}
                             </div>
                           </div>
                         </div>
@@ -309,7 +309,7 @@ function AdminUsersContent() {
                         )}
                         <div>
                           <div className="text-base font-medium text-gray-900">
-                            {user.name || 'Unnamed User'}
+                            {user.name || 'Unknown'}
                           </div>
                           <div className="text-sm text-gray-600">
                             {user.email}

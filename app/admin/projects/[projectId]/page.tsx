@@ -319,7 +319,7 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
               </div>
             )}
             <div>
-              <p className="font-medium">{project.user.name || 'Unnamed User'}</p>
+              <p className="font-medium">{project.user.name || 'Unknown'}</p>
               <p className="text-sm text-gray-500">{project.user.email}</p>
             </div>
           </div>
