@@ -9,6 +9,9 @@ import Modal from '@/components/common/Modal';
 import FormInput from '@/components/form/FormInput';
 import { toast, Toaster } from 'sonner';
 
+// Force dynamic rendering to prevent prerendering errors during build
+export const dynamic = 'force-dynamic';
+
 interface User {
   id: string;
   name: string | null;

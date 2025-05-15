@@ -26,6 +26,9 @@ import ProjectFlagsEditor, { ProjectFlags } from '@/components/common/ProjectFla
 import ProjectReviewRequest from '@/components/common/ProjectReviewRequest';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
 
+// Force dynamic rendering to prevent prerendering errors during build
+export const dynamic = 'force-dynamic';
+
 function Loading() {
   return (
     <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">

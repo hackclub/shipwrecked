@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+// Force dynamic rendering to prevent prerendering errors during build
+export const dynamic = 'force-dynamic';
+
 enum UserStatus {
   Unknown = "Unknown",
   L1 = "L1", 
