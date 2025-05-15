@@ -50,4 +50,51 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { projectId: string } }
+) {
+  // Check authentication
+  const session = await getServerSession(opts);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Ensure the user is an admin
+  const adminCheck = await prisma.user.findUnique({
+    where: { email: session.user.email as string },
+    select: { isAdmin: true },
+  });
+  
+  if (!adminCheck?.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const projectId = params.projectId;
+    
+    // First delete any reviews associated with the project
+    await prisma.review.deleteMany({
+      where: {
+        projectID: projectId,
+      },
+    });
+    
+    // Then delete the project
+    await prisma.project.delete({
+      where: {
+        projectID: projectId,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete project' },
+      { status: 500 }
+    );
+  }
 } 

@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '../page.module.css';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Toaster, toast } from "sonner";
@@ -66,6 +66,7 @@ function AccessDeniedHaiku() {
 export default function Settings() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
 
   // Early return if not authenticated
   if (status === "loading") return <Loading />
@@ -76,6 +77,34 @@ export default function Settings() {
   const handleSaveSettings = () => {
     // In a real implementation, you would save these settings to a database
     toast.success("Settings saved successfully!");
+  };
+
+  // Function to trigger email verification
+  const handleRequestVerification = async () => {
+    if (!session?.user?.email) {
+      toast.error("No email associated with your account");
+      return;
+    }
+
+    setIsRequestingVerification(true);
+    
+    try {
+      // Using the same email sign-in flow as the login page
+      await signIn("email", { 
+        email: session.user.email, 
+        redirect: false 
+      });
+      
+      toast.success("Verification email sent! Please check your inbox.");
+      
+      // Redirect to verification page
+      router.push("/bay/login/verify");
+    } catch (error) {
+      console.error("Error requesting verification:", error);
+      toast.error("Failed to send verification email. Please try again.");
+    } finally {
+      setIsRequestingVerification(false);
+    }
   };
 
   return (
@@ -96,6 +125,30 @@ export default function Settings() {
               <div>
                 <p className="text-gray-600 mb-1">Name</p>
                 <p className="font-medium">{session?.user?.name || "Not set"}</p>
+              </div>
+              
+              <div>
+                <p className="text-gray-600 mb-1">Email Verified?</p>
+                <div className="flex items-center">
+                  {session?.user?.emailVerified ? (
+                    <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Yes
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        No
+                      </span>
+                      <button
+                        onClick={handleRequestVerification}
+                        disabled={isRequestingVerification}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
+                      >
+                        {isRequestingVerification ? "Sending..." : "Fix this..."}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

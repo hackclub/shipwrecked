@@ -13,6 +13,7 @@ declare module "next-auth" {
             hackatimeId?: string | null;
             isAdmin?: boolean;
             status?: UserStatus;
+            emailVerified?: Date | null;
         },
         expires: string
     }
@@ -23,5 +24,6 @@ declare module "next-auth" {
         hackatimeId?: string | null;
         isAdmin?: boolean;
         status?: UserStatus;
+        emailVerified?: Date | null;
     }
 }

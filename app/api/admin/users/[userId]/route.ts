@@ -98,4 +98,44 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { userId: string } }
+) {
+  // Check authentication
+  const session = await getServerSession(opts);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Ensure the user is an admin
+  const adminCheck = await prisma.user.findUnique({
+    where: { email: session.user.email as string },
+    select: { isAdmin: true },
+  });
+  
+  if (!adminCheck?.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const userId = params.userId;
+    
+    // Delete the user
+    await prisma.user.delete({
+      where: {
+        id: userId,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete user' },
+      { status: 500 }
+    );
+  }
 } 

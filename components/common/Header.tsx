@@ -17,6 +17,9 @@ export default function Header({ session, status }: HeaderProps) {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
+    
+    // Check if user is an admin
+    const isUserAdmin = session?.user?.isAdmin === true;
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -70,6 +73,15 @@ export default function Header({ session, status }: HeaderProps) {
                     >
                         Settings
                     </Link>
+                    {/* Show Admin tab only for admin users */}
+                    {isUserAdmin && (
+                        <Link 
+                            href="/admin" 
+                            className={`transition-colors ${isActive('/admin') || pathname.startsWith('/admin/') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                        >
+                            Admin
+                        </Link>
+                    )}
                 </div>
                 
                 {/* Mobile menu dropdown */}
@@ -97,6 +109,16 @@ export default function Header({ session, status }: HeaderProps) {
                             >
                                 Settings
                             </Link>
+                            {/* Show Admin tab only for admin users in mobile menu */}
+                            {isUserAdmin && (
+                                <Link 
+                                    href="/admin" 
+                                    className={`block transition-colors ${isActive('/admin') || pathname.startsWith('/admin/') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    Admin
+                                </Link>
+                            )}
                         </div>
                     </div>
                 )}

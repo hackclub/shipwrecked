@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { toast, Toaster } from 'sonner';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,10 @@ function AdminUsersContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmUserEmail, setConfirmUserEmail] = useState('');
   
   useEffect(() => {
     async function fetchUsers() {
@@ -85,6 +90,47 @@ function AdminUsersContent() {
         {userStatus === UserStatus.FraudSuspect ? 'Fraud Suspect' : userStatus}
       </span>
     );
+  };
+
+  // Function to handle user deletion
+  const handleDeleteUser = async () => {
+    if (!userToDelete || !userToDelete.email) return;
+    
+    if (confirmUserEmail !== userToDelete.email) {
+      toast.error("Email doesn't match. Deletion aborted.");
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Remove the user from the state
+        setUsers(users.filter(user => user.id !== userToDelete.id));
+        toast.success('User deleted successfully');
+        setShowDeleteModal(false);
+        setConfirmUserEmail('');
+      } else {
+        const error = await response.json();
+        toast.error(`Failed to delete user: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    } finally {
+      setIsDeleting(false);
+      setUserToDelete(null);
+    }
+  };
+
+  // Function to open the delete confirmation modal
+  const openDeleteModal = (user: User) => {
+    setUserToDelete(user);
+    setConfirmUserEmail('');
+    setShowDeleteModal(true);
   };
 
   if (status !== 'authenticated') {
@@ -227,13 +273,7 @@ function AdminUsersContent() {
                         </Link>
                         <button
                           className="text-red-600 hover:text-red-900"
-                          // This would need proper implementation with confirmation
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this user?')) {
-                              // Implement delete functionality
-                              alert('Delete functionality to be implemented');
-                            }
-                          }}
+                          onClick={() => openDeleteModal(user)}
                         >
                           Delete
                         </button>
@@ -254,10 +294,9 @@ function AdminUsersContent() {
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {filteredUsers.map((user) => (
-                  <Link 
-                    href={`/admin/users/${user.id}`}
+                  <div 
                     key={user.id}
-                    className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+                    className="block bg-white rounded-lg shadow-md overflow-hidden"
                   >
                     <div className="p-4">
                       <div className="flex items-center mb-3">
@@ -315,19 +354,95 @@ function AdminUsersContent() {
                         </div>
                       </div>
                       
-                      <div className="mt-4 border-t border-gray-100 pt-3 text-right">
-                        <span className="text-blue-600 font-medium">
-                          Edit User →
-                        </span>
+                      <div className="mt-4 border-t border-gray-100 pt-3 flex justify-between">
+                        <Link 
+                          href={`/admin/users/${user.id}`}
+                          className="text-blue-600 font-medium"
+                        >
+                          Edit User
+                        </Link>
+                        <button
+                          onClick={() => openDeleteModal(user)}
+                          className="text-red-600 font-medium"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
           </div>
         </>
       )}
+      
+      {/* Delete Confirmation Modal with email verification */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to delete the user{" "}
+                <span className="font-semibold">{userToDelete?.name || userToDelete?.email || 'Unknown'}</span>?
+                This action cannot be undone.
+              </p>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      For extra security, please type the user's full email address to confirm deletion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type "{userToDelete?.email}" to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmUserEmail}
+                onChange={(e) => setConfirmUserEmail(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="User email"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete(null);
+                  setConfirmUserEmail('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className={`px-4 py-2 text-white rounded ${
+                  confirmUserEmail === userToDelete?.email
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-300 cursor-not-allowed'
+                }`}
+                disabled={isDeleting || confirmUserEmail !== userToDelete?.email}
+              >
+                {isDeleting ? "Deleting..." : "Delete User"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <Toaster richColors />
     </div>
   );
 }

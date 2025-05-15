@@ -84,6 +84,10 @@ function AdminProjectsContent() {
       projectID: ""
     }
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmProjectName, setConfirmProjectName] = useState('');
   
   // Get the current filter from URL
   const currentFilter = searchParams.get('filter') || 'all';
@@ -293,6 +297,61 @@ function AdminProjectsContent() {
     }
     
     return badges.length > 0 ? <div className="flex flex-wrap" style={{ display: 'flex' }}>{badges}</div> : null;
+  };
+
+  // Function to handle project deletion
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
+    
+    // Extra verification - check if project name matches confirmation input
+    if (confirmProjectName !== projectToDelete.name) {
+      toast.error("Project name doesn't match. Deletion aborted.");
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/projects/${projectToDelete.projectID}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Remove the project from the state
+        setProjects(prevProjects => 
+          prevProjects.filter(p => p.projectID !== projectToDelete.projectID)
+        );
+        
+        // If the deleted project was selected, clear selection
+        if (selectedProject && selectedProject.projectID === projectToDelete.projectID) {
+          setSelectedProject(null);
+          setIsEditModalOpen(false);
+          
+          // Update URL to remove projectId
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete('projectId');
+          router.push(`/admin/projects?${newParams.toString()}`);
+        }
+        
+        toast.success('Project deleted successfully');
+        setShowDeleteModal(false);
+        setConfirmProjectName(''); // Reset input
+      } else {
+        const error = await response.json();
+        toast.error(`Failed to delete project: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error('Failed to delete project');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  // Function to open the delete confirmation modal - remove event param since it's only used from editor now
+  const openDeleteModal = (project: Project) => {
+    setProjectToDelete(project);
+    setConfirmProjectName(''); // Reset the confirmation input 
+    setShowDeleteModal(true);
   };
 
   if (status !== 'authenticated') {
@@ -559,13 +618,23 @@ function AdminProjectsContent() {
             </div>
             
             <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
-              <button
-                type="submit"
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save Changes"}
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  type="submit"
+                  className="flex-grow px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openDeleteModal(selectedProject)}
+                  className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none"
+                  disabled={isSubmitting}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </form>
         ) : (
@@ -634,14 +703,14 @@ function AdminProjectsContent() {
                 >
                   Playable URL
                 </FormInput>
-                              <FormInput
-                fieldName='screenshot'
-                placeholder='Screenshot URL'
-                state={formState}
-                defaultValue={selectedProject.screenshot || ""}
-              >
-                Screenshot URL
-              </FormInput>
+                <FormInput
+                  fieldName='screenshot'
+                  placeholder='Screenshot URL'
+                  state={formState}
+                  defaultValue={selectedProject.screenshot || ""}
+                >
+                  Screenshot URL
+                </FormInput>
               </div>
               
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
@@ -689,15 +758,90 @@ function AdminProjectsContent() {
               </div>
               
               <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">
-                <button
-                  type="submit"
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    type="submit"
+                    className="flex-grow px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDeleteModal(selectedProject)}
+                    className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none"
+                    disabled={isSubmitting}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal with name verification */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to delete the project{" "}
+                <span className="font-semibold">{projectToDelete?.name || 'Unknown'}</span>?
+                This action cannot be undone and will also delete all associated reviews.
+              </p>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      For extra security, please type the project name to confirm deletion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type "{projectToDelete?.name}" to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmProjectName}
+                onChange={(e) => setConfirmProjectName(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Project name"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setProjectToDelete(null);
+                  setConfirmProjectName('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                className={`px-4 py-2 text-white rounded ${
+                  confirmProjectName === projectToDelete?.name
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-300 cursor-not-allowed'
+                }`}
+                disabled={isDeleting || confirmProjectName !== projectToDelete?.name}
+              >
+                {isDeleting ? "Deleting..." : "Delete Project"}
+              </button>
+            </div>
           </div>
         </div>
       )}

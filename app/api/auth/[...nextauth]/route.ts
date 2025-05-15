@@ -93,7 +93,8 @@ export const opts: NextAuthOptions = {
           id: user.id,
           hackatimeId: user.hackatimeId,
           isAdmin: user.isAdmin,
-          status: user.status
+          status: user.status,
+          emailVerified: user.emailVerified
         }
       };
     },
