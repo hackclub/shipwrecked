@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Only protect the exact /bay path
-  if (!request.nextUrl.pathname.startsWith('/bay')) {
+  // Only protect the /bay and /admin paths
+  if (!request.nextUrl.pathname.startsWith('/bay') && !request.nextUrl.pathname.startsWith('/admin')) {
     return NextResponse.next();
   }
 
@@ -54,7 +54,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configure the middleware to only run on the /bay path and its subpaths
+// Configure the middleware to only run on the /bay and /admin paths and their subpaths
 export const config = {
-  matcher: ['/bay', '/bay/:path*'],
+  matcher: ['/bay', '/bay/:path*', '/admin', '/admin/:path*'],
 };

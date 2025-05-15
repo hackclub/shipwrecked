@@ -308,7 +308,7 @@ export default function ReviewSection({
               onChange={(e) => setNewComment(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Share your thoughts about this project..."
+              placeholder="Please provide good commentary explaining the result of your review, with concrete follow-ups required of the project author"
               disabled={isLoading}
             />
           </div>
@@ -319,15 +319,29 @@ export default function ReviewSection({
           >
             {isLoading ? 'Submitting...' : (flagsChanged ? 'Submit Review with Flag Changes' : 'Submit Review')}
           </button>
-          {flagsChanged && (
+          
+          {/* Preview of review content */}
+          {newComment.trim() && (
             <div className="mt-2 text-xs text-blue-600">
-              <p>Your review will include the following message:</p>
+              <p>Preview:</p>
+              <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">{newComment.trim()}{
+                flagsChanged ? getFlagChangesDescription() : (initialFlags?.in_review ? '\n\n[✓ Review completed]' : '')
+              }</pre>
+            </div>
+          )}
+          
+          {/* Existing flag change preview */}
+          {flagsChanged && !newComment.trim() && (
+            <div className="mt-2 text-xs text-blue-600">
+              <p>Preview:</p>
               <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">{getFlagChangesDescription()}</pre>
             </div>
           )}
-          {!flagsChanged && initialFlags?.in_review && (
+          
+          {/* Existing review completion preview */}
+          {!flagsChanged && initialFlags?.in_review && !newComment.trim() && (
             <div className="mt-2 text-xs text-green-600">
-              <p>Your review will include: </p>
+              <p>Preview: </p>
               <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">{'\n\n[✓ Review completed]'}</pre>
             </div>
           )}

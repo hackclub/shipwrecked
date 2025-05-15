@@ -92,7 +92,8 @@ export const opts: NextAuthOptions = {
           ...session.user,
           id: user.id,
           hackatimeId: user.hackatimeId,
-          isAdmin: user.isAdmin
+          isAdmin: user.isAdmin,
+          status: user.status
         }
       };
     },

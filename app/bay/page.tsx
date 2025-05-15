@@ -24,6 +24,7 @@ import ReviewSection from '@/components/common/ReviewSection';
 import { ReviewModeProvider, useReviewMode } from '@/app/contexts/ReviewModeContext';
 import ProjectFlagsEditor, { ProjectFlags } from '@/components/common/ProjectFlagsEditor';
 import ProjectReviewRequest from '@/components/common/ProjectReviewRequest';
+import ImageWithFallback from '@/components/common/ImageWithFallback';
 
 function Loading() {
   return (
@@ -355,11 +356,14 @@ function ProjectDetail({
         {project.screenshot && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Screenshot</h3>
-            <img 
-              src={project.screenshot} 
-              alt={`Screenshot of ${project.name}`}
-              className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
-            />
+            <div className="relative mt-2 w-full h-64 rounded-lg border border-gray-200 overflow-hidden">
+              <ImageWithFallback
+                src={project.screenshot}
+                alt={`Screenshot of ${project.name}`}
+                fill
+                className="object-contain"
+              />
+            </div>
           </div>
         )}
         
@@ -1536,11 +1540,14 @@ function BayWithReviewMode({ session, status, router }: {
                   {selectedProject.screenshot && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-gray-700 mb-2">Screenshot</h3>
-                      <img 
-                        src={selectedProject.screenshot} 
-                        alt={`Screenshot of ${selectedProject.name}`}
-                        className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
-                      />
+                      <div className="relative mt-2 w-full h-64 rounded-lg border border-gray-200 overflow-hidden">
+                        <ImageWithFallback
+                          src={selectedProject.screenshot}
+                          alt={`Screenshot of ${selectedProject.name}`}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
                     </div>
                   )}
                   

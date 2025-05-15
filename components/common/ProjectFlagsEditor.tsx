@@ -112,12 +112,6 @@ export default function ProjectFlagsEditor({
         </div>
       </div>
       
-      {inReview && (
-        <div className="bg-red-50 p-3 rounded mt-4 text-xs text-red-700">
-          <p><strong>Note:</strong> This project is currently in review. Submitting a review will automatically clear the review status.</p>
-        </div>
-      )}
-      
       <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700">
         <p>Add a review comment and click <strong>Submit Review</strong> below to save these flag changes.</p>
       </div>

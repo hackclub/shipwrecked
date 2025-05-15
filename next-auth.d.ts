@@ -1,5 +1,6 @@
 // next-auth.d.ts
 import NextAuth, { DefaultUser } from "next-auth";
+import { UserStatus } from "./app/generated/prisma/client";
 
 declare module "next-auth" {
     interface Session {
@@ -10,7 +11,8 @@ declare module "next-auth" {
             image?: string | null;
             slack?: string | null;
             hackatimeId?: string | null;
-            isAdmin?: boolean
+            isAdmin?: boolean;
+            status?: UserStatus;
         },
         expires: string
     }
@@ -19,6 +21,7 @@ declare module "next-auth" {
     interface User extends DefaultUser {
         slack?: string | null;
         hackatimeId?: string | null;
-        isAdmin?: boolean
+        isAdmin?: boolean;
+        status?: UserStatus;
     }
 }

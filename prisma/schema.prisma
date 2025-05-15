@@ -8,6 +8,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User status enum
+enum UserStatus {
+  Unknown
+  L1
+  L2
+  FraudSuspect
+}
+
 model Registration {
   // Personal Info
   id             String   @id @default(cuid())
@@ -38,6 +46,7 @@ model User {
   slack         String?         @unique // slack user id 
   isAdmin       Boolean         @default(false)
   hackatimeId   String?         @unique // hackatime user id
+  status        UserStatus      @default(Unknown) // User verification status
   // Optional for WebAuthn support
   Authenticator Authenticator[]
 
