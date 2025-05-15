@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { opts } from "@/app/api/auth/[...nextauth]/route";
 import Form from "./form";
 
+// Add dynamic directive at the top of the file after the imports
+export const dynamic = 'force-dynamic';
+
 // Registration Page (/bay/intro/register)
 // Guides the user to fill out a registration form
 export default async function Page() {

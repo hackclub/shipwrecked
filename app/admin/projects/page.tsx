@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -59,7 +59,8 @@ async function editProjectAction(formData: FormData) {
   }
 }
 
-export default function AdminProjects() {
+// Create a wrapper component that uses Suspense
+function AdminProjectsContent() {
   const { data: session, status } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -703,5 +704,14 @@ export default function AdminProjects() {
       
       <Toaster richColors />
     </div>
+  );
+}
+
+// Main component that wraps the content with Suspense
+export default function AdminProjects() {
+  return (
+    <Suspense fallback={<div>Loading projects...</div>}>
+      <AdminProjectsContent />
+    </Suspense>
   );
 } 

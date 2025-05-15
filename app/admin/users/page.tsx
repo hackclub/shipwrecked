@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -25,7 +25,8 @@ interface User {
   status: UserStatus;
 }
 
-export default function AdminUsers() {
+// Create a wrapper component that uses Suspense
+function AdminUsersContent() {
   const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -328,5 +329,14 @@ export default function AdminUsers() {
         </>
       )}
     </div>
+  );
+}
+
+// Main component that wraps the content with Suspense
+export default function AdminUsers() {
+  return (
+    <Suspense fallback={<div>Loading users...</div>}>
+      <AdminUsersContent />
+    </Suspense>
   );
 } 
