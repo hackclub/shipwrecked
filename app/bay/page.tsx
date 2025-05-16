@@ -175,9 +175,11 @@ function ProjectDetail({
       return 15;
     }
     
-    // Get hours from Hackatime or default to 0
-    // Use the hours passed via props
-    const rawHours = (project as any).hours || 0;
+    // Get hours from project properties
+    // Use hoursOverride if present, otherwise use rawHours
+    const rawHours = typeof project.hoursOverride === 'number' && project.hoursOverride !== null 
+      ? project.hoursOverride 
+      : project.rawHours || 0;
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
@@ -752,8 +754,16 @@ function BayWithReviewMode({ session, status, router }: {
       }
     });
 
-    // Total progress should match totalHours
-    const total = Math.min(shippedHours + viralHours + otherHours, 100);
+    // Calculate total hours (capped at 60 for percentages)
+    const totalHours = Math.min(shippedHours + viralHours + otherHours, 60);
+    
+    // Convert hours to percentages (based on 60-hour goal)
+    const shippedPercentage = (shippedHours / 60) * 100;
+    const viralPercentage = (viralHours / 60) * 100;
+    const otherPercentage = (otherHours / 60) * 100;
+    
+    // Total progress percentage (capped at 100%)
+    const totalPercentage = Math.min((totalHours / 60) * 100, 100);
     
     // Create segments array
     const segments: ProgressSegment[] = [];
@@ -761,7 +771,7 @@ function BayWithReviewMode({ session, status, router }: {
     // Add shipped segment if there are hours
     if (shippedHours > 0) {
       segments.push({
-        value: shippedHours,
+        value: shippedPercentage,
         color: '#10b981', // Green
         label: 'Shipped',
         tooltip: `${shippedHours.toFixed(1)} hours from shipped projects`,
@@ -773,8 +783,8 @@ function BayWithReviewMode({ session, status, router }: {
     // Add viral segment if there are hours
     if (viralHours > 0) {
       segments.push({
-        value: viralHours,
-        color: '#3b82f6', // Blue
+        value: viralPercentage,
+        color: '#f59e0b', // Gold/Yellow
         label: 'Viral',
         tooltip: `${viralHours.toFixed(1)} hours from viral projects`,
         animated: false,
@@ -785,8 +795,8 @@ function BayWithReviewMode({ session, status, router }: {
     // Add other segment if there are hours
     if (otherHours > 0) {
       segments.push({
-        value: otherHours,
-        color: '#f59e0b', // Yellow
+        value: otherPercentage,
+        color: '#3b82f6', // Blue
         label: 'In Progress',
         tooltip: `${otherHours.toFixed(1)} hours from in-progress projects`,
         animated: true,
@@ -794,10 +804,10 @@ function BayWithReviewMode({ session, status, router }: {
       });
     }
     
-    // Add remaining segment if total < 100
-    if (total < 100) {
+    // Add remaining segment if total < 100%
+    if (totalPercentage < 100) {
       segments.push({
-        value: 100 - total,
+        value: 100 - totalPercentage,
         color: '#e5e7eb', // Light gray
         tooltip: 'Remaining progress needed',
         status: 'pending'
@@ -836,42 +846,48 @@ function BayWithReviewMode({ session, status, router }: {
   
   // Helper to get project hours with our matching logic
   const getProjectHackatimeHours = (project: ProjectType): number => {
-    if (!project.hackatime) return 0;
+    // Use hoursOverride if available
+    if (typeof project.hoursOverride === 'number' && project.hoursOverride !== null) {
+      return project.hoursOverride;
+    }
+    
+    // Otherwise use raw hours from hackatime
+    if (!project.hackatime) return project.rawHours || 0;
     
     const matchingKey = findMatchingHackatimeKey(project.hackatime);
-    return matchingKey ? projectHours[matchingKey] : 0;
+    return matchingKey ? projectHours[matchingKey] : (project.rawHours || 0);
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
-        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2 md:py-4 md:mb-6">
+        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-1 md:py-2">
           <div className="flex-grow px-4 sm:px-0">
-            <div className="flex items-center gap-3 mb-1 mt-2 md:mt-0">
+            <div className="flex items-center justify-center gap-3">
               <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${calculateTotalRawHours()} hour${calculateTotalRawHours() !== 1 ? 's' : ''} thus far`}>
-                <span className="text-4xl md:text-6xl">👤</span>
+                <span className="text-4xl md:text-6xl flex items-center">👤</span>
               </Tooltip>
               <div 
-                className="flex-grow cursor-pointer" 
+                className="flex-grow cursor-pointer mt-5" 
                 onClick={() => setIsProgressModalOpen(true)}
                 title="When this progress bar reaches 100%, you're eligible for going to the island!"
               >
                 <MultiPartProgressBar 
                   segments={calculateProgressSegments()}
                   max={100}
-                  height={12}
+                  height={10}
                   rounded={true}
                   showLabels={false}
                   tooltipPosition="top"
                 />
-                <div className="text-center mt-1 mb-3 md:mb-1">
-                  <h3 className="font-medium text-lg">
+                <div className="text-center">
+                  <h3 className="font-medium text-base">
                     {totalHours}%
                   </h3>
                 </div>
               </div>
               <Tooltip content="Your prize - a fantastic island adventure with friends">
-                <span className="text-4xl md:text-6xl">🏝️</span>
+                <span className="text-4xl md:text-6xl flex items-center">🏝️</span>
               </Tooltip>
             </div>
           </div>
@@ -1366,8 +1382,25 @@ function BayWithReviewMode({ session, status, router }: {
                 return 0;
               }
               
-              // Use our helper function to get hours
-              return getProjectHackatimeHours(selectedProject);
+              // If viral, it's 15 hours
+              if (selectedProject.viral) {
+                return 15;
+              }
+              
+              // Use hoursOverride if available, otherwise use raw hours
+              const hours = typeof selectedProject.hoursOverride === 'number' && selectedProject.hoursOverride !== null
+                ? selectedProject.hoursOverride
+                : getProjectHackatimeHours(selectedProject);
+              
+              // Cap hours per project at 15
+              let cappedHours = Math.min(hours, 15);
+              
+              // If not shipped, cap at 14.75 hours
+              if (!selectedProject.shipped && cappedHours > 14.75) {
+                cappedHours = 14.75;
+              }
+              
+              return cappedHours;
             };
             
             const selectedProjectContribution = getSelectedProjectHours();
