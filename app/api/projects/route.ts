@@ -117,33 +117,54 @@ export async function POST(request: Request) {
             hasScreenshot: !!projectData.screenshot
         });
 
+        // Validate required fields
+        if (!projectData.name) {
+            console.error('[POST] Missing required field: name');
+            throw new Error('Project name is required');
+        }
+
+        if (!projectData.description) {
+            console.error('[POST] Missing required field: description');
+            throw new Error('Project description is required');
+        }
+
         const createdProject = await createProject({ 
             ...projectData,
             userId: user.id
         });
         
-        // Create audit log for project creation
-        await logProjectEvent({
-            eventType: AuditLogEventType.ProjectCreated,
-            description: createdProject && createdProject.hackatime 
-                ? `Project "${createdProject.name}" was created (Hackatime: ${createdProject.hackatime})` 
-                : `Project "${createdProject.name}" was created`,
-            projectId: createdProject.projectID,
-            userId: user.id,
-            actorUserId: user.id,
-            metadata: {
-                projectDetails: {
-                    projectID: createdProject.projectID,
-                    name: createdProject.name,
-                    description: createdProject.description,
-                    hackatime: createdProject.hackatime || null,
-                    codeUrl: createdProject.codeUrl || "",
-                    playableUrl: createdProject.playableUrl || "",
-                    screenshot: createdProject.screenshot || "",
-                    url: `/bay/projects/${createdProject.projectID}`
+        // Check if project was created successfully
+        if (!createdProject) {
+            throw new Error('Failed to create project - no project data returned');
+        }
+        
+        try {
+            // Create audit log for project creation
+            await logProjectEvent({
+                eventType: AuditLogEventType.ProjectCreated,
+                description: createdProject.hackatime 
+                    ? `Project "${createdProject.name || 'Unnamed'}" was created (Hackatime: ${createdProject.hackatime})` 
+                    : `Project "${createdProject.name || 'Unnamed'}" was created`,
+                projectId: createdProject.projectID || 'unknown-id',
+                userId: user.id,
+                actorUserId: user.id,
+                metadata: {
+                    projectDetails: {
+                        projectID: createdProject.projectID || 'unknown-id',
+                        name: createdProject.name || 'Unnamed',
+                        description: createdProject.description || '',
+                        hackatime: createdProject.hackatime || null,
+                        codeUrl: createdProject.codeUrl || "",
+                        playableUrl: createdProject.playableUrl || "",
+                        screenshot: createdProject.screenshot || "",
+                        url: createdProject.projectID ? `/bay/projects/${createdProject.projectID}` : '/bay'
+                    }
                 }
-            }
-        });
+            });
+        } catch (logError) {
+            // Log but don't throw, allow project creation to succeed even if audit log fails
+            console.error('[POST] Failed to create audit log:', logError);
+        }
         
         console.log(`[POST] Successfully created project ${createdProject.projectID}`);
         metrics.increment("success.create_project", 1);
@@ -332,9 +353,13 @@ export async function PUT(request: Request) {
             data: updateFields
         });
 
+        // Safe logging in case updatedProject is undefined
         console.log(`[PUT] Successfully updated project ${projectID}`);
         metrics.increment("success.update_project", 1);
-        return Response.json({ success: true, data: updatedProject });
+        return Response.json({ 
+            success: true, 
+            data: updatedProject || { projectID }
+        });
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error('[PUT] Failed to update project:', err);

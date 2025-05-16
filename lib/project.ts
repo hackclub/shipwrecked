@@ -22,6 +22,16 @@ export type ProjectInput = Omit<Project, 'projectID' | 'submitted'>;
 export type ProjectUpdateInput = Partial<Omit<Project, 'projectID' | 'userId' | 'submitted'>>;
 
 export async function createProject(data: ProjectInput) {
+    console.log('[createProject] Starting project creation with data:', {
+        name: data.name,
+        description: data.description?.substring(0, 20) + '...',
+        hackatime: data.hackatime || 'N/A',
+        userId: data.userId,
+        hasCodeUrl: !!data.codeUrl,
+        hasPlayableUrl: !!data.playableUrl,
+        hasScreenshot: !!data.screenshot
+    });
+
     let rawHours = typeof data.rawHours === 'number' ? data.rawHours : 0;
     
     // Ensure hackatime is defined
@@ -54,24 +64,32 @@ export async function createProject(data: ProjectInput) {
         }
     }
     
-    return prisma.project.create({
-        data: {
-            projectID: crypto.randomUUID(),
-            name: data.name,
-            description: data.description,
-            codeUrl: data.codeUrl,
-            playableUrl: data.playableUrl,
-            screenshot: data.screenshot || "",
-            hackatime: hackatimeName,
-            userId: data.userId,
-            submitted: false,
-            shipped: !!data.shipped,
-            viral: !!data.viral,
-            in_review: !!data.in_review,
-            rawHours: rawHours,
-            hoursOverride: typeof data.hoursOverride === 'number' ? data.hoursOverride : undefined
-        }
-    });
+    try {
+        console.log('[createProject] Creating project in database with name:', data.name);
+        const project = await prisma.project.create({
+            data: {
+                projectID: crypto.randomUUID(),
+                name: data.name || 'Unnamed Project', // Ensure name is not empty
+                description: data.description || '',
+                codeUrl: data.codeUrl || '',
+                playableUrl: data.playableUrl || '',
+                screenshot: data.screenshot || "",
+                hackatime: hackatimeName,
+                userId: data.userId,
+                submitted: false,
+                shipped: !!data.shipped,
+                viral: !!data.viral,
+                in_review: !!data.in_review,
+                rawHours: rawHours,
+                hoursOverride: typeof data.hoursOverride === 'number' ? data.hoursOverride : undefined
+            }
+        });
+        console.log('[createProject] Project created successfully:', project.projectID);
+        return project;
+    } catch (error) {
+        console.error('[createProject] Failed to create project in database:', error);
+        throw error; // Re-throw to be handled by the caller
+    }
 }
 
 export async function deleteProject(projectID: string, userId: string) {
