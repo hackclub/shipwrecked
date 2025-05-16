@@ -423,6 +423,9 @@ function BayWithReviewMode({ session, status, router }: {
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
   const isMobile = useIsMobile();
   const { isReviewMode } = useReviewMode();
+  
+  // Check if user is admin
+  const isAdmin = session?.user?.role === 'Admin' || session?.user?.isAdmin === true;
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
@@ -541,16 +544,7 @@ function BayWithReviewMode({ session, status, router }: {
     },
   });
 
-  const [initialEditState, setInitialEditState] = useState<any>({
-    name: "",
-    description: "",
-    hackatime: "",
-    codeUrl: "",
-    playableUrl: "",
-    screenshot: "",
-    userId: "",
-    projectID: ""
-  });
+  const [initialEditState, setInitialEditState] = useState<Partial<ProjectType>>({});
 
   const [projectEditState, projectEditFormAction, projectEditPending] = useActionState((state: FormSave, payload: FormData) => new Promise<FormSave>((resolve, reject) => {
     toast.promise(editProjectAction(state, payload), {
@@ -1195,45 +1189,28 @@ function BayWithReviewMode({ session, status, router }: {
                     </FormSelect>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
+                  <FormInput
+                    fieldName='approved'
+                    type='hidden'
+                    state={projectEditState}
+                    defaultValue={initialEditState.approved ? "true" : "false"}
+                    placeholder=""
+                  >
+                    Approved
+                  </FormInput>
+                  <div className="mb-5 bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2">
+                    <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
                     </label>
-                    <label className="flex items-center gap-2 text-sm">
+                    <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
+                      <input type="checkbox" checked={!!initialEditState.viral} readOnly disabled /> Viral
+                    </label>
+                    <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.in_review} readOnly disabled /> In Review
                     </label>
-                    <label className="flex items-center gap-2 text-sm">
+                    <label className="flex items-center text-sm text-gray-600 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
                     </label>
-                  </div>
-                  
-                  {/* Delete Project Section */}
-                  <div className="mb-5 bg-gray-50 p-4 rounded-lg border-l-4 border-red-500">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3">Danger Zone</h3>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Once you delete a project, there is no going back. Please be certain.
-                    </p>
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
-                      onClick={() => {
-                        // Find the project in the projects array
-                        const projectToDelete = projects.find(p => p.projectID === selectedProjectId);
-                        
-                        if (projectToDelete) {
-                          // Set the project to delete and open the confirmation modal
-                          setProjectToDelete(projectToDelete);
-                          setIsDeleteConfirmModalOpen(true);
-                        }
-                      }}
-                    >
-                      <Icon glyph="delete" size={16} />
-                      <span>Delete Project</span>
-                    </button>
                   </div>
                   
                   {/* Debug info */}
@@ -1341,6 +1318,7 @@ function BayWithReviewMode({ session, status, router }: {
           isLoadingHackatime={isLoadingHackatime}
           hideFooter={true}
           existingProjects={projects}
+          isAdmin={isAdmin}
         />
         {/* Project Detail Modal - Mobile Only */}
         <Modal
@@ -1636,12 +1614,13 @@ function BayWithReviewMode({ session, status, router }: {
               formAction={projectEditFormAction}
               state={projectEditState}
               pending={projectEditPending}
-              modalTitle='Edit Project!'
+              modalTitle='Edit Project'
               hackatimeProjects={hackatimeProjects}
               isLoadingHackatime={isLoadingHackatime}
-              hideFooter={true}
+              projectID={selectedProjectId}
+              isAdmin={isAdmin}
+              {...(initialEditState as any)}
               existingProjects={projects}
-              {...initialEditState}
             />
           )}
         </div>
@@ -1678,7 +1657,7 @@ function BayWithReviewMode({ session, status, router }: {
               </button>
               
               <button
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded focus:outline-none transition-colors"
+                className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
                 onClick={() => {
                   // Don't proceed if no project is selected
                   if (!projectToDelete) return;
@@ -1689,29 +1668,8 @@ function BayWithReviewMode({ session, status, router }: {
                   // Close the edit modal if it's open
                   setIsProjectEditModalOpen(false);
                   
-                  // Delete the project
-                  const deleteProject = async () => {
-                    try {
-                      const response = await fetch(`/api/projects/${projectToDelete.projectID}`, {
-                        method: 'DELETE'
-                      });
-                      
-                      if (!response.ok) throw new Error('Failed to delete project');
-                      
-                      // Remove from projects list
-                      setProjects(prev => prev.filter(p => p.projectID !== projectToDelete.projectID));
-                      
-                      // Clear selection
-                      setSelectedProjectId(null);
-                      
-                      toast.success(`Project "${projectToDelete.name}" deleted successfully`);
-                    } catch (error) {
-                      toast.error(`Failed to delete project: ${error}`);
-                      console.error('Error deleting project:', error);
-                    }
-                  };
-                  
-                  deleteProject();
+                  // Show message that deletion is restricted
+                  toast.error("Sorry, you cannot unlink your hackatime project from Shipwrecked.");
                 }}
               >
                 Delete Project
@@ -1719,6 +1677,21 @@ function BayWithReviewMode({ session, status, router }: {
             </div>
           </div>
         </Modal>
+        {/* Project Edit Modal - Desktop Only */}
+        <ProjectModal
+          isOpen={isProjectEditModalOpen}
+          setIsOpen={setIsProjectEditModalOpen}
+          formAction={projectEditFormAction}
+          state={projectEditState}
+          pending={projectEditPending}
+          modalTitle='Edit Project'
+          hackatimeProjects={hackatimeProjects}
+          isLoadingHackatime={isLoadingHackatime}
+          hideFooter={true}
+          existingProjects={projects}
+          isAdmin={isAdmin}
+          {...initialEditState}
+        />
       </div>
     </div>
   );
@@ -1734,7 +1707,8 @@ type ProjectModalProps = Partial<ProjectType> & {
   hackatimeProjects: Record<string, string>,
   isLoadingHackatime: boolean,
   hideFooter?: boolean,
-  existingProjects?: ProjectType[]
+  existingProjects?: ProjectType[],
+  isAdmin?: boolean
 }
 
 function ProjectModal(props: ProjectModalProps): ReactElement {
@@ -1772,8 +1746,6 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
       }
     });
     
-    // console.log('Filtering projects. Available:', Object.keys(filtered).length, 'Used:', usedHackatimeProjects.length);
-    
     return filtered;
   }, [isCreate, props.hackatimeProjects, props.existingProjects]);
   
@@ -1784,35 +1756,8 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
     // Close the project modal
     props.setIsOpen(false);
     
-    // Delete the project
-    const deleteProject = async () => {
-      try {
-        const response = await fetch(`/api/projects/${props.projectID}`, {
-          method: 'DELETE'
-        });
-        
-        if (!response.ok) throw new Error('Failed to delete project');
-        
-        // Notify success
-        toast.success(`Project "${props.name}" deleted successfully`);
-        
-        // Update projects directly using the parent's setProjects function
-        if (props.existingProjects && props.projectID) {
-          const updatedProjects = props.existingProjects.filter(p => p.projectID !== props.projectID);
-          window.location.href = '/bay'; // Navigate to bay homepage
-        } else {
-          // Fallback to reload if we can't update directly
-          setTimeout(() => {
-            window.location.href = '/bay';
-          }, 1000);
-        }
-      } catch (error) {
-        toast.error(`Failed to delete project: ${error}`);
-        console.error('Error deleting project:', error);
-      }
-    };
-    
-    deleteProject();
+         // Show message that deletion is restricted
+     toast.error("Sorry, you cannot unlink your hackatime project from Shipwrecked.");
   };
   
   return (
@@ -1903,20 +1848,21 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 </label>
               </div>
               
-              {/* Delete Project Section - Only for edit, not create */}
+              {/* Delete Project Section - Disabled for all users in Bay */}
               <div className="mb-5 bg-gray-50 p-4 rounded-lg border-l-4 border-red-500">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Danger Zone</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Once you delete a project, there is no going back. Please be certain.
-                </p>
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
-                  onClick={() => setIsDeleteConfirmModalOpen(true)}
-                >
-                  <Icon glyph="delete" size={16} />
-                  <span>Delete Project</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
+                    disabled={true}
+                  >
+                    <Icon glyph="delete" size={16} />
+                    <span>Delete Project</span>
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 italic">Sorry, you cannot unlink your hackatime project from Shipwrecked.</p>
+                </div>
               </div>
             </>
           )}
@@ -1944,7 +1890,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
           
           {/* Fixed button at bottom of modal */}
           <div 
-          className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-10"
+            className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-10"
             style={{ bottom: "-6%"}}
           >
             <button
@@ -1981,12 +1927,12 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               Cancel
             </button>
             
-            <button
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded focus:outline-none transition-colors"
-              onClick={handleDeleteConfirm}
-            >
-              Delete Project
-            </button>
+                          <button
+                className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
+                onClick={handleDeleteConfirm}
+              >
+                Delete Project
+              </button>
           </div>
         </div>
       </Modal>

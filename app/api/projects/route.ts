@@ -154,6 +154,27 @@ export async function DELETE(request: Request) {
         const user = await requireUserSession();
         console.log(`[DELETE] Authenticated user ${user.id}`);
         
+        // Get the referer to check where the request is coming from
+        const referer = request.headers.get('referer') || '';
+        const isFromAdminPanel = referer.includes('/admin/projects');
+        
+        // Only allow deletion from the admin panel
+        if (!isFromAdminPanel) {
+            return Response.json({
+                success: false,
+                error: 'Sorry, you cannot unlink your hackatime project from Shipwrecked.'
+            }, { status: 403 });
+        }
+        
+        // Check if user is an admin
+        const isAdmin = user.role === 'Admin' || user.isAdmin === true;
+        if (!isAdmin) {
+            return Response.json({
+                success: false,
+                error: 'Only administrators can delete projects'
+            }, { status: 403 });
+        }
+        
         // Get request body and handle potential parsing errors
         let body;
         try {
@@ -176,59 +197,57 @@ export async function DELETE(request: Request) {
             }, { status: 400 });
         }
 
-        console.log(`[DELETE] Attempting to delete project ${projectID}`);
+        console.log(`[DELETE] Admin attempting to delete project ${projectID}`);
         
-        // Fetch project details before deletion to use in audit log
+        // Fetch project details before deletion to use in audit log - as admin, we don't restrict by userId
         const projectToDelete = await prisma.project.findUnique({
-            where: {
-                projectID_userId: {
-                    projectID,
-                    userId: user.id
-                }
-            }
+            where: { projectID },
+            include: { user: true }
         });
         
         if (!projectToDelete) {
             return Response.json({
                 success: false,
-                error: 'Project not found or you do not have permission to delete it'
+                error: 'Project not found'
             }, { status: 404 });
         }
         
         // Create audit log for project deletion BEFORE deletion
-        console.log(`[DELETE] Creating audit log for project deletion: ${projectID}`);
+        console.log(`[DELETE] Creating audit log for admin project deletion: ${projectID}`);
         const auditLogResult = await logProjectEvent({
             eventType: AuditLogEventType.ProjectDeleted,
             description: projectToDelete.hackatime 
-                ? `Project "${projectToDelete.name}" was deleted (Hackatime: ${projectToDelete.hackatime})` 
-                : `Project "${projectToDelete.name}" was deleted`,
+                ? `Project "${projectToDelete.name}" was deleted by admin (Hackatime: ${projectToDelete.hackatime})` 
+                : `Project "${projectToDelete.name}" was deleted by admin`,
             projectId: projectID,
-            userId: user.id,
+            userId: projectToDelete.userId,
             actorUserId: user.id,
             metadata: {
                 projectDetails: {
                     projectID: projectToDelete.projectID,
                     name: projectToDelete.name,
                     description: projectToDelete.description,
-                    hackatime: projectToDelete.hackatime || null
+                    hackatime: projectToDelete.hackatime || null,
+                    adminAction: true,
+                    ownerEmail: projectToDelete.user?.email
                 }
             }
         });
         
         console.log(`[DELETE] Audit log creation result: ${auditLogResult ? 'Success' : 'Failed'}`);
         
-        // Delete the project
-        await prisma.project.delete({
-            where: {
-                projectID_userId: {
-                    projectID,
-                    userId: user.id
-                }
-            }
+        // Delete any reviews associated with the project
+        await prisma.review.deleteMany({
+            where: { projectID }
         });
         
-        console.log(`[DELETE] Successfully deleted project ${projectID}`);
-        metrics.increment("success.delete_project", 1);
+        // Delete the project - as admin we don't restrict by userId
+        await prisma.project.delete({
+            where: { projectID }
+        });
+        
+        console.log(`[DELETE] Admin successfully deleted project ${projectID}`);
+        metrics.increment("success.admin_delete_project", 1);
         
         return Response.json({ success: true });
     } catch (err) {

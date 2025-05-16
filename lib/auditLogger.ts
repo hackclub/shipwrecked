@@ -11,6 +11,7 @@ export enum AuditLogEventType {
   UserVerified = "UserVerified",
   UserCreated = "UserCreated",
   ProjectDeleted = "ProjectDeleted",
+  SlackConnected = "SlackConnected",
   OtherEvent = "OtherEvent"
 }
 

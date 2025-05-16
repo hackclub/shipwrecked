@@ -42,6 +42,7 @@ enum AuditLogEventType {
   UserVerified
   UserCreated
   ProjectDeleted
+  SlackConnected
   OtherEvent
 }
 

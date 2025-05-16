@@ -44,6 +44,8 @@ function VerifyContent() {
       }
 
       try {
+        console.log('Verifying email with token and email:', { tokenLength: token.length, email });
+        
         const response = await fetch(`/api/auth/verify?token=${token}&email=${email}`);
         console.log('Verification API response status:', response.status);
         const data = await response.json();
@@ -61,11 +63,19 @@ function VerifyContent() {
             token,
             redirect: false,
           });
-          console.log('SignIn result:', result);
+          console.log('SignIn result details:', { 
+            ok: result?.ok, 
+            error: result?.error,
+            url: result?.url,
+            status: result?.status
+          });
 
           if (result?.ok) {
             console.log('SignIn successful, redirecting to /bay');
-            router.push('/bay');
+            // Wait a moment for session to be established
+            setTimeout(() => {
+              router.push('/bay');
+            }, 1000);
           } else {
             console.error('SignIn failed:', result?.error);
             setToastMessage('Failed to sign in after verification');

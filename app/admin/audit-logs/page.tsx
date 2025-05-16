@@ -16,6 +16,7 @@ enum AuditLogEventType {
   UserVerified = "UserVerified",
   UserCreated = "UserCreated",
   ProjectDeleted = "ProjectDeleted",
+  SlackConnected = "SlackConnected",
   OtherEvent = "OtherEvent"
 }
 
@@ -67,8 +68,6 @@ export default function AuditLogsPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [testInProgress, setTestInProgress] = useState(false);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
     limit: 25,
@@ -198,9 +197,13 @@ export default function AuditLogsPage() {
         textColor = 'text-emerald-800';
         break;
       case AuditLogEventType.UserRoleChanged:
-      case AuditLogEventType.UserVerified:
         bgColor = 'bg-amber-100';
         textColor = 'text-amber-800';
+        break;
+      case AuditLogEventType.UserVerified:
+      case AuditLogEventType.SlackConnected:
+        bgColor = 'bg-indigo-100';
+        textColor = 'text-indigo-800';
         break;
       default:
         // Keep default gray
@@ -209,7 +212,9 @@ export default function AuditLogsPage() {
     
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-        {eventType.replace(/([A-Z])/g, ' $1').trim()}
+        {eventType === AuditLogEventType.UserVerified 
+          ? 'Email Verified' 
+          : eventType.replace(/([A-Z])/g, ' $1').trim()}
       </span>
     );
   };
@@ -230,50 +235,6 @@ export default function AuditLogsPage() {
         <span>{user.name || user.email || 'Unknown'}</span>
       </div>
     );
-  };
-
-  // Test audit log
-  const testAuditLog = async () => {
-    setTestInProgress(true);
-    try {
-      const response = await fetch('/api/admin/audit-logs/test');
-      if (response.ok) {
-        const data = await response.json();
-        setDebugInfo(data);
-        toast.success('Test audit log created successfully');
-        // Refresh the audit logs
-        fetchAuditLogs();
-      } else {
-        const error = await response.json();
-        toast.error(`Test failed: ${error.error}`);
-      }
-    } catch (error) {
-      console.error('Error creating test log:', error);
-      toast.error('Failed to create test audit log');
-    } finally {
-      setTestInProgress(false);
-    }
-  };
-
-  // Check user creation logs
-  const checkUserCreationLogs = async () => {
-    setTestInProgress(true);
-    try {
-      const response = await fetch('/api/admin/audit-logs/user-created-test');
-      if (response.ok) {
-        const data = await response.json();
-        setDebugInfo(data);
-        toast.success(data.message);
-      } else {
-        const error = await response.json();
-        toast.error(`Check failed: ${error.error}`);
-      }
-    } catch (error) {
-      console.error('Error checking user creation logs:', error);
-      toast.error('Failed to check user creation logs');
-    } finally {
-      setTestInProgress(false);
-    }
   };
 
   // If not authenticated, show access denied
@@ -312,22 +273,6 @@ export default function AuditLogsPage() {
         
         <div className="flex items-center gap-2">
           <button
-            onClick={testAuditLog}
-            disabled={testInProgress}
-            className={`px-4 py-2 rounded ${testInProgress ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-          >
-            {testInProgress ? 'Testing...' : 'Test Audit Logger'}
-          </button>
-          
-          <button
-            onClick={checkUserCreationLogs}
-            disabled={testInProgress}
-            className={`px-4 py-2 rounded ${testInProgress ? 'bg-gray-300 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
-          >
-            {testInProgress ? 'Checking...' : 'Check User Creation Logs'}
-          </button>
-          
-          <button
             onClick={fetchAuditLogs}
             disabled={isLoading}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -336,22 +281,6 @@ export default function AuditLogsPage() {
           </button>
         </div>
       </div>
-      
-      {/* Debug Panel - Show only when debug data is available */}
-      {debugInfo && (
-        <div className="mb-6 bg-gray-100 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold">Debug Information</h3>
-            <button 
-              onClick={() => setDebugInfo(null)} 
-              className="text-gray-500 hover:text-gray-700"
-            >
-              Close
-            </button>
-          </div>
-          <pre className="text-xs overflow-auto max-h-60">{JSON.stringify(debugInfo, null, 2)}</pre>
-        </div>
-      )}
       
       {/* Filters */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -409,98 +338,126 @@ export default function AuditLogsPage() {
         <>
           {/* Audit Logs Table */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Event
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target User
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actor
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {auditLogs.length === 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                      No audit logs found
-                    </td>
+                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Event
+                    </th>
+                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Target User
+                    </th>
+                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Actor
+                    </th>
+                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Timestamp
+                    </th>
                   </tr>
-                ) : (
-                  auditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getEventTypeBadge(log.eventType)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{log.description}</div>
-                        {log.project && (
-                          <div className="text-xs text-gray-500">
-                            {log.eventType !== AuditLogEventType.ProjectCreated && (
-                              <div>Project: <Link href={`/admin/projects/${log.project.projectID}`} className="text-blue-600 hover:underline">{log.project.name}</Link></div>
-                            )}
-                            
-                            {/* Show additional project details for ProjectCreated event */}
-                            {log.eventType === AuditLogEventType.ProjectCreated && log.metadata?.projectDetails && (
-                              <div className="mt-1">
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                  {log.metadata.projectDetails.url && (
-                                    <Link 
-                                      href={log.metadata.projectDetails.url} 
-                                      className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
-                                      target="_blank"
-                                    >
-                                      View Project
-                                    </Link>
-                                  )}
-                                  {log.metadata.projectDetails.codeUrl && (
-                                    <Link 
-                                      href={log.metadata.projectDetails.codeUrl} 
-                                      className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded text-xs hover:bg-gray-100"
-                                      target="_blank"
-                                    >
-                                      Code
-                                    </Link>
-                                  )}
-                                  {log.metadata.projectDetails.playableUrl && (
-                                    <Link 
-                                      href={log.metadata.projectDetails.playableUrl} 
-                                      className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs hover:bg-green-100"
-                                      target="_blank"
-                                    >
-                                      Play
-                                    </Link>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <UserDisplay user={log.targetUser} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <UserDisplay user={log.actorUser} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatTimestamp(log.createdAt)}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-2 sm:px-6 py-4 text-center text-gray-500">
+                        No audit logs found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-gray-50">
+                        <td className="px-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          {getEventTypeBadge(log.eventType)}
+                        </td>
+                        <td className="px-2 sm:px-6 py-3 sm:py-4 text-sm">
+                          <div className="text-sm text-gray-900">{log.description}</div>
+                          
+                          {/* Mobile-only: Show user info inline on mobile */}
+                          <div className="sm:hidden mt-1">
+                            <div className="text-xs text-gray-600">
+                              <div className="flex items-center mt-1">
+                                <span className="font-medium">User:</span>
+                                <span className="ml-1">
+                                  {log.targetUser?.name || log.targetUser?.email || 'Unknown'}
+                                </span>
+                              </div>
+                              
+                              {log.actorUser && (
+                                <div className="flex items-center mt-1">
+                                  <span className="font-medium">By:</span>
+                                  <span className="ml-1">
+                                    {log.actorUser?.name || log.actorUser?.email || 'System'}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              <div className="mt-1 text-xs text-gray-500">
+                                {formatTimestamp(log.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {log.project && (
+                            <div className="text-xs text-gray-500">
+                              {log.eventType !== AuditLogEventType.ProjectCreated && (
+                                <div>Project: <Link href={`/admin/projects/${log.project.projectID}`} className="text-blue-600 hover:underline">{log.project.name}</Link></div>
+                              )}
+                              
+                              {/* Show additional project details for ProjectCreated event */}
+                              {log.eventType === AuditLogEventType.ProjectCreated && log.metadata?.projectDetails && (
+                                <div className="mt-1">
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                    {log.metadata.projectDetails.url && (
+                                      <Link 
+                                        href={log.metadata.projectDetails.url} 
+                                        className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
+                                        target="_blank"
+                                      >
+                                        View Project
+                                      </Link>
+                                    )}
+                                    {log.metadata.projectDetails.codeUrl && (
+                                      <Link 
+                                        href={log.metadata.projectDetails.codeUrl} 
+                                        className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded text-xs hover:bg-gray-100"
+                                        target="_blank"
+                                      >
+                                        Code
+                                      </Link>
+                                    )}
+                                    {log.metadata.projectDetails.playableUrl && (
+                                      <Link 
+                                        href={log.metadata.projectDetails.playableUrl} 
+                                        className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs hover:bg-green-100"
+                                        target="_blank"
+                                      >
+                                        Play
+                                      </Link>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                          <UserDisplay user={log.targetUser} />
+                        </td>
+                        <td className="px-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                          <UserDisplay user={log.actorUser} />
+                        </td>
+                        <td className="px-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                          {formatTimestamp(log.createdAt)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
           
           {/* Pagination */}
