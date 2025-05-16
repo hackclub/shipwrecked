@@ -23,6 +23,7 @@ interface User {
   image: string | null;
   createdAt: Date;
   isAdmin: boolean;
+  role: string;
   status: UserStatus;
 }
 
@@ -153,7 +154,7 @@ function AdminUsersContent() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">User Management</h1>
+        <h1 className="text-2xl font-bold">Administrate Users</h1>
       </div>
       
       <div className="mb-6">
@@ -248,11 +249,13 @@ function AdminUsersContent() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.isAdmin 
+                          user.role === 'Admin' 
                             ? 'bg-purple-100 text-purple-800' 
-                            : 'bg-gray-100 text-gray-800'
+                            : user.role === 'Reviewer'
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {user.isAdmin ? 'Admin' : 'User'}
+                          {user.role}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -325,11 +328,13 @@ function AdminUsersContent() {
                         <div>
                           <span className="text-gray-500 block">Role</span>
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.isAdmin 
+                            user.role === 'Admin' 
                               ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-gray-100 text-gray-800'
+                              : user.role === 'Reviewer'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {user.isAdmin ? 'Admin' : 'User'}
+                            {user.role}
                           </span>
                         </div>
                         <div>

@@ -82,6 +82,7 @@ interface Review {
   projectID: string;
   reviewerId: string;
   reviewer: User;
+  reviewType?: string; // Optional for backward compatibility
 }
 
 interface Project {
@@ -108,16 +109,32 @@ interface Project {
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const reviewTypeLabels: Record<string, { label: string, color: string }> = {
+    ShippedApproval: { label: 'Shipped', color: 'blue' },
+    ViralApproval: { label: 'Viral', color: 'purple' },
+    HoursApproval: { label: 'Hours', color: 'green' },
+    Other: { label: 'Other', color: 'gray' }
+  };
+
+  // Get the review type from the latest review or default to Other
+  const reviewType = project.latestReview?.reviewType || 'Other';
+  const { label, color } = reviewTypeLabels[reviewType] || reviewTypeLabels.Other;
+
   return (
     <div 
       className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
       onClick={onClick}
     >
-      <div className="p-4 border-l-4 border-l-red-400">
+      <div className={`p-4 border-l-4 ${color === 'blue' ? 'border-l-blue-400' : color === 'purple' ? 'border-l-purple-400' : color === 'green' ? 'border-l-green-400' : 'border-l-gray-400'}`}>
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold truncate">{project.name}</h3>
-          <span className="text-xs bg-red-100 text-red-800 rounded-full px-2 py-1">
-            In Review
+          <span className={`text-xs ${
+            color === 'blue' ? 'bg-blue-100 text-blue-800' : 
+            color === 'purple' ? 'bg-purple-100 text-purple-800' : 
+            color === 'green' ? 'bg-green-100 text-green-800' : 
+            'bg-gray-100 text-gray-800'
+          } rounded-full px-2 py-1`}>
+            {label}
           </span>
         </div>
         
@@ -286,10 +303,14 @@ function ReviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { enableReviewMode } = useReviewMode();
+  
+  // Add filter state
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   
   // Auto-enable review mode when the component mounts
   useEffect(() => {
@@ -298,11 +319,22 @@ function ReviewPage() {
 
   // Fetch projects that are in review
   useEffect(() => {
-    // Only fetch if authenticated
+    // Only fetch if authenticated - the layout will handle proper access control
     if (status === "authenticated") {
       fetchProjectsInReview();
     }
   }, [status]);
+  
+  // Apply filter when projects or filter changes
+  useEffect(() => {
+    if (activeFilter) {
+      setFilteredProjects(projects.filter(project => 
+        project.latestReview?.reviewType === activeFilter
+      ));
+    } else {
+      setFilteredProjects(projects);
+    }
+  }, [projects, activeFilter]);
   
   // Function to fetch projects in review - moved outside useEffect for reusability
   const fetchProjectsInReview = async () => {
@@ -316,6 +348,7 @@ function ReviewPage() {
       
       const data = await response.json();
       setProjects(data);
+      setFilteredProjects(data); // Initialize filtered projects with all projects
     } catch (err) {
       console.error('Error fetching projects in review:', err);
       setError('Failed to load projects that need review. Please try again later.');
@@ -341,11 +374,7 @@ function ReviewPage() {
     return <Loading />;
   }
   
-  // Render access denied state
-  if (status === "unauthenticated") {
-    return <AccessDeniedHaiku />;
-  }
-
+  // Authentication and access control is now handled by the layout
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -353,16 +382,6 @@ function ReviewPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Project Review Dashboard</h1>
             <p className="text-gray-600">Review and provide feedback on submitted projects</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <Link 
-              href="/bay" 
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition-colors"
-            >
-              <Icon glyph="home" size={20} />
-              <span>Back to Bay</span>
-            </Link>
           </div>
         </div>
         
@@ -379,6 +398,64 @@ function ReviewPage() {
           </div>
         )}
         
+        {/* Filter buttons */}
+        {!isLoading && projects.length > 0 && (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveFilter(null)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === null
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setActiveFilter('ShippedApproval')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'ShippedApproval'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                }`}
+              >
+                Shipped Approval
+              </button>
+              <button
+                onClick={() => setActiveFilter('ViralApproval')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'ViralApproval'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                Viral Approval
+              </button>
+              <button
+                onClick={() => setActiveFilter('HoursApproval')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'HoursApproval'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                }`}
+              >
+                Hours Approval
+              </button>
+              <button
+                onClick={() => setActiveFilter('Other')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'Other'
+                    ? 'bg-gray-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Other Requests
+              </button>
+            </div>
+          </div>
+        )}
+        
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -386,14 +463,20 @@ function ReviewPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.length === 0 ? (
+            {filteredProjects.length === 0 ? (
               <div className="col-span-full bg-white p-6 rounded-lg shadow text-center">
                 <Icon glyph="checkmark" size={48} className="mx-auto text-green-500 mb-2" />
-                <h2 className="text-xl font-semibold text-gray-800 mb-1">All caught up!</h2>
-                <p className="text-gray-600">There are no projects waiting for review at the moment.</p>
+                <h2 className="text-xl font-semibold text-gray-800 mb-1">
+                  {projects.length === 0 ? "All caught up!" : "No matching projects"}
+                </h2>
+                <p className="text-gray-600">
+                  {projects.length === 0 
+                    ? "There are no projects waiting for review at the moment." 
+                    : "Try a different filter to see more projects."}
+                </p>
               </div>
             ) : (
-              projects.map((project) => (
+              filteredProjects.map((project) => (
                 <ProjectCard 
                   key={project.projectID} 
                   project={project} 

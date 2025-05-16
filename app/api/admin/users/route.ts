@@ -10,6 +10,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check for admin role or isAdmin flag
+  const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
   try {
     // Fetch all users with basic info
     const users = await prisma.user.findMany({
@@ -21,6 +27,7 @@ export async function GET() {
         image: true,
         createdAt: true,
         isAdmin: true,
+        role: true,
         status: true,
       },
       orderBy: {

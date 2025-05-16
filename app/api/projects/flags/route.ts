@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { opts } from '../../auth/[...nextauth]/route';
+import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
 
 // PATCH - Update project flags (shipped, viral, approved)
 export async function PATCH(request: NextRequest) {
@@ -31,6 +32,24 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'No valid flags provided to update' }, { status: 400 });
     }
 
+    // Get the current project state for comparison and owner info
+    const currentProject = await prisma.project.findUnique({
+      where: {
+        projectID: body.projectID,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+          }
+        }
+      }
+    });
+
+    if (!currentProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
     // Update the project
     const updatedProject = await prisma.project.update({
       where: {
@@ -38,6 +57,54 @@ export async function PATCH(request: NextRequest) {
       },
       data: updateData,
     });
+
+    // Log appropriate audit events based on what changed
+    const actorId = session.user.id;
+    const targetUserId = currentProject.userId;
+    
+    // Create audit logs for significant status changes
+    if (typeof body.shipped === 'boolean' && body.shipped !== currentProject.shipped && body.shipped === true) {
+      await logProjectEvent({
+        eventType: AuditLogEventType.ProjectMarkedShipped,
+        description: `Project "${currentProject.name}" was marked as shipped`,
+        projectId: body.projectID,
+        userId: targetUserId,
+        actorUserId: actorId,
+        metadata: {
+          previousState: { shipped: currentProject.shipped },
+          newState: { shipped: true }
+        }
+      });
+    }
+    
+    if (typeof body.viral === 'boolean' && body.viral !== currentProject.viral && body.viral === true) {
+      await logProjectEvent({
+        eventType: AuditLogEventType.ProjectMarkedViral,
+        description: `Project "${currentProject.name}" was marked as viral`,
+        projectId: body.projectID,
+        userId: targetUserId,
+        actorUserId: actorId,
+        metadata: {
+          previousState: { viral: currentProject.viral },
+          newState: { viral: true }
+        }
+      });
+    }
+    
+    if (typeof body.in_review === 'boolean' && body.in_review !== currentProject.in_review && body.in_review === false) {
+      await logProjectEvent({
+        eventType: AuditLogEventType.ProjectReviewCompleted,
+        description: `Review was completed for project "${currentProject.name}"`,
+        projectId: body.projectID,
+        userId: targetUserId,
+        actorUserId: actorId,
+        metadata: {
+          approved: updatedProject.approved,
+          shipped: updatedProject.shipped,
+          viral: updatedProject.viral
+        }
+      });
+    }
 
     return NextResponse.json(updatedProject);
   } catch (error) {

@@ -10,6 +10,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check for admin role or isAdmin flag
+  const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter');

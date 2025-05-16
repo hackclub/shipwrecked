@@ -14,6 +14,12 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check for admin role or isAdmin flag
+  const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
   try {
     const userId = params.userId;
     
@@ -28,7 +34,7 @@ export async function GET(
         email: true,
         emailVerified: true,
         image: true,
-        isAdmin: true,
+        role: true,
         status: true,
         createdAt: true,
         hackatimeId: true,
@@ -60,21 +66,39 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check for admin role or isAdmin flag
+  const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
   try {
     const userId = params.userId;
     const data = await request.json();
     
     // Only allow updating specific fields for security
-    const { isAdmin, status } = data;
+    const { role, status } = data;
     
+    // Check if this is a downgrade from Admin
+    const userBeforeUpdate = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, isAdmin: true },
+    });
+    
+    const isDowngrade = 
+      (userBeforeUpdate?.role === 'Admin' && role && role !== 'Admin') || 
+      (userBeforeUpdate?.isAdmin === true && data.isAdmin === false);
+      
     // Update the user
     const updatedUser = await prisma.user.update({
       where: {
         id: userId,
       },
       data: {
-        isAdmin: isAdmin,
+        role: role || undefined,
         status: status ? status as UserStatus : undefined,
+        // If isAdmin is explicitly set in the request, update it
+        ...(data.isAdmin !== undefined ? { isAdmin: data.isAdmin } : {}),
       },
       select: {
         id: true,
@@ -82,13 +106,23 @@ export async function PATCH(
         email: true,
         emailVerified: true,
         image: true,
-        isAdmin: true,
+        role: true,
         status: true,
         createdAt: true,
         hackatimeId: true,
         slack: true,
       },
     });
+    
+    // If this was a downgrade from Admin role, invalidate any active sessions for this user
+    if (isDowngrade) {
+      // Delete the sessions for this user to force them to log in again with new permissions
+      await prisma.session.deleteMany({
+        where: { userId: userId }
+      });
+      
+      console.log(`User ${userId} was downgraded from Admin. All sessions invalidated.`);
+    }
 
     return NextResponse.json(updatedUser);
   } catch (error) {
@@ -110,14 +144,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  // Ensure the user is an admin
-  const adminCheck = await prisma.user.findUnique({
-    where: { email: session.user.email as string },
-    select: { isAdmin: true },
-  });
-  
-  if (!adminCheck?.isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Check for admin role or isAdmin flag
+  const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
   }
 
   try {

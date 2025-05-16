@@ -1,7 +1,6 @@
 'use client';
 
-import styles from '../page.module.css';
-import { useSession, signIn, getSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { Toaster, toast } from "sonner";
@@ -70,6 +69,19 @@ interface UserData {
   emailVerified: Date | null;
   slack: string | null;
   isAdmin: boolean;
+  role: string;
+}
+
+// Helper function to get role badge style
+function getRoleBadgeStyle(role: string) {
+  switch(role) {
+    case 'Admin':
+      return 'bg-purple-100 text-purple-800';
+    case 'Reviewer':
+      return 'bg-indigo-100 text-indigo-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 }
 
 // Content component that will be wrapped in Suspense
@@ -115,11 +127,6 @@ function SettingsContent() {
     return <AccessDeniedHaiku />;
   }
 
-  const handleSaveSettings = () => {
-    // In a real implementation, you would save these settings to a database
-    toast.success("Settings saved successfully!");
-  };
-
   // Function to trigger email verification
   const handleRequestVerification = async () => {
     if (!session?.user?.email) {
@@ -154,7 +161,7 @@ function SettingsContent() {
     try {
       // Use the Slack provider for authentication with a query param to identify return from Slack
       // Create a full absolute URL to ensure proper redirection
-      const callbackUrl = new URL("/bay/settings", window.location.origin);
+      const callbackUrl = new URL("/settings", window.location.origin);
       callbackUrl.searchParams.set("slackConnected", "true");
       
       await signIn("slack", { 
@@ -174,20 +181,24 @@ function SettingsContent() {
   const userName = userData?.name || session?.user?.name;
   const userEmailVerified = userData?.emailVerified || session?.user?.emailVerified;
   const userSlack = userData?.slack || session?.user?.slack;
+  const userRole = userData?.role || session?.user?.role || 'User';
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">Settings</h1>
         
         <div className="space-y-8">
           <div className="pb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Account Settings</h2>
-            
             <div className="space-y-4">
               <div>
                 <p className="text-gray-600 mb-1">Name</p>
-                <p className="font-medium">{userName || "Unknown"}</p>
+                <div className="flex items-center">
+                  <p className="font-medium">{userName || "Unknown"}</p>
+                  <span className={`ml-3 px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getRoleBadgeStyle(userRole)}`}>
+                    {userRole}
+                  </span>
+                </div>
               </div>
               
               <div>
@@ -244,15 +255,6 @@ function SettingsContent() {
               </div>
             </div>
           </div>
-          
-          <div className="flex justify-end">
-            <button
-              onClick={handleSaveSettings}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Save Settings
-            </button>
-          </div>
         </div>
       </div>
       <Toaster richColors />
@@ -260,45 +262,35 @@ function SettingsContent() {
   );
 }
 
-// Component that handles useSearchParams with Suspense
+// This component handles the slackConnected query parameter
 function SettingsWithSearchParams() {
-  const { data: session, status, update } = useSession();
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [hasHandledSlack, setHasHandledSlack] = useState(false);
   
-  // Import useSearchParams in component that's wrapped in Suspense
-  const { useSearchParams } = require('next/navigation');
-  const searchParams = useSearchParams();
-  
-  // Refresh data when returning from Slack auth
   useEffect(() => {
-    const justConnectedSlack = searchParams.get('slackConnected') === 'true';
-    
-    if (justConnectedSlack && status === 'authenticated') {
-      // Refetch user data and force a hard reload
-      const handleSlackConnection = async () => {
-        try {
-          toast.success("Slack account connected successfully!");
-          
-          // Update URL to remove the query parameter
-          const url = new URL(window.location.href);
-          url.searchParams.delete('slackConnected');
-          
-          // Force a complete page reload to get fresh session data
-          window.location.href = url.toString();
-        } catch (error) {
-          console.error("Error refreshing user data:", error);
-        }
-      };
+    const handleSlackConnection = async () => {
+      // Check if we have a successful Slack connection
+      const urlParams = new URLSearchParams(window.location.search);
+      const slackConnected = urlParams.get('slackConnected');
       
-      handleSlackConnection();
-    }
-  }, [searchParams, status, router]);
+      if (slackConnected === 'true' && !hasHandledSlack) {
+        setHasHandledSlack(true);
+        
+        // Show success message
+        toast.success('Slack account connected successfully!');
+        
+        // Remove the query parameter for cleaner URL
+        router.replace('/settings');
+      }
+    };
+    
+    handleSlackConnection();
+  }, [router, hasHandledSlack]);
   
   return <SettingsContent />;
 }
 
-// Main export that wraps the component with Suspense
+// Main component with Suspense
 export default function Settings() {
   return (
     <Suspense fallback={<Loading />}>

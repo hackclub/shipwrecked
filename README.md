@@ -40,6 +40,28 @@ Before Shipwrecked, participants earn their spot through "The Bay" - a 3-month o
 
    This ensures that both the development server and any scripts directly reference the same environment file.
 
+### Super Admin Access
+
+The application includes a special Super Admin feature that allows granting administrator privileges to users by visiting `/superadmin` and entering a password.
+
+1. Set up the super admin password in your environment variables:
+   ```
+   SUPERADMIN_PASSWORD="your-secure-password-here"
+   ```
+
+2. Ensure this password is kept secure and only shared with trusted team members.
+
+3. To grant admin access to a user:
+   - Have them log in to their account
+   - Direct them to `/superadmin`
+   - Enter the password defined in the environment variable
+   - Upon successful authentication, they will be redirected to the admin dashboard with admin privileges
+
+This feature is particularly useful for:
+- Onboarding new administrators
+- Restoring admin access if needed
+- Quickly granting temporary admin privileges for specific tasks
+
 ### Quick Start
 
 We provide two simple scripts for local development:

@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { opts } from '../../auth/[...nextauth]/route';
+import type { ReviewRequestType } from '@/components/common/ProjectReviewRequest';
+import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
 
 // POST - Submit a project for review
 export async function POST(request: NextRequest) {
@@ -20,6 +22,16 @@ export async function POST(request: NextRequest) {
     
     if (!body.comment) {
       return NextResponse.json({ error: 'Review comment is required' }, { status: 400 });
+    }
+
+    if (!body.reviewType) {
+      return NextResponse.json({ error: 'Review type is required' }, { status: 400 });
+    }
+
+    // Validate reviewType
+    const validReviewTypes = ['ShippedApproval', 'ViralApproval', 'HoursApproval', 'Other'];
+    if (!validReviewTypes.includes(body.reviewType)) {
+      return NextResponse.json({ error: 'Invalid review type' }, { status: 400 });
     }
 
     // Get the project to verify it exists and belongs to the user
@@ -43,19 +55,42 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Add a review comment
+    // Format the review comment based on the review type
+    const reviewTypeLabels: Record<string, string> = {
+      ShippedApproval: '🚢 Shipped Approval',
+      ViralApproval: '🔥 Viral Approval',
+      HoursApproval: '⏱️ Hours Approval',
+      Other: '❓ Other Request'
+    };
+
+    // Create the review record
     const review = await prisma.review.create({
       data: {
-        comment: `📝 Review Request: ${body.comment}`,
         projectID: body.projectID,
         reviewerId: session.user.id,
+        comment: body.comment,
+        reviewType: body.reviewType,
       },
     });
 
-    return NextResponse.json({ 
-      project: updatedProject,
-      review
-    }, { status: 201 });
+    // Log the audit event
+    await logProjectEvent({
+      eventType: AuditLogEventType.ProjectSubmittedForReview,
+      description: `Project submitted for review with request type: ${reviewTypeLabels[body.reviewType] || 'Unknown'}`,
+      projectId: body.projectID,
+      userId: session.user.id,
+      actorUserId: session.user.id,
+      metadata: {
+        reviewType: body.reviewType,
+        reviewId: review.id
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      review,
+      project: updatedProject
+    });
   } catch (error) {
     console.error('Error submitting project for review:', error);
     return NextResponse.json({ error: 'Failed to submit project for review' }, { status: 500 });

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
 
+// Define review request types
+export type ReviewRequestType = 'ShippedApproval' | 'ViralApproval' | 'HoursApproval' | 'Other';
+
 interface ProjectReviewRequestProps {
   projectID: string;
   isInReview: boolean;
@@ -17,6 +20,7 @@ export default function ProjectReviewRequest({
 }: ProjectReviewRequestProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
+  const [reviewType, setReviewType] = useState<ReviewRequestType>('ShippedApproval');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Don't show this component in review mode or if project is already in review
@@ -42,6 +46,7 @@ export default function ProjectReviewRequest({
         body: JSON.stringify({
           projectID,
           comment: comment.trim(),
+          reviewType,
         }),
       });
       
@@ -64,6 +69,22 @@ export default function ProjectReviewRequest({
       setIsSubmitting(false);
     }
   };
+
+  // Helper text based on selected review type
+  const getPlaceholderText = () => {
+    switch (reviewType) {
+      case 'ShippedApproval':
+        return "Explain why this project should be approved as 'shipped'. Include any relevant details about deployment and functionality.";
+      case 'ViralApproval':
+        return "Explain why this project should be considered 'viral'. Include metrics, social media presence, or other evidence of its popularity.";
+      case 'HoursApproval':
+        return "Provide details about the hours spent on this project and why they should be approved.";
+      case 'Other':
+        return "Specify what you need reviewed about this project.";
+      default:
+        return "Provide details about your review request.";
+    }
+  };
   
   return (
     <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-500">
@@ -71,17 +92,37 @@ export default function ProjectReviewRequest({
       
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
+          <label htmlFor="reviewType" className="block text-sm font-medium text-gray-700 mb-1">
+            What type of review do you need?*
+          </label>
+          <select
+            id="reviewType"
+            value={reviewType}
+            onChange={(e) => setReviewType(e.target.value as ReviewRequestType)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+            disabled={isSubmitting}
+            required
+          >
+            <option value="ShippedApproval">I want this project approved as shipped</option>
+            <option value="ViralApproval">I want this project approved as viral</option>
+            <option value="HoursApproval">I want this project's currently reported hours to be approved</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        
+        <div className="mb-3">
           <label htmlFor="reviewComment" className="block text-sm font-medium text-gray-700 mb-1">
-            What needs to be reviewed?
+            Additional details*
           </label>
           <textarea
             id="reviewComment"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="E.g., Please confirm this project qualifies as 'shipped' or 'viral'. Provide any relevant details to support your request."
+            placeholder={getPlaceholderText()}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
             disabled={isSubmitting}
+            required
           />
         </div>
         

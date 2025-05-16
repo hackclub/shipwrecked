@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createProject } from "@/lib/project";
 import { requireUserSession } from "@/lib/requireUserSession";
 import metrics from "@/metrics";
+import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
 
 export type Project = {
     projectID: string
@@ -108,6 +109,30 @@ export async function POST(request: Request) {
             ...projectData,
             userId: user.id
         });
+        
+        // Create audit log for project creation
+        await logProjectEvent({
+            eventType: AuditLogEventType.ProjectCreated,
+            description: createdProject.hackatime 
+                ? `Project "${createdProject.name}" was created (Hackatime: ${createdProject.hackatime})` 
+                : `Project "${createdProject.name}" was created`,
+            projectId: createdProject.projectID,
+            userId: user.id,
+            actorUserId: user.id,
+            metadata: {
+                projectDetails: {
+                    projectID: createdProject.projectID,
+                    name: createdProject.name,
+                    description: createdProject.description,
+                    hackatime: createdProject.hackatime || null,
+                    codeUrl: createdProject.codeUrl,
+                    playableUrl: createdProject.playableUrl,
+                    screenshot: createdProject.screenshot,
+                    url: `/bay/projects/${createdProject.projectID}`
+                }
+            }
+        });
+        
         console.log(`[POST] Successfully created project ${createdProject.projectID}`);
         metrics.increment("success.create_project", 1);
         return Response.json({ success: true, data: createdProject });
@@ -153,6 +178,46 @@ export async function DELETE(request: Request) {
 
         console.log(`[DELETE] Attempting to delete project ${projectID}`);
         
+        // Fetch project details before deletion to use in audit log
+        const projectToDelete = await prisma.project.findUnique({
+            where: {
+                projectID_userId: {
+                    projectID,
+                    userId: user.id
+                }
+            }
+        });
+        
+        if (!projectToDelete) {
+            return Response.json({
+                success: false,
+                error: 'Project not found or you do not have permission to delete it'
+            }, { status: 404 });
+        }
+        
+        // Create audit log for project deletion BEFORE deletion
+        console.log(`[DELETE] Creating audit log for project deletion: ${projectID}`);
+        const auditLogResult = await logProjectEvent({
+            eventType: AuditLogEventType.ProjectDeleted,
+            description: projectToDelete.hackatime 
+                ? `Project "${projectToDelete.name}" was deleted (Hackatime: ${projectToDelete.hackatime})` 
+                : `Project "${projectToDelete.name}" was deleted`,
+            projectId: projectID,
+            userId: user.id,
+            actorUserId: user.id,
+            metadata: {
+                projectDetails: {
+                    projectID: projectToDelete.projectID,
+                    name: projectToDelete.name,
+                    description: projectToDelete.description,
+                    hackatime: projectToDelete.hackatime || null
+                }
+            }
+        });
+        
+        console.log(`[DELETE] Audit log creation result: ${auditLogResult ? 'Success' : 'Failed'}`);
+        
+        // Delete the project
         await prisma.project.delete({
             where: {
                 projectID_userId: {
@@ -161,8 +226,10 @@ export async function DELETE(request: Request) {
                 }
             }
         });
+        
         console.log(`[DELETE] Successfully deleted project ${projectID}`);
         metrics.increment("success.delete_project", 1);
+        
         return Response.json({ success: true });
     } catch (err) {
         console.error('[DELETE] Failed to delete project:', err);

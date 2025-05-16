@@ -16,6 +16,35 @@ enum UserStatus {
   FraudSuspect
 }
 
+// User role enum
+enum UserRole {
+  User
+  Reviewer
+  Admin
+}
+
+// Review request type enum
+enum ReviewRequestType {
+  ShippedApproval
+  ViralApproval
+  HoursApproval
+  Other
+}
+
+// Audit log event type enum
+enum AuditLogEventType {
+  ProjectCreated
+  ProjectSubmittedForReview
+  ProjectMarkedShipped
+  ProjectMarkedViral
+  ProjectReviewCompleted
+  UserRoleChanged
+  UserVerified
+  UserCreated
+  ProjectDeleted
+  OtherEvent
+}
+
 model Registration {
   // Personal Info
   id             String   @id @default(cuid())
@@ -26,12 +55,12 @@ model Registration {
   birthday       DateTime
 
   // Address
-  addressL1      String
-  addressL2      String
-  city           String
-  state          String
-  country        String
-  zipCode        String
+  addressL1 String
+  addressL2 String
+  city      String
+  state     String
+  country   String
+  zipCode   String
 }
 
 // NextAuth
@@ -44,7 +73,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   slack         String?         @unique // slack user id 
-  isAdmin       Boolean         @default(false)
+  isAdmin       Boolean         @default(false) // Kept for backward compatibility
+  role          UserRole        @default(User) // New role field for finer access control
   hackatimeId   String?         @unique // hackatime user id
   status        UserStatus      @default(Unknown) // User verification status
   // Optional for WebAuthn support
@@ -55,7 +85,11 @@ model User {
 
   // shipwrecked project fields
   projects Project[]
-  reviews  Review[]  // Relation to reviews created by this user
+  reviews  Review[] // Relation to reviews created by this user
+
+  // Audit log relations
+  targetAuditLogs AuditLog[] @relation("AuditLogTargetUser") // Logs where this user is the target
+  actorAuditLogs  AuditLog[] @relation("AuditLogActorUser") // Logs where this user is the actor
 }
 
 model Account {
@@ -80,7 +114,7 @@ model Account {
 }
 
 model Session {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -115,43 +149,78 @@ model Authenticator {
 }
 
 model Project {
-  projectID String @unique
-  name String
+  projectID   String  @unique
+  name        String
   description String
-  codeUrl String 
-  playableUrl String 
-  screenshot String 
-  hackatime String // hackatime project name
-  submitted Boolean @default(false)
+  codeUrl     String
+  playableUrl String
+  screenshot  String
+  hackatime   String // hackatime project name
+  submitted   Boolean @default(false)
 
-  viral Boolean @default(false)
-  shipped Boolean @default(false)
+  viral     Boolean @default(false)
+  shipped   Boolean @default(false)
   in_review Boolean @default(false)
-  approved Boolean @default(false)
+  approved  Boolean @default(false)
 
   // user relation
   userId String
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   // Project reviews
   reviews Review[]
+
+  // Audit logs related to this project
+  auditLogs AuditLog[]
 
   @@id([projectID, userId])
 }
 
 model Review {
-  id          String   @id @default(cuid())
-  comment     String
-  createdAt   DateTime @default(now())
-  
+  id        String   @id @default(cuid())
+  comment   String
+  createdAt DateTime @default(now())
+
+  // Review request type
+  reviewType ReviewRequestType? // Nullable for backward compatibility with existing reviews
+
   // Relation to the project being reviewed
-  projectID   String
-  project     Project  @relation(fields: [projectID], references: [projectID])
-  
+  projectID String
+  project   Project @relation(fields: [projectID], references: [projectID])
+
   // Relation to the user who created the review
-  reviewerId  String
-  reviewer    User     @relation(fields: [reviewerId], references: [id])
+  reviewerId String
+  reviewer   User   @relation(fields: [reviewerId], references: [id])
 
   @@index([projectID])
   @@index([reviewerId])
+}
+
+// Audit log for tracking system events
+model AuditLog {
+  id          String            @id @default(cuid())
+  eventType   AuditLogEventType
+  description String // Human-readable description of what happened
+  createdAt   DateTime          @default(now())
+
+  // Additional data stored as JSON (optional)
+  metadata Json? // For storing any relevant data about the event
+
+  // Target user (the hack clubber affected by the action)
+  targetUserId String
+  targetUser   User   @relation("AuditLogTargetUser", fields: [targetUserId], references: [id])
+
+  // Actor user (admin or reviewer who performed the action) - optional
+  actorUserId String?
+  actorUser   User?   @relation("AuditLogActorUser", fields: [actorUserId], references: [id])
+
+  // Related project (if applicable) - optional
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [projectID])
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([targetUserId])
+  @@index([actorUserId])
+  @@index([projectId])
 }

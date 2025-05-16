@@ -67,14 +67,44 @@ export default function HackatimeSetup() {
         };
     }, [router, status, session]);
 
-    // Always show the checking setup message
+    // Return different UI based on checking status
     return (
         <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
             <div className="relative flex items-center justify-center h-full">
-                <div className="text-center">
-                    <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-                        Checking your setup...
-                    </p>
+                <div className="bg-black/60 p-8 rounded-xl max-w-xl text-center">
+                    {isChecking ? (
+                        <>
+                            <p className="text-4xl md:text-5xl font-serif mb-4 text-white font-bold">
+                                Checking your setup...
+                            </p>
+                            <div className="mt-4 flex justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl md:text-5xl font-serif mb-4 text-white font-bold">
+                                Hackatime Account Needed
+                            </p>
+                            <p className="text-lg text-white mb-6">
+                                We've detected that your Hackatime account hasn't been set up yet. 
+                                You'll need to create an account on Hackatime first to use Shipwrecked.
+                            </p>
+                            <div className="mt-6">
+                                <a
+                                    href="https://hackatime.hackclub.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    Set Up Hackatime Account
+                                </a>
+                            </div>
+                            <p className="text-white text-sm mt-6">
+                                After setting up your account, come back here and refresh the page.
+                            </p>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

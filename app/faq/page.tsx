@@ -1,7 +1,5 @@
 'use client';
 
-import styles from '../page.module.css';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -74,7 +72,7 @@ export default function FAQ() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">Frequently Asked Questions</h1>
         

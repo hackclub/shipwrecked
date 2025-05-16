@@ -7,9 +7,42 @@ import { NextAuthOptions } from "next-auth";
 import { randomBytes } from "crypto";
 import metrics from "@/metrics";
 import { sendAuthEmail, sendNotificationEmail } from "@/lib/loops";
+import { AdapterUser } from "next-auth/adapters";
 
 const adapter = {
   ...PrismaAdapter(prisma),
+  // Custom createUser method to add auditing
+  createUser: async (user: AdapterUser) => {
+    console.log('Creating user:', user.email);
+    
+    // Create the user using Prisma
+    const userCreated = await prisma.user.create({
+      data: user
+    });
+    
+    // Log the user creation event
+    try {
+      // Import dynamically to avoid circular imports
+      const { logUserEvent, AuditLogEventType } = await import('@/lib/auditLogger');
+      
+      await logUserEvent({
+        eventType: AuditLogEventType.UserCreated,
+        description: `User account created with email ${user.email}`,
+        targetUserId: userCreated.id,
+        metadata: {
+          provider: 'system',
+          email: user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      console.log('User creation audit log created successfully');
+    } catch (error) {
+      console.error('Failed to create audit log for user creation:', error);
+    }
+    
+    return userCreated;
+  },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   linkAccount: async ({ ok, state, ...data }: any) => {
     console.log('Linking account:', { provider: data.provider, userId: data.userId });
@@ -134,6 +167,7 @@ export const opts: NextAuthOptions = {
           ...session.user,
           id: user.id,
           hackatimeId: user.hackatimeId,
+          role: user.role,
           isAdmin: user.isAdmin,
           status: user.status,
           emailVerified: user.emailVerified

@@ -13,13 +13,19 @@ enum UserStatus {
   FraudSuspect = "FraudSuspect"
 }
 
+enum UserRole {
+  User = "User",
+  Reviewer = "Reviewer",
+  Admin = "Admin"
+}
+
 interface User {
   id: string;
   name: string | null;
   email: string | null;
   emailVerified: Date | null;
   image: string | null;
-  isAdmin: boolean;
+  role: UserRole;
   status: UserStatus;
   createdAt: Date;
   hackatimeId: string | null;
@@ -32,7 +38,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<string>('User');
   const [userStatus, setUserStatus] = useState<UserStatus>(UserStatus.Unknown);
 
   useEffect(() => {
@@ -49,7 +55,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
         
         const data = await response.json();
         setUser(data);
-        setIsAdmin(data.isAdmin);
+        setUserRole(data.role || UserRole.User);
         setUserStatus(data.status);
       } catch (err) {
         console.error('Error fetching user:', err);
@@ -62,18 +68,23 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     fetchUser();
   }, [params.userId, status]);
 
-  const updateUserStatus = async () => {
+  const updateUser = async () => {
     if (!user) return;
 
     try {
       setIsUpdating(true);
+      
+      // Determine isAdmin value based on role
+      const isAdminValue = userRole === UserRole.Admin;
+      
       const response = await fetch(`/api/admin/users/${user.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isAdmin,
+          role: userRole,
+          isAdmin: isAdminValue, // Update both fields for compatibility
           status: userStatus
         }),
       });
@@ -244,17 +255,23 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
           <div className="mt-8 border-t pt-6">
             <h3 className="text-lg font-medium mb-4">Permissions</h3>
             
-            <div className="flex items-center mb-4">
-              <input
-                type="checkbox"
-                id="isAdmin"
-                checked={isAdmin}
-                onChange={(e) => setIsAdmin(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="isAdmin" className="ml-2 text-gray-700">
-                Admin Access
+            <div className="mb-4">
+              <label htmlFor="userRole" className="block text-sm font-medium text-gray-700 mb-1">
+                User Role
               </label>
+              <select
+                id="userRole"
+                value={userRole}
+                onChange={(e) => setUserRole(e.target.value)}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value={UserRole.User}>User</option>
+                <option value={UserRole.Reviewer}>Reviewer</option>
+                <option value={UserRole.Admin}>Admin</option>
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                This defines the user's access level. Reviewers can access the review page. Admins have full access to all platform features.
+              </p>
             </div>
             
             <div className="mb-4">
@@ -278,12 +295,15 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
             </div>
             
             <p className="text-sm text-gray-500 mb-4">
-              Granting admin access allows this user to manage all aspects of the platform, including other users, projects, and settings.
+              User roles determine access to different parts of the platform:
+              <br />• <strong>User:</strong> Basic access to the platform
+              <br />• <strong>Reviewer:</strong> Can access the review dashboard to evaluate projects
+              <br />• <strong>Admin:</strong> Full access to all features, including user management
             </p>
             
             <button
               type="button"
-              onClick={updateUserStatus}
+              onClick={updateUser}
               disabled={isUpdating}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors focus:outline-none disabled:bg-blue-300"
             >

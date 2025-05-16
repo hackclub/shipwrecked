@@ -12,7 +12,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if the user is an admin or reviewer
+    const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+    const isReviewer = session.user.role === 'Reviewer';
+    
+    if (!isAdmin && !isReviewer) {
+      return NextResponse.json({ error: 'Forbidden: Requires Admin or Reviewer role' }, { status: 403 });
+    }
+
+    console.log('Fetching projects in review...');
+    
     // Fetch all projects that have in_review=true
+    // Fixed the query to avoid using both include and select for the same relation
     const projectsInReview = await prisma.project.findMany({
       where: {
         in_review: true,
@@ -44,8 +55,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log(`Found ${projectsInReview.length} projects in review`);
+    
     // Format the response to include user's name and the latest review if any
-    const formattedProjects = projectsInReview.map((project: any) => {
+    const formattedProjects = (projectsInReview || []).map((project: any) => {
       const latestReview = project.reviews.length > 0 ? project.reviews[0] : null;
       
       return {
@@ -62,7 +75,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching projects in review:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch projects in review' },
+      { error: 'Failed to fetch projects in review', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
