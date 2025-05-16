@@ -502,7 +502,7 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
                     name="hoursOverride"
                     className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     placeholder="e.g. 12.5"
-                    defaultValue={project.hoursOverride !== undefined ? project.hoursOverride.toString() : ''}
+                    defaultValue={project.hoursOverride !== undefined && project.hoursOverride !== null ? project.hoursOverride.toString() : ''}
                     step="0.1"
                   />
                   <span className="ml-3 text-sm text-gray-500">

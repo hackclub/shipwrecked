@@ -169,23 +169,26 @@ function ProjectDetail({
 
   // Calculate project's contribution percentage
   const getProjectHours = () => {
+    // Safety check for null project
+    if (!project) return 0;
+    
     // If viral, it's 15 hours (25% toward the 60-hour goal)
-    if (projectFlags.viral) {
+    if (projectFlags?.viral === true) {
       console.log(`ProjectDetail: ${project.name} is viral, returning 15 hours`);
       return 15;
     }
     
     // Get hours from project properties
     // Use hoursOverride if present, otherwise use rawHours
-    const rawHours = typeof project.hoursOverride === 'number' && project.hoursOverride !== null 
+    const rawHours = typeof project?.hoursOverride === 'number' && project.hoursOverride !== null 
       ? project.hoursOverride 
-      : project.rawHours || 0;
+      : project?.rawHours || 0;
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
     
     // If the project is not shipped, cap it at 14.75 hours
-    if (!projectFlags.shipped && cappedHours > 14.75) {
+    if (projectFlags?.shipped !== true && cappedHours > 14.75) {
       cappedHours = 14.75;
     }
     
@@ -732,7 +735,15 @@ function BayWithReviewMode({ session, status, router }: {
     let viralHours = 0;
     let otherHours = 0;
 
+    if (!projects || !Array.isArray(projects)) {
+      console.warn('Projects is null, undefined, or not an array:', projects);
+      return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
+    }
+
     projects.forEach(project => {
+      // Skip null or undefined projects
+      if (!project) return;
+      
       // Get hours using our helper function
       const hours = getProjectHackatimeHours(project);
       
@@ -740,11 +751,11 @@ function BayWithReviewMode({ session, status, router }: {
       let cappedHours = Math.min(hours, 15);
       
       // If the project is viral, it counts as 15 hours
-      if (project.viral) {
+      if (project?.viral === true) {
         viralHours += 15;
       } 
       // If it's shipped but not viral
-      else if (project.shipped) {
+      else if (project?.shipped === true) {
         shippedHours += cappedHours;
       } 
       // Not shipped and not viral
@@ -819,7 +830,14 @@ function BayWithReviewMode({ session, status, router }: {
 
   // Add a function to calculate the total raw hours before component return
   const calculateTotalRawHours = () => {
+    if (!projects || !Array.isArray(projects)) {
+      return 0;
+    }
+    
     return projects.reduce((sum, project) => {
+      // Skip null or undefined projects
+      if (!project) return sum;
+      
       // Get the raw hours before any capping using our helper
       const hours = getProjectHackatimeHours(project);
       return Math.round(sum + hours);
@@ -829,33 +847,43 @@ function BayWithReviewMode({ session, status, router }: {
   // Shared helper function for case-insensitive hackatime matching
   const findMatchingHackatimeKey = (projectHackatime: string | undefined): string | null => {
     if (!projectHackatime) return null;
+    if (!projectHours) return null;
     
     // First try direct match
     if (projectHours[projectHackatime] !== undefined) {
       return projectHackatime;
     }
     
-    // Try case-insensitive match if direct match fails
-    const lowerHackatime = projectHackatime.toLowerCase();
-    const matchingKey = Object.keys(projectHours).find(key => 
-      key.toLowerCase() === lowerHackatime
-    );
-    
-    return matchingKey || null;
+    try {
+      // Try case-insensitive match if direct match fails
+      const lowerHackatime = projectHackatime.toLowerCase();
+      const keys = Object.keys(projectHours || {});
+      const matchingKey = keys.find(key => 
+        key && typeof key === 'string' && key.toLowerCase() === lowerHackatime
+      );
+      
+      return matchingKey || null;
+    } catch (error) {
+      console.error('Error in findMatchingHackatimeKey:', error);
+      return null;
+    }
   };
   
   // Helper to get project hours with our matching logic
   const getProjectHackatimeHours = (project: ProjectType): number => {
+    // Safety check for null/undefined project
+    if (!project) return 0;
+    
     // Use hoursOverride if available
-    if (typeof project.hoursOverride === 'number' && project.hoursOverride !== null) {
+    if (typeof project?.hoursOverride === 'number' && project.hoursOverride !== null) {
       return project.hoursOverride;
     }
     
     // Otherwise use raw hours from hackatime
-    if (!project.hackatime) return project.rawHours || 0;
+    if (!project?.hackatime) return project?.rawHours || 0;
     
     const matchingKey = findMatchingHackatimeKey(project.hackatime);
-    return matchingKey ? projectHours[matchingKey] : (project.rawHours || 0);
+    return matchingKey ? (projectHours[matchingKey] || 0) : (project?.rawHours || 0);
   };
 
   return (
@@ -1376,19 +1404,21 @@ function BayWithReviewMode({ session, status, router }: {
             
             // Calculate project's contribution percentage
             const getSelectedProjectHours = () => {
-              const selectedProject = projects.find(p => p.projectID === selectedProjectId);
+              if (!projects || !Array.isArray(projects)) return 0;
+              
+              const selectedProject = projects.find(p => p?.projectID === selectedProjectId);
               
               if (!selectedProject) {
                 return 0;
               }
               
               // If viral, it's 15 hours
-              if (selectedProject.viral) {
+              if (selectedProject?.viral === true) {
                 return 15;
               }
               
               // Use hoursOverride if available, otherwise use raw hours
-              const hours = typeof selectedProject.hoursOverride === 'number' && selectedProject.hoursOverride !== null
+              const hours = typeof selectedProject?.hoursOverride === 'number' && selectedProject.hoursOverride !== null
                 ? selectedProject.hoursOverride
                 : getProjectHackatimeHours(selectedProject);
               
@@ -1396,7 +1426,7 @@ function BayWithReviewMode({ session, status, router }: {
               let cappedHours = Math.min(hours, 15);
               
               // If not shipped, cap at 14.75 hours
-              if (!selectedProject.shipped && cappedHours > 14.75) {
+              if (selectedProject?.shipped !== true && cappedHours > 14.75) {
                 cappedHours = 14.75;
               }
               

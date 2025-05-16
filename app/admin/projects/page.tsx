@@ -574,7 +574,7 @@ function AdminProjectsContent() {
                     name="hoursOverride"
                     className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     placeholder="e.g. 12.5"
-                    defaultValue={selectedProject.hoursOverride !== undefined ? selectedProject.hoursOverride.toString() : ''}
+                    defaultValue={selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null ? selectedProject.hoursOverride.toString() : ''}
                     step="0.1"
                   />
                   <span className="ml-3 text-sm text-gray-500">
@@ -727,7 +727,7 @@ function AdminProjectsContent() {
                       name="hoursOverride"
                       className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="e.g. 12.5"
-                      defaultValue={selectedProject.hoursOverride !== undefined ? selectedProject.hoursOverride.toString() : ''}
+                      defaultValue={selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null ? selectedProject.hoursOverride.toString() : ''}
                       step="0.1"
                     />
                     <span className="ml-3 text-sm text-gray-500">
