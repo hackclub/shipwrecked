@@ -470,7 +470,7 @@ function BayWithReviewMode({ session, status, router }: {
         
         // Ensure we have an array of projects
         const projects = Array.isArray(projectsData) ? projectsData : [];
-        // console.log(`📦 Received ${projects.length} projects`);
+        console.log(`📦 Received ${projects.length} Hackatime projects`);
         
         if (projects.length === 0) {
           console.log('No projects found or invalid data received');
@@ -479,10 +479,15 @@ function BayWithReviewMode({ session, status, router }: {
           return;
         }
         
+        // Log all project names for debugging
+        console.log('🔍 Hackatime project names:', projects.map(p => p.name));
+        
         // Create hours map (key: project name, value: hours)
         const hours = Object.fromEntries(
           projects.map((project: HackatimeProject) => [project.name, project.hours || 0])
         );
+        
+        console.log('⏱️ Hours map:', hours);
         
         // Create an array of projects with hours for sorting
         const projectsWithHours = projects.map((project: HackatimeProject) => ({
@@ -496,10 +501,11 @@ function BayWithReviewMode({ session, status, router }: {
         // Create the project names map with proper display
         const projectNames: Record<string, string> = {};
         projectsWithHours.forEach(project => {
-          // Use original project name as both key and value
-          // The FormSelect component displays the keys
+          // Show hours in the dropdown display but store only the name as the value
           projectNames[`${project.hours}h ${project.name}`] = project.name;
         });
+        
+        console.log('📋 Project names map:', projectNames);
         
         setHackatimeProjects(projectNames);
         setProjectHours(hours);
@@ -678,6 +684,15 @@ function BayWithReviewMode({ session, status, router }: {
   // Update total hours whenever projects or projectHours changes
   useEffect(() => {
     // Only count hours from projects that are in the projects list
+    console.log('🧮 Calculating total hours for', projects.length, 'projects');
+    console.log('📊 projectHours keys:', Object.keys(projectHours));
+    
+    // Log hackatime values from projects
+    console.log('🔗 Project hackatime values:', projects.map(p => ({
+      name: p.name,
+      hackatime: p.hackatime
+    })));
+    
     const total = projects.reduce((sum, project) => {
       // If project is viral, it automatically counts as 15 hours
       if (project.viral) {
@@ -685,8 +700,11 @@ function BayWithReviewMode({ session, status, router }: {
         return sum + 15;
       }
       
-      // If project has a hackatime ID, get hours from projectHours, otherwise default to 0
-      let hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
+      // Get hours using our helper function
+      let hours = getProjectHackatimeHours(project);
+      
+      // Log the hours lookup for debugging
+      console.log(`Project ${project.name} hackatime="${project.hackatime}", hours=${hours}`);
       
       // Cap hours per project at 15
       let cappedHours = Math.min(hours, 15);
@@ -694,26 +712,13 @@ function BayWithReviewMode({ session, status, router }: {
       // If the project is not shipped, cap it at 14.75 hours
       if (!project.shipped && cappedHours > 14.75) {
         cappedHours = 14.75;
-        // console.log(`Project ${project.name} not shipped, capping at 14.75 hours`);
       }
       
-      // console.log(`Project ${project.name}: Raw hours=${hours}, Final contribution=${cappedHours}`);
       return sum + cappedHours;
     }, 0);
     
     // Calculate percentage (0-100)
     const percentage = Math.min(Math.round((total / 60) * 100), 100);
-    
-    // console.log('Calculated progress:', percentage, '% based on', total, 'hours from projects:', projects.length);
-    // console.log('Project status flags: viral, shipped:', 
-    //   projects.map(p => ({ 
-    //     name: p.name, 
-    //     viral: !!p.viral, 
-    //     shipped: !!p.shipped, 
-    //     hackatime: p.hackatime,
-    //     hours: p.hackatime ? (projectHours[p.hackatime] || 0) : 0 
-    //   }))
-    // );
     
     setTotalHours(percentage);
   }, [projects, projectHours]);
@@ -726,7 +731,9 @@ function BayWithReviewMode({ session, status, router }: {
     let otherHours = 0;
 
     projects.forEach(project => {
-      const hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
+      // Get hours using our helper function
+      const hours = getProjectHackatimeHours(project);
+      
       // Cap hours per project
       let cappedHours = Math.min(hours, 15);
       
@@ -803,10 +810,36 @@ function BayWithReviewMode({ session, status, router }: {
   // Add a function to calculate the total raw hours before component return
   const calculateTotalRawHours = () => {
     return projects.reduce((sum, project) => {
-      // Get the raw hours before any capping
-      const hours = project.hackatime ? (projectHours[project.hackatime] || 0) : 0;
+      // Get the raw hours before any capping using our helper
+      const hours = getProjectHackatimeHours(project);
       return Math.round(sum + hours);
     }, 0);
+  };
+
+  // Shared helper function for case-insensitive hackatime matching
+  const findMatchingHackatimeKey = (projectHackatime: string | undefined): string | null => {
+    if (!projectHackatime) return null;
+    
+    // First try direct match
+    if (projectHours[projectHackatime] !== undefined) {
+      return projectHackatime;
+    }
+    
+    // Try case-insensitive match if direct match fails
+    const lowerHackatime = projectHackatime.toLowerCase();
+    const matchingKey = Object.keys(projectHours).find(key => 
+      key.toLowerCase() === lowerHackatime
+    );
+    
+    return matchingKey || null;
+  };
+  
+  // Helper to get project hours with our matching logic
+  const getProjectHackatimeHours = (project: ProjectType): number => {
+    if (!project.hackatime) return 0;
+    
+    const matchingKey = findMatchingHackatimeKey(project.hackatime);
+    return matchingKey ? projectHours[matchingKey] : 0;
   };
 
   return (
@@ -1242,7 +1275,7 @@ function BayWithReviewMode({ session, status, router }: {
                 
                 console.log(`Rendering ProjectDetail for ${selectedProject.name}:`, {
                   hackatime: selectedProject.hackatime,
-                  hours: selectedProject.hackatime ? (projectHours[selectedProject.hackatime] || 0) : 0,
+                  hours: getProjectHackatimeHours(selectedProject),
                   viral: !!selectedProject.viral,
                   shipped: !!selectedProject.shipped
                 });
@@ -1250,10 +1283,9 @@ function BayWithReviewMode({ session, status, router }: {
                 // Create an object with all the necessary properties
                 const projectWithProps = {
                   ...selectedProject,
-                  hours: selectedProject.hackatime ? (projectHours[selectedProject.hackatime] || 0) : 0,
+                  hours: getProjectHackatimeHours(selectedProject),
                   viral: !!selectedProject.viral,
                   shipped: !!selectedProject.shipped,
-                  in_review: !!selectedProject.in_review
                 };
                 
                 // Otherwise show the project details
@@ -1328,36 +1360,14 @@ function BayWithReviewMode({ session, status, router }: {
             
             // Calculate project's contribution percentage
             const getSelectedProjectHours = () => {
-              // If viral, it's 15 hours (25% toward the 60-hour goal)
-              if (selectedProject.viral) {
-                // console.log(`Modal: ${selectedProject.name} is viral, returning 15 hours`);
-                return 15;
+              const selectedProject = projects.find(p => p.projectID === selectedProjectId);
+              
+              if (!selectedProject) {
+                return 0;
               }
               
-              // Get hours from Hackatime or default to 0
-              const hackatimeProjectName = selectedProject.hackatime || '';
-              // console.log(`Modal: ${selectedProject.name} hackatime = "${hackatimeProjectName}"`);
-              
-              // Safely access projectHours with correct typing
-              const rawHours = hackatimeProjectName && 
-                typeof projectHours === 'object' && 
-                projectHours !== null && 
-                hackatimeProjectName in projectHours ? 
-                (projectHours as any)[hackatimeProjectName] : 0;
-              
-              // console.log(`Modal: ${selectedProject.name} rawHours = ${rawHours}, projectHours keys:`, Object.keys(projectHours));
-              
-              // Cap hours per project at 15
-              let cappedHours = Math.min(rawHours, 15);
-              
-              // If the project is not shipped, cap it at 14.75 hours
-              if (!selectedProject.shipped && cappedHours > 14.75) {
-                cappedHours = 14.75;
-                // console.log(`Modal: ${selectedProject.name} not shipped, capped at 14.75 hours`);
-              }
-              
-              // console.log(`Modal: ${selectedProject.name} final hours = ${cappedHours}`);
-              return cappedHours;
+              // Use our helper function to get hours
+              return getProjectHackatimeHours(selectedProject);
             };
             
             const selectedProjectContribution = getSelectedProjectHours();

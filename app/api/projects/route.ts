@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserSession } from "@/lib/requireUserSession";
 import metrics from "@/metrics";
 import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
+import { createProject } from '@/lib/project';
 
 export type Project = {
     projectID: string
@@ -165,8 +166,8 @@ export async function POST(request: Request) {
         
         try {
             console.time('[POST-TRACE] createProject execution time');
-            // Import createProject directly from the root lib path to ensure we use the correct implementation
-            const { createProject } = require('../../lib/project');
+            // The createProject function is now imported at the top of the file
+            // const { createProject } = require('../../lib/project');
             
             console.log('[POST-TRACE] 8.1 Using createProject from root lib path');
             
