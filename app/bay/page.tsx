@@ -371,13 +371,11 @@ function ProjectDetail({
         )}
         
         {/* Project Reviews Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <ReviewSection 
-            projectID={project.projectID} 
-            initialFlags={projectFlags}
-            onFlagsUpdated={handleFlagsUpdated}
-          />
-        </div>
+        <ReviewSection 
+          projectID={project.projectID} 
+          initialFlags={projectFlags}
+          onFlagsUpdated={handleFlagsUpdated}
+        />
       </div>
     </div>
   );
@@ -1533,34 +1531,32 @@ function BayWithReviewMode({ session, status, router }: {
                   )}
                   
                   {/* Project Reviews Section for Mobile */}
-                  <div className="bg-gray-50 p-4 rounded-lg mb-20">
-                    <ReviewSection 
-                      projectID={selectedProject.projectID}
-                      initialFlags={{
-                        shipped: !!selectedProject.shipped,
-                        viral: !!selectedProject.viral,
-                        approved: !!selectedProject.approved,
-                        in_review: !!selectedProject.in_review
-                      }}
-                      onFlagsUpdated={(updatedProject) => {
-                        // Create a new object with the updated flags
-                        const updatedSelectedProject = {
-                          ...selectedProject,
-                          shipped: updatedProject.shipped,
-                          viral: updatedProject.viral,
-                          in_review: updatedProject.in_review,
-                          approved: updatedProject.approved
-                        };
-                        
-                        // Update the project in the projects array
-                        setProjects(prevProjects => 
-                          prevProjects.map(p => 
-                            p.projectID === selectedProject.projectID ? updatedSelectedProject : p
-                          )
-                        );
-                      }}
-                    />
-                  </div>
+                  <ReviewSection 
+                    projectID={selectedProject.projectID}
+                    initialFlags={{
+                      shipped: !!selectedProject.shipped,
+                      viral: !!selectedProject.viral,
+                      approved: !!selectedProject.approved,
+                      in_review: !!selectedProject.in_review
+                    }}
+                    onFlagsUpdated={(updatedProject) => {
+                      // Create a new object with the updated flags
+                      const updatedSelectedProject = {
+                        ...selectedProject,
+                        shipped: updatedProject.shipped,
+                        viral: updatedProject.viral,
+                        in_review: updatedProject.in_review,
+                        approved: updatedProject.approved
+                      };
+                      
+                      // Update the project in the projects array
+                      setProjects(prevProjects => 
+                        prevProjects.map(p => 
+                          p.projectID === selectedProject.projectID ? updatedSelectedProject : p
+                        )
+                      );
+                    }}
+                  />
                   
                   {/* Edit button at bottom */}
                   <div className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20">

@@ -280,8 +280,8 @@ export default function ReviewSection({
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Project Reviews</h3>
+    <div className="space-y-6 bg-white p-6 rounded-lg mb-12">
+      <h3 className="text-lg font-semibold border-b pb-2">Project Reviews</h3>
       
       {/* Project Flags Editor */}
       {isReviewMode && initialFlags && (
@@ -350,8 +350,6 @@ export default function ReviewSection({
       
       {/* List of reviews */}
       <div className="space-y-4">
-        <h4 className="text-md font-medium">Recent Reviews</h4>
-        
         {isFetchingReviews ? (
           <div className="text-center py-4">
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
@@ -362,7 +360,7 @@ export default function ReviewSection({
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
-              <div key={review.id} className="bg-gray-50 p-4 rounded-lg">
+              <div key={review.id} className="bg-gray-50 p-4 rounded-lg shadow-sm">
                 <div className="flex items-start space-x-3">
                   {review.reviewer.image && (
                     <img
