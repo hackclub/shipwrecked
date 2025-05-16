@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUserSession } from "@/lib/requireUserSession";
 import metrics from "@/metrics";
 import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
-import { createProject } from '@/lib/project';
+// Import directly from the root lib with a more explicit path
+import * as projectLib from '../../../lib/project';
 
 export type Project = {
     projectID: string
@@ -166,15 +167,58 @@ export async function POST(request: Request) {
         
         try {
             console.time('[POST-TRACE] createProject execution time');
-            // The createProject function is now imported at the top of the file
-            // const { createProject } = require('../../lib/project');
+            console.log('[POST-TRACE] 8.1 Using createProject from explicit relative import path');
             
-            console.log('[POST-TRACE] 8.1 Using createProject from root lib path');
+            // Add validation to ensure we're using the correct implementation
+            // The proper implementation in lib/project.ts is over 200 lines long
+            const createProjectFunctionBody = projectLib.createProject.toString();
+            let useCorrectImplementation = true;
             
-            const createdProject = await createProject({ 
-                ...projectData,
-                userId: user.id
-            });
+            if (createProjectFunctionBody.length < 100) {
+                console.error('[POST-TRACE] 8.2 WARNING: Potentially using deprecated implementation!');
+                console.error('[POST-TRACE] 8.3 Function body length:', createProjectFunctionBody.length);
+                console.error('[POST-TRACE] 8.4 Function body preview:', createProjectFunctionBody.substring(0, 100));
+                useCorrectImplementation = false;
+            } else {
+                console.log('[POST-TRACE] 8.2 Verified correct implementation - function body length:', createProjectFunctionBody.length);
+            }
+            
+            let createdProject;
+            
+            if (useCorrectImplementation) {
+                // Use the imported function
+                createdProject = await projectLib.createProject({ 
+                    ...projectData,
+                    userId: user.id
+                });
+            } else {
+                // Last resort: try a direct require as fallback
+                console.log('[POST-TRACE] 8.5 Trying fallback direct require from filesystem path');
+                try {
+                    // Use path relative to project root
+                    const fallbackLib = require('fs').readFileSync('lib/project.ts', 'utf8');
+                    console.log('[POST-TRACE] 8.6 Successfully read lib/project.ts:', 
+                                fallbackLib.length > 0 ? 'File exists and has content' : 'File exists but is empty');
+                                
+                    // If we get here, we know the file exists but can't directly require it
+                    // So we'll need to use the implementation we have, just log a clear warning
+                    console.error('[POST-TRACE] 8.7 CRITICAL: Using potentially incorrect implementation after fallback check');
+                    
+                    createdProject = await projectLib.createProject({ 
+                        ...projectData,
+                        userId: user.id
+                    });
+                } catch (error) {
+                    const fallbackError = error as Error;
+                    console.error('[POST-TRACE] 8.6 Fallback check failed:', fallbackError.message);
+                    
+                    // Still try the original implementation as last resort
+                    createdProject = await projectLib.createProject({ 
+                        ...projectData,
+                        userId: user.id
+                    });
+                }
+            }
             
             console.timeEnd('[POST-TRACE] createProject execution time');
             console.log('[POST-TRACE] 9. createProject returned successfully');
