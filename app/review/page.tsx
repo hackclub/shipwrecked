@@ -175,6 +175,10 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
   onReviewSubmitted: () => void;
 }) {
   const { isReviewMode } = useReviewMode();
+  
+  // Add debugging
+  console.log('ProjectDetail selected project:', project);
+  
   const [projectFlags, setProjectFlags] = useState({
     shipped: !!project.shipped,
     viral: !!project.viral,

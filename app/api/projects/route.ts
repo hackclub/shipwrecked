@@ -87,7 +87,7 @@ export async function POST(request: Request) {
             projectData = {
                 name: formData.get('name')?.toString() || '',
                 description: formData.get('description')?.toString() || '',
-                hackatime: formData.get('hackatime')?.toString(),
+                hackatime: formData.get('hackatime')?.toString() || '',
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
@@ -100,8 +100,13 @@ export async function POST(request: Request) {
         } else {
             console.log('[POST] Parsing JSON');
             projectData = await request.json();
-            // Ensure rawHours is present and a number
+            // Ensure required fields are present
             projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
+            projectData.hackatime = projectData.hackatime || '';
+            projectData.codeUrl = projectData.codeUrl || '';
+            projectData.playableUrl = projectData.playableUrl || '';
+            projectData.screenshot = projectData.screenshot || '';
+            
             if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
                 projectData.hoursOverride = Number(projectData.hoursOverride);
             }
@@ -120,7 +125,7 @@ export async function POST(request: Request) {
         // Create audit log for project creation
         await logProjectEvent({
             eventType: AuditLogEventType.ProjectCreated,
-            description: createdProject.hackatime 
+            description: createdProject && createdProject.hackatime 
                 ? `Project "${createdProject.name}" was created (Hackatime: ${createdProject.hackatime})` 
                 : `Project "${createdProject.name}" was created`,
             projectId: createdProject.projectID,
@@ -132,9 +137,9 @@ export async function POST(request: Request) {
                     name: createdProject.name,
                     description: createdProject.description,
                     hackatime: createdProject.hackatime || null,
-                    codeUrl: createdProject.codeUrl,
-                    playableUrl: createdProject.playableUrl,
-                    screenshot: createdProject.screenshot,
+                    codeUrl: createdProject.codeUrl || "",
+                    playableUrl: createdProject.playableUrl || "",
+                    screenshot: createdProject.screenshot || "",
                     url: `/bay/projects/${createdProject.projectID}`
                 }
             }

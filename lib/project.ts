@@ -24,8 +24,11 @@ export type ProjectUpdateInput = Partial<Omit<Project, 'projectID' | 'userId' | 
 export async function createProject(data: ProjectInput) {
     let rawHours = typeof data.rawHours === 'number' ? data.rawHours : 0;
     
+    // Ensure hackatime is defined
+    const hackatimeName = data.hackatime || "";
+    
     // If hackatime is provided, try to fetch the hours from Hackatime
-    if (data.hackatime) {
+    if (hackatimeName.trim() !== "") {
         try {
             // Get user's hackatimeId
             const user = await prisma.user.findUnique({
@@ -38,15 +41,15 @@ export async function createProject(data: ProjectInput) {
                 const hackatimeProjects = await fetchHackatimeProjects(user.hackatimeId);
                 
                 // Find the matching project
-                const hackatimeProject = hackatimeProjects.find(hp => hp.name === data.hackatime);
+                const hackatimeProject = hackatimeProjects.find(hp => hp.name === hackatimeName);
                 
                 if (hackatimeProject && typeof hackatimeProject.hours === 'number') {
-                    console.log(`Found Hackatime project '${data.hackatime}' with ${hackatimeProject.hours} hours`);
+                    console.log(`Found Hackatime project '${hackatimeName}' with ${hackatimeProject.hours} hours`);
                     rawHours = hackatimeProject.hours;
                 }
             }
         } catch (error) {
-            console.error(`Error fetching Hackatime hours for project '${data.hackatime}':`, error);
+            console.error(`Error fetching Hackatime hours for project '${hackatimeName}':`, error);
             // Continue with rawHours = 0 if there's an error
         }
     }
@@ -59,7 +62,7 @@ export async function createProject(data: ProjectInput) {
             codeUrl: data.codeUrl,
             playableUrl: data.playableUrl,
             screenshot: data.screenshot || "",
-            hackatime: data.hackatime || "",
+            hackatime: hackatimeName,
             userId: data.userId,
             submitted: false,
             shipped: !!data.shipped,
@@ -92,3 +95,4 @@ export async function updateProject(projectID: string, userId: string, data: Pro
         },
         data
     });
+}
