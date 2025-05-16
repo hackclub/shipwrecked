@@ -27,12 +27,14 @@ interface ReviewSectionProps {
   projectID: string;
   initialFlags?: ProjectFlags;
   onFlagsUpdated?: (updatedProject: any) => void;
+  rawHours?: number;
 }
 
 export default function ReviewSection({ 
   projectID, 
   initialFlags,
-  onFlagsUpdated
+  onFlagsUpdated,
+  rawHours
 }: ReviewSectionProps) {
   const { data: session } = useSession();
   const { isReviewMode } = useReviewMode();
@@ -48,14 +50,14 @@ export default function ReviewSection({
   const [currentFlags, setCurrentFlags] = useState<ProjectFlags>(initialFlags || {
     shipped: false,
     viral: false,
-    approved: false,
-    in_review: false
+    in_review: false,
+    hoursOverride: undefined
   });
   const [originalFlags, setOriginalFlags] = useState<ProjectFlags>(initialFlags || {
     shipped: false,
     viral: false,
-    approved: false,
-    in_review: false
+    in_review: false,
+    hoursOverride: undefined
   });
 
   // Update flags when initialFlags changes
@@ -95,44 +97,33 @@ export default function ReviewSection({
   // Handle flag changes from ProjectFlagsEditor
   const handleFlagsChange = (flags: ProjectFlags) => {
     setCurrentFlags(flags);
-    
     // Check if any flags have changed
-    const hasChanges = 
+    const hasChanges =
       flags.shipped !== originalFlags.shipped ||
       flags.viral !== originalFlags.viral ||
-      flags.approved !== originalFlags.approved ||
-      flags.in_review !== originalFlags.in_review;
-      
+      flags.in_review !== originalFlags.in_review ||
+      flags.hoursOverride !== originalFlags.hoursOverride;
     setFlagsChanged(hasChanges);
   };
   
   // Generate a description of flag changes for the review comment
   const getFlagChangesDescription = (): string => {
     const changes: string[] = [];
-    
     if (currentFlags.shipped !== originalFlags.shipped) {
       changes.push(`Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`);
     }
-    
     if (currentFlags.viral !== originalFlags.viral) {
       changes.push(`Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`);
     }
-    
-    if (currentFlags.approved !== originalFlags.approved) {
-      changes.push(`Approved: ${originalFlags.approved ? 'Yes' : 'No'} → ${currentFlags.approved ? 'Yes' : 'No'}`);
+    if (currentFlags.hoursOverride !== originalFlags.hoursOverride) {
+      changes.push(`Override Hours: ${originalFlags.hoursOverride ?? 'unset'} → ${currentFlags.hoursOverride ?? 'unset'}`);
     }
-    
     if (currentFlags.in_review !== originalFlags.in_review) {
       changes.push(`In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`);
     }
-    
     // Add "Review completed" indicator if the project was in review
     const reviewCompleted = originalFlags.in_review && !currentFlags.in_review;
-    
-    // If there are no flag changes but the review was completed, still add the completion message
     if (changes.length === 0 && !reviewCompleted) return '';
-
-    // Always include the review completed message if the project was in review
     if (reviewCompleted) {
       return '\n\n[✓ Review completed' + (changes.length > 0 ? '. Status changes: ' + changes.join(', ') : '') + ']';
     } else {
@@ -162,11 +153,11 @@ export default function ReviewSection({
       };
       
       // Check if flags are different after setting in_review to false
-      const hasChanges = 
+      const hasChanges =
         updatedFlags.shipped !== originalFlags.shipped ||
         updatedFlags.viral !== originalFlags.viral ||
-        updatedFlags.approved !== originalFlags.approved ||
-        updatedFlags.in_review !== originalFlags.in_review;
+        updatedFlags.in_review !== originalFlags.in_review ||
+        updatedFlags.hoursOverride !== originalFlags.hoursOverride;
       
       // Update current flags and mark as changed
       setCurrentFlags(updatedFlags);
@@ -289,8 +280,9 @@ export default function ReviewSection({
           projectID={projectID}
           initialShipped={initialFlags.shipped}
           initialViral={initialFlags.viral}
-          initialApproved={initialFlags.approved}
           initialInReview={initialFlags.in_review}
+          initialHoursOverride={initialFlags.hoursOverride}
+          rawHours={rawHours}
           onChange={handleFlagsChange}
         />
       )}

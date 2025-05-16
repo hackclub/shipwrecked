@@ -24,12 +24,13 @@ export async function PATCH(request: NextRequest) {
     
     if (typeof body.shipped === 'boolean') updateData.shipped = body.shipped;
     if (typeof body.viral === 'boolean') updateData.viral = body.viral;
-    if (typeof body.approved === 'boolean') updateData.approved = body.approved;
     if (typeof body.in_review === 'boolean') updateData.in_review = body.in_review;
+    if (typeof body.hoursOverride === 'number') updateData.hoursOverride = body.hoursOverride;
+    if (typeof body.rawHours === 'number') updateData.rawHours = body.rawHours;
 
     // If no valid flags provided
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid flags provided to update' }, { status: 400 });
+      return NextResponse.json({ error: 'No valid fields provided to update' }, { status: 400 });
     }
 
     // Get the current project state for comparison and owner info
@@ -99,7 +100,6 @@ export async function PATCH(request: NextRequest) {
         userId: targetUserId,
         actorUserId: actorId,
         metadata: {
-          approved: updatedProject.approved,
           shipped: updatedProject.shipped,
           viral: updatedProject.viral
         }

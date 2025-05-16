@@ -7,12 +7,13 @@ import { useIsMobile } from "@/lib/hooks";
 
 type ProjectProps = Project & { 
     userId: string, 
-    hours: number,
+    hoursOverride?: number,
+    rawHours: number,
     editHandler?: (project: Project) => void,
     selected?: boolean
 };
 
-export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hours, selected, viral, shipped, in_review, approved }: ProjectProps) {
+export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hoursOverride, rawHours, selected, viral, shipped, in_review }: ProjectProps) {
     // Detect mobile screen size
     const isMobile = useIsMobile();
 
@@ -31,11 +32,13 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
                 viral: !!viral,
                 shipped: !!shipped,
                 in_review: !!in_review,
-                approved: !!approved
+                hoursOverride,
+                rawHours
             });
         }
     };
 
+    const displayHours = typeof hoursOverride === 'number' ? hoursOverride : rawHours;
     return (
         <div 
             className={`flex items-center p-3 hover:bg-gray-50 border-b border-gray-200 cursor-pointer transition-colors ${
@@ -46,7 +49,7 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
             onClick={handleRowClick}
         >
             <div className="flex items-center gap-2 min-w-0 w-full">
-                <span className="text-gray-600">{hours}h</span>
+                <span className="text-gray-600">{displayHours}h</span>
                 <span className={`font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem] ${selected ? 'text-blue-700' : ''}`}>
                     {name}
                     {in_review && <span className="ml-2 text-xs text-red-600 font-semibold">(IN REVIEW)</span>}

@@ -6,7 +6,14 @@ RUN apk add --no-cache \
     curl \
     python3 \
     py3-requests \
-    py3-dotenv
+    py3-dotenv \
+    py3-pip \
+    python3-dev \
+    build-base \
+    libffi-dev
+
+# Install Python packages using apk where possible, fall back to pip only if needed
+RUN pip3 install --break-system-packages prisma-client-py
 
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log

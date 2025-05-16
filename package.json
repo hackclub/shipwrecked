@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "sync-hackatime": "tsx scripts/sync-hackatime-hours.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
+    "@types/node-fetch": "^2.6.12",
     "@types/node-statsd": "^0.1.6",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",

@@ -38,9 +38,11 @@ export async function POST(request: NextRequest) {
     const updateData: any = {
       in_review: false
     };
-    
-    if (typeof body.approved === 'boolean') {
-      updateData.approved = body.approved;
+    if (typeof body.hoursOverride === 'number') {
+      updateData.hoursOverride = body.hoursOverride;
+    }
+    if (typeof body.rawHours === 'number') {
+      updateData.rawHours = body.rawHours;
     }
 
     // Mark the project as no longer in review

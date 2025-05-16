@@ -152,8 +152,7 @@ function ProjectDetail({
   const [projectFlags, setProjectFlags] = useState<ProjectFlags>({
     shipped: !!project.shipped,
     viral: !!project.viral,
-    in_review: !!project.in_review,
-    approved: !!project.approved
+    in_review: !!project.in_review
   });
   
   // Determine if editing is allowed based on review mode and project status
@@ -164,8 +163,7 @@ function ProjectDetail({
     setProjectFlags({
       shipped: !!project.shipped,
       viral: !!project.viral,
-      in_review: !!project.in_review,
-      approved: !!project.approved
+      in_review: !!project.in_review
     });
   }, [project]);
 
@@ -204,8 +202,7 @@ function ProjectDetail({
     setProjectFlags({
       shipped: !!updatedProject.shipped,
       viral: !!updatedProject.viral,
-      in_review: !!updatedProject.in_review,
-      approved: !!updatedProject.approved
+      in_review: !!updatedProject.in_review
     });
     
     // Also update the project in the projects array
@@ -213,8 +210,7 @@ function ProjectDetail({
       ...project,
       shipped: updatedProject.shipped,
       viral: updatedProject.viral,
-      in_review: updatedProject.in_review,
-      approved: updatedProject.approved
+      in_review: updatedProject.in_review
     };
     
     // Update the projects array
@@ -267,8 +263,34 @@ function ProjectDetail({
               viral={projectFlags.viral} 
               shipped={projectFlags.shipped} 
               in_review={projectFlags.in_review}
-              approved={projectFlags.approved}
             />
+          </div>
+        </div>
+        
+        {/* Project Hours Details Section */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+              <p className="text-lg font-semibold mt-1">{project.rawHours}h</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Admin Hours Override</span>
+              <p className="text-lg font-semibold mt-1">
+                {project.hoursOverride !== undefined && project.hoursOverride !== null 
+                  ? `${project.hoursOverride}h` 
+                  : '—'}
+              </p>
+            </div>
+            <div className="col-span-2 mt-2">
+              <span className="text-sm text-gray-500">Effective Hours</span>
+              <p className="text-lg font-semibold text-blue-600 mt-1">
+                {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
+                  ? `${project.hoursOverride}h` 
+                  : `${project.rawHours}h`}
+              </p>
+            </div>
           </div>
         </div>
         
@@ -318,10 +340,6 @@ function ProjectDetail({
             <div className="flex items-center">
               <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
               <span className="text-sm text-gray-700">In Review</span>
-            </div>
-            <div className="flex items-center">
-              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-              <span className="text-sm text-gray-700">Approved</span>
             </div>
           </div>
         )}
@@ -375,6 +393,7 @@ function ProjectDetail({
           projectID={project.projectID} 
           initialFlags={projectFlags}
           onFlagsUpdated={handleFlagsUpdated}
+          rawHours={project.rawHours}
         />
       </div>
     </div>
@@ -645,8 +664,7 @@ function BayWithReviewMode({ session, status, router }: {
         projectID: initialEditState.projectID || "",
         viral: initialEditState.viral || false,
         shipped: initialEditState.shipped || false,
-        in_review: initialEditState.in_review || false,
-        approved: initialEditState.approved || false
+        in_review: initialEditState.in_review || false
       };
       
       // console.log("Project edit state synchronized:", {
@@ -995,61 +1013,42 @@ function BayWithReviewMode({ session, status, router }: {
             <div className="bg-white rounded-lg shadow">
               {projects
                 .sort((a, b) => {
-                  // Get hours for each project, default to 0 if not found
-                  const hoursA = a.hackatime ? (projectHours[a.hackatime] || 0) : 0;
-                  const hoursB = b.hackatime ? (projectHours[b.hackatime] || 0) : 0;
-                  // Sort by hours in descending order (highest first)
+                  // Use hoursOverride if set, otherwise rawHours
+                  const hoursA = typeof a.hoursOverride === 'number' ? a.hoursOverride : a.rawHours || 0;
+                  const hoursB = typeof b.hoursOverride === 'number' ? b.hoursOverride : b.rawHours || 0;
                   return hoursB - hoursA;
                 })
-                .map((project, index) => {
-                  // console.log(`Rendering project ${project.name}:`, {
-                  //   id: project.projectID,
-                  //   viral: !!project.viral, 
-                  //   shipped: !!project.shipped,
-                  //   hackatime: project.hackatime || 'none',
-                  //   hours: project.hackatime ? (projectHours[project.hackatime] || 0) : 0
-                  // });
-                  
-                  return (
-                    <Project
-                      key={project.projectID}
-                      {...project}
-                      hours={project.hackatime ? (projectHours[project.hackatime] || 0) : 0}
-                      viral={!!project.viral}
-                      shipped={!!project.shipped}
-                      in_review={!!project.in_review}
-                      approved={!!project.approved}
-                      editHandler={(project) => {
-                        // Check if the edit request is coming from the edit button
-                        const isEditRequest = 'isEditing' in project;
-                        
-                        // For mobile devices, show project details first
-                        if (isMobile) {
-                          setSelectedProjectId(project.projectID);
-                          setInitialEditState(project);
-                          setIsProjectDetailModalOpen(true);
-                          return;
+                .map((project, index) => (
+                  <Project
+                    key={project.projectID}
+                    {...project}
+                    rawHours={project.rawHours}
+                    hoursOverride={project.hoursOverride}
+                    viral={!!project.viral}
+                    shipped={!!project.shipped}
+                    in_review={!!project.in_review}
+                    editHandler={(project) => {
+                      // Check if the edit request is coming from the edit button
+                      const isEditRequest = 'isEditing' in project;
+                      if (isMobile) {
+                        setSelectedProjectId(project.projectID);
+                        setInitialEditState(project);
+                        setIsProjectDetailModalOpen(true);
+                        return;
+                      }
+                      if (selectedProjectId === project.projectID && !isEditRequest) {
+                        setSelectedProjectId(null);
+                      } else {
+                        setSelectedProjectId(project.projectID);
+                        setInitialEditState(project);
+                        if (isEditRequest) {
+                          setIsProjectEditModalOpen(true);
                         }
-                        
-                        // For desktop: if clicking the same project and not an edit request, toggle selection
-                        if (selectedProjectId === project.projectID && !isEditRequest) {
-                          setSelectedProjectId(null);
-                        } else {
-                          // Otherwise, select the new project and update form state
-                          setSelectedProjectId(project.projectID);
-                          setInitialEditState(project);
-                          
-                          // Only show edit modal if explicitly requested
-                          if (isEditRequest) {
-                            setIsProjectEditModalOpen(true);
-                          }
-                        }
-                      }}
-                      // Only show selected state on desktop
-                      selected={!isMobile && selectedProjectId === project.projectID}
-                    />
-                  );
-                })}
+                      }
+                    }}
+                    selected={!isMobile && selectedProjectId === project.projectID}
+                  />
+                ))}
               {projects.length === 0 && (
                 <div className="p-4 text-center text-gray-500">
                   No projects yet. Click "Add Project" to get started!
@@ -1187,15 +1186,6 @@ function BayWithReviewMode({ session, status, router }: {
                     </FormSelect>
                   </div>
                   
-                  <FormInput
-                    fieldName='approved'
-                    type='hidden'
-                    state={projectEditState}
-                    defaultValue={initialEditState.approved ? "true" : "false"}
-                    placeholder=""
-                  >
-                    Approved
-                  </FormInput>
                   <div className="mb-5 bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2">
                     <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
@@ -1205,9 +1195,6 @@ function BayWithReviewMode({ session, status, router }: {
                     </label>
                     <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.in_review} readOnly disabled /> In Review
-                    </label>
-                    <label className="flex items-center text-sm text-gray-600 cursor-not-allowed">
-                      <input type="checkbox" checked={!!initialEditState.approved} readOnly disabled /> Approved
                     </label>
                   </div>
                   
@@ -1266,8 +1253,7 @@ function BayWithReviewMode({ session, status, router }: {
                   hours: selectedProject.hackatime ? (projectHours[selectedProject.hackatime] || 0) : 0,
                   viral: !!selectedProject.viral,
                   shipped: !!selectedProject.shipped,
-                  in_review: !!selectedProject.in_review,
-                  approved: !!selectedProject.approved
+                  in_review: !!selectedProject.in_review
                 };
                 
                 // Otherwise show the project details
@@ -1284,7 +1270,8 @@ function BayWithReviewMode({ session, status, router }: {
                         viral: !!selectedProject.viral,
                         shipped: !!selectedProject.shipped,
                         in_review: !!selectedProject.in_review,
-                        approved: !!selectedProject.approved
+                        rawHours: selectedProject.rawHours,
+                        hoursOverride: selectedProject.hoursOverride
                       };
                       
                       console.log("Opening edit form with data:", projectWithDefaults);
@@ -1409,8 +1396,34 @@ function BayWithReviewMode({ session, status, router }: {
                         viral={selectedProject.viral} 
                         shipped={selectedProject.shipped}
                         in_review={selectedProject.in_review}
-                        approved={selectedProject.approved}
                       />
+                    </div>
+                  </div>
+                  
+                  {/* Project Hours Details Section */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+                        <p className="text-lg font-semibold mt-1">{selectedProject.rawHours}h</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Admin Hours Override</span>
+                        <p className="text-lg font-semibold mt-1">
+                          {selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null 
+                            ? `${selectedProject.hoursOverride}h` 
+                            : '—'}
+                        </p>
+                      </div>
+                      <div className="col-span-2 mt-2">
+                        <span className="text-sm text-gray-500">Effective Hours</span>
+                        <p className="text-lg font-semibold text-blue-600 mt-1">
+                          {(selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null) 
+                            ? `${selectedProject.hoursOverride}h` 
+                            : `${selectedProject.rawHours}h`}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   
@@ -1439,7 +1452,6 @@ function BayWithReviewMode({ session, status, router }: {
                     projectID={selectedProject.projectID}
                     initialShipped={!!selectedProject.shipped}
                     initialViral={!!selectedProject.viral}
-                    initialApproved={!!selectedProject.approved}
                     initialInReview={!!selectedProject.in_review}
                     onChange={(flags: ProjectFlags) => {
                       // Create a new object with the updated flags
@@ -1478,10 +1490,6 @@ function BayWithReviewMode({ session, status, router }: {
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         <span className="text-sm text-gray-700">In Review</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <span className="text-sm text-gray-700">Approved</span>
                       </div>
                     </div>
                   )}
@@ -1536,7 +1544,6 @@ function BayWithReviewMode({ session, status, router }: {
                     initialFlags={{
                       shipped: !!selectedProject.shipped,
                       viral: !!selectedProject.viral,
-                      approved: !!selectedProject.approved,
                       in_review: !!selectedProject.in_review
                     }}
                     onFlagsUpdated={(updatedProject) => {
@@ -1545,8 +1552,7 @@ function BayWithReviewMode({ session, status, router }: {
                         ...selectedProject,
                         shipped: updatedProject.shipped,
                         viral: updatedProject.viral,
-                        in_review: updatedProject.in_review,
-                        approved: updatedProject.approved
+                        in_review: updatedProject.in_review
                       };
                       
                       // Update the project in the projects array
@@ -1556,6 +1562,7 @@ function BayWithReviewMode({ session, status, router }: {
                         )
                       );
                     }}
+                    rawHours={selectedProject.rawHours}
                   />
                   
                   {/* Edit button at bottom */}
@@ -1576,7 +1583,8 @@ function BayWithReviewMode({ session, status, router }: {
                             viral: !!selectedProject.viral,
                             shipped: !!selectedProject.shipped,
                             in_review: !!selectedProject.in_review,
-                            approved: !!selectedProject.approved
+                            rawHours: selectedProject.rawHours,
+                            hoursOverride: selectedProject.hoursOverride
                           };
                           
                           // Update the form state
@@ -1828,6 +1836,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 </FormInput>
               </div>
               
+
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
                 <label className="flex items-center gap-2 text-sm">
@@ -1838,9 +1847,6 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!props.approved} readOnly disabled /> Approved
                 </label>
               </div>
               

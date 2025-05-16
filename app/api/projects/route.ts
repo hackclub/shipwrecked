@@ -18,7 +18,8 @@ export type Project = {
     viral: boolean
     shipped: boolean
     in_review: boolean
-    approved: boolean
+    rawHours: number
+    hoursOverride?: number
 }
 
 export type ProjectType = Project;
@@ -93,11 +94,17 @@ export async function POST(request: Request) {
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
-                approved: formData.get('approved') === 'true'
+                rawHours: parseFloat(formData.get('rawHours')?.toString() || '0'),
+                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
             };
         } else {
             console.log('[POST] Parsing JSON');
             projectData = await request.json();
+            // Ensure rawHours is present and a number
+            projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
+            if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
+                projectData.hoursOverride = Number(projectData.hoursOverride);
+            }
         }
         
         console.log('[POST] Project creation payload:', {
@@ -285,11 +292,17 @@ export async function PUT(request: Request) {
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
-                approved: formData.get('approved') === 'true'
+                rawHours: parseFloat(formData.get('rawHours')?.toString() || '0'),
+                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
             };
         } else {
             console.log('[PUT] Parsing JSON');
             projectData = await request.json();
+            // Ensure rawHours is present and a number
+            projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
+            if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
+                projectData.hoursOverride = Number(projectData.hoursOverride);
+            }
         }
 
         const { projectID, ...updateFields } = projectData;

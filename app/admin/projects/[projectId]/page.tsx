@@ -38,6 +38,8 @@ interface Project {
   user: User;
   reviews: { id: string }[];
   hackatime?: string;
+  rawHours: number;
+  hoursOverride?: number;
 }
 
 async function editProjectAction(state: FormSave, formData: FormData): Promise<FormSave> {
@@ -72,7 +74,9 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
     playableUrl: "",
     screenshot: "",
     userId: "",
-    projectID: ""
+    projectID: "",
+    rawHours: 0,
+    hoursOverride: undefined
   });
 
   const [projectEditState, projectEditFormAction, projectEditPending] = useActionState((state: FormSave, payload: FormData) => new Promise<FormSave>((resolve, reject) => {
@@ -105,7 +109,9 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
       playableUrl: "",
       screenshot: "",
       userId: "",
-      projectID: ""
+      projectID: "",
+      rawHours: 0,
+      hoursOverride: undefined
     }
   });
   
@@ -164,7 +170,9 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
         viral: project.viral || false,
         shipped: project.shipped || false,
         in_review: project.in_review || false,
-        approved: project.approved || false
+        approved: project.approved || false,
+        rawHours: project.rawHours || 0,
+        hoursOverride: project.hoursOverride
       });
     }
   }, [project]);
@@ -185,7 +193,9 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
         viral: initialEditState.viral || false,
         shipped: initialEditState.shipped || false,
         in_review: initialEditState.in_review || false,
-        approved: initialEditState.approved || false
+        approved: initialEditState.approved || false,
+        rawHours: initialEditState.rawHours || 0,
+        hoursOverride: initialEditState.hoursOverride
       };
     }
   }, [initialEditState, projectEditState]);
@@ -234,8 +244,7 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
   const projectFlags: ProjectFlags = {
     shipped: !!project.shipped,
     viral: !!project.viral,
-    in_review: !!project.in_review,
-    approved: !!project.approved
+    in_review: !!project.in_review
   };
 
   return (
@@ -275,7 +284,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
               viral={project.viral} 
               shipped={project.shipped} 
               in_review={project.in_review}
-              approved={project.approved}
             />
           </div>
         </div>
@@ -295,9 +303,32 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
             <div className={`w-3 h-3 rounded-full mr-2 ${project.in_review ? 'bg-green-500' : 'bg-gray-300'}`}></div>
             <span className="text-sm text-gray-700">In Review</span>
           </div>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${project.approved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className="text-sm text-gray-700">Approved</span>
+        </div>
+        
+        {/* Project Hours */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+              <p className="text-lg font-semibold mt-1">{project.rawHours}h</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Admin Hours Override</span>
+              <p className="text-lg font-semibold mt-1">
+                {project.hoursOverride !== undefined && project.hoursOverride !== null 
+                  ? `${project.hoursOverride}h` 
+                  : '—'}
+              </p>
+            </div>
+            <div className="col-span-2 mt-2">
+              <span className="text-sm text-gray-500">Effective Hours</span>
+              <p className="text-lg font-semibold text-blue-600 mt-1">
+                {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
+                  ? `${project.hoursOverride}h` 
+                  : `${project.rawHours}h`}
+              </p>
+            </div>
           </div>
         </div>
         
@@ -440,6 +471,48 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
             </FormInput>
           </div>
           
+          <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <FormInput
+                  fieldName='rawHours'
+                  placeholder='Raw Hours'
+                  type="number"
+                  state={projectEditState}
+                  defaultValue={project.rawHours.toString()}
+                  disabled={true}
+                >
+                  <div className="flex items-center">
+                    Raw Hackatime Hours 
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      Read Only
+                    </span>
+                  </div>
+                </FormInput>
+              </div>
+              <div>
+                <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">
+                  Override Hours (optional)
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    id="hoursOverride"
+                    name="hoursOverride"
+                    className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="e.g. 12.5"
+                    defaultValue={project.hoursOverride !== undefined ? project.hoursOverride.toString() : ''}
+                    step="0.1"
+                  />
+                  <span className="ml-3 text-sm text-gray-500">
+                    (Hackatime reported: {project.rawHours}h)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
             <div className="flex items-center">
@@ -461,16 +534,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
                 className="mr-2" 
               />
               <label htmlFor="viral" className="text-sm text-gray-700">Viral</label>
-            </div>
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                id="approved" 
-                name="approved" 
-                defaultChecked={project.approved}
-                className="mr-2" 
-              />
-              <label htmlFor="approved" className="text-sm text-gray-700">Approved</label>
             </div>
             <div className="flex items-center">
               <input 

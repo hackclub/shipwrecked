@@ -30,8 +30,6 @@ export async function GET(request: Request) {
       whereCondition.shipped = true;
     } else if (filter === 'viral') {
       whereCondition.viral = true;
-    } else if (filter === 'approved') {
-      whereCondition.approved = true;
     }
     
     // Fetch all projects with user info and apply any filters

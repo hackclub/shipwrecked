@@ -28,11 +28,12 @@ interface Project {
   screenshot: string;
   shipped: boolean;
   viral: boolean;
-  approved: boolean;
   in_review: boolean;
   userId: string;
   user: User;
   reviews: { id: string }[];
+  rawHours: number;
+  hoursOverride?: number;
 }
 
 // Type for form state
@@ -104,7 +105,7 @@ function AdminProjectsContent() {
       const formData = new FormData(form);
       
       // Explicitly handle checkbox values to ensure proper boolean setting
-      const statusFields = ['shipped', 'viral', 'approved', 'in_review'];
+      const statusFields = ['shipped', 'viral', 'in_review'];
       statusFields.forEach(field => {
         // If the checkbox exists in the form
         const checkbox = form.elements.namedItem(field) as HTMLInputElement;
@@ -289,9 +290,6 @@ function AdminProjectsContent() {
     if (project.shipped) {
       badges.push(<span key="shipped" className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mr-1 mb-1">Shipped</span>);
     }
-    if (project.approved) {
-      badges.push(<span key="approved" className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-1 mb-1">Approved</span>);
-    }
     if (project.viral) {
       badges.push(<span key="viral" className="inline-block px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold mr-1 mb-1">Viral</span>);
     }
@@ -406,16 +404,6 @@ function AdminProjectsContent() {
               }`}
             >
               Shipped
-            </button>
-            <button
-              onClick={() => handleFilterChange('approved')}
-              className={`px-3 py-1 rounded-full text-sm mb-1 ${
-                currentFilter === 'approved' 
-                  ? 'bg-blue-200 text-blue-800 outline outline-2 outline-black' 
-                  : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-              }`}
-            >
-              Approved
             </button>
             <button
               onClick={() => handleFilterChange('viral')}
@@ -573,6 +561,29 @@ function AdminProjectsContent() {
               </FormInput>
             </div>
             
+            <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+              <div>
+                <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">
+                  Override Hours (optional)
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    id="hoursOverride"
+                    name="hoursOverride"
+                    className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="e.g. 12.5"
+                    defaultValue={selectedProject.hoursOverride !== undefined ? selectedProject.hoursOverride.toString() : ''}
+                    step="0.1"
+                  />
+                  <span className="ml-3 text-sm text-gray-500">
+                    (Hackatime reported: {selectedProject.rawHours}h)
+                  </span>
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
               <div className="flex items-center">
@@ -594,16 +605,6 @@ function AdminProjectsContent() {
                   className="mr-2" 
                 />
                 <label htmlFor="viral" className="text-sm text-gray-700">Viral</label>
-              </div>
-              <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="approved" 
-                  name="approved" 
-                  defaultChecked={selectedProject.approved}
-                  className="mr-2" 
-                />
-                <label htmlFor="approved" className="text-sm text-gray-700">Approved</label>
               </div>
               <div className="flex items-center">
                 <input 
@@ -713,6 +714,29 @@ function AdminProjectsContent() {
                 </FormInput>
               </div>
               
+              <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+                <div>
+                  <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">
+                    Override Hours (optional)
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="number"
+                      id="hoursOverride"
+                      name="hoursOverride"
+                      className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      placeholder="e.g. 12.5"
+                      defaultValue={selectedProject.hoursOverride !== undefined ? selectedProject.hoursOverride.toString() : ''}
+                      step="0.1"
+                    />
+                    <span className="ml-3 text-sm text-gray-500">
+                      (Hackatime reported: {selectedProject.rawHours}h)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
                 <div className="flex items-center">
@@ -734,16 +758,6 @@ function AdminProjectsContent() {
                     className="mr-2" 
                   />
                   <label htmlFor="viral-mobile" className="text-sm text-gray-700">Viral</label>
-                </div>
-                <div className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    id="approved-mobile" 
-                    name="approved" 
-                    defaultChecked={selectedProject.approved}
-                    className="mr-2" 
-                  />
-                  <label htmlFor="approved-mobile" className="text-sm text-gray-700">Approved</label>
                 </div>
                 <div className="flex items-center">
                   <input 

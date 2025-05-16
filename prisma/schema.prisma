@@ -162,7 +162,8 @@ model Project {
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
   in_review Boolean @default(false)
-  approved  Boolean @default(false)
+  rawHours     Float
+  hoursOverride Float?
 
   // user relation
   userId String

@@ -106,6 +106,8 @@ interface Project {
   userImage: string | null;
   latestReview: Review | null;
   reviewCount: number;
+  rawHours: number;
+  hoursOverride?: number;
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
@@ -177,7 +179,8 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
     shipped: !!project.shipped,
     viral: !!project.viral,
     in_review: !!project.in_review,
-    approved: !!project.approved
+    approved: !!project.approved,
+    hoursOverride: project.hoursOverride
   });
   
   // Handle project flag updates
@@ -186,7 +189,8 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
       shipped: !!updatedProject.shipped,
       viral: !!updatedProject.viral,
       in_review: !!updatedProject.in_review,
-      approved: !!updatedProject.approved
+      approved: !!updatedProject.approved,
+      hoursOverride: updatedProject.hoursOverride
     });
     
     // If in_review was changed to false, notify the parent component to refresh the list
@@ -240,7 +244,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               viral={projectFlags.viral} 
               shipped={projectFlags.shipped} 
               in_review={projectFlags.in_review}
-              approved={projectFlags.approved}
             />
           </div>
         </div>
@@ -292,6 +295,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             projectID={project.projectID} 
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
+            rawHours={project.rawHours}
           />
         </div>
       </div>
