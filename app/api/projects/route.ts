@@ -128,14 +128,36 @@ export async function POST(request: Request) {
             throw new Error('Project description is required');
         }
 
-        const createdProject = await createProject({ 
-            ...projectData,
-            userId: user.id
-        });
-        
-        // Check if project was created successfully
+        // Detailed error trapping around project creation
+        console.log('[POST] About to call createProject function');
+        let createdProject;
+        try {
+            console.time('[POST] createProject execution time');
+            createdProject = await createProject({ 
+                ...projectData,
+                userId: user.id
+            });
+            console.timeEnd('[POST] createProject execution time');
+            console.log('[POST] createProject returned successfully');
+        } catch (createError: unknown) {
+            console.error('[POST] createProject threw an exception:', createError);
+            metrics.increment("errors.create_project_exception", 1);
+            return Response.json({ 
+                success: false, 
+                error: createError instanceof Error ? createError.message : 'Unknown error in project creation',
+                type: createError instanceof Error && createError.constructor ? createError.constructor.name : 'Unknown'
+            }, { status: 500 });
+        }
+
+        // Check result
         if (!createdProject) {
-            throw new Error('Failed to create project - no project data returned');
+            console.error('[POST] createProject returned null or undefined');
+            metrics.increment("errors.create_project_null_result", 1);
+            return Response.json({ 
+                success: false, 
+                error: 'Project creation failed - no project data returned',
+                type: 'NullResult'
+            }, { status: 500 });
         }
         
         try {
@@ -342,27 +364,56 @@ export async function PUT(request: Request) {
                 delete updateFields[key];
             }
         });
-
-        const updatedProject = await prisma.project.update({
+        
+        console.log(`[PUT] Updating project ${projectID} with fields:`, updateFields);
+        
+        // Verify the project exists before attempting to update
+        const existingProject = await prisma.project.findUnique({
             where: {
                 projectID_userId: {
                     projectID,
                     userId: user.id
                 }
-            },
-            data: updateFields
+            }
         });
+        
+        if (!existingProject) {
+            console.error(`[PUT] Project ${projectID} not found for user ${user.id}`);
+            return Response.json({ 
+                success: false, 
+                error: 'Project not found' 
+            }, { status: 404 });
+        }
+        
+        try {
+            const updatedProject = await prisma.project.update({
+                where: {
+                    projectID_userId: {
+                        projectID,
+                        userId: user.id
+                    }
+                },
+                data: updateFields
+            });
 
-        // Safe logging in case updatedProject is undefined
-        console.log(`[PUT] Successfully updated project ${projectID}`);
-        metrics.increment("success.update_project", 1);
-        return Response.json({ 
-            success: true, 
-            data: updatedProject || { projectID }
-        });
+            console.log(`[PUT] Successfully updated project ${projectID}`);
+            metrics.increment("success.update_project", 1);
+            return Response.json({ 
+                success: true, 
+                data: updatedProject || { projectID }
+            });
+        } catch (updateError) {
+            console.error(`[PUT] Prisma error updating project ${projectID}:`, updateError);
+            return Response.json({ 
+                success: false, 
+                error: 'Database error updating project',
+                details: updateError instanceof Error ? updateError.message : 'Unknown error' 
+            }, { status: 500 });
+        }
     } catch (error: unknown) {
+        // This catch block now only catches errors from requireUserSession or request parsing
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error('[PUT] Failed to update project:', err);
+        console.error('[PUT] Failed to process request:', err);
         metrics.increment("errors.update_project", 1);
         return Response.json({ 
             success: false, 
