@@ -71,19 +71,34 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    console.log('[POST] Received request to create new project');
+    console.log('[POST-TRACE] ===== PROJECT CREATION FLOW TRACING =====');
+    console.log('[POST-TRACE] 1. Received request to create new project');
     try {
+        console.log('[POST-TRACE] 2. About to authenticate user');
         const user = await requireUserSession();
-        console.log(`[POST] Authenticated user ${user.id}`);
+        console.log(`[POST-TRACE] 3. Authentication successful, user ID: ${user.id}`);
         
         // Check content type to determine how to parse the request
         const contentType = request.headers.get('content-type');
-        console.log('[POST] Content-Type:', contentType);
+        console.log('[POST-TRACE] 4. Content-Type:', contentType);
 
         let projectData;
+        console.log('[POST-TRACE] 5. Parsing request data');
         if (contentType?.includes('multipart/form-data')) {
-            console.log('[POST] Parsing FormData');
+            console.log('[POST-TRACE] 5.1 Parsing as FormData');
             const formData = await request.formData();
+            
+            // Log each form field received for debugging
+            console.log('[POST-TRACE] 5.1.1 Received FormData fields:');
+            for (const [key, value] of formData.entries()) {
+                // Don't log the entire screenshot if it's a long string
+                if (key === 'screenshot' && typeof value === 'string' && value.length > 100) {
+                    console.log(`[POST-TRACE] FormData field: ${key} = (screenshot data, length: ${value.length})`);
+                } else {
+                    console.log(`[POST-TRACE] FormData field: ${key} = ${value}`);
+                }
+            }
+            
             projectData = {
                 name: formData.get('name')?.toString() || '',
                 description: formData.get('description')?.toString() || '',
@@ -98,49 +113,73 @@ export async function POST(request: Request) {
                 hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
             };
         } else {
-            console.log('[POST] Parsing JSON');
-            projectData = await request.json();
-            // Ensure required fields are present
-            projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
-            projectData.hackatime = projectData.hackatime || '';
-            projectData.codeUrl = projectData.codeUrl || '';
-            projectData.playableUrl = projectData.playableUrl || '';
-            projectData.screenshot = projectData.screenshot || '';
-            
-            if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
-                projectData.hoursOverride = Number(projectData.hoursOverride);
+            console.log('[POST-TRACE] 5.2 Parsing as JSON');
+            try {
+                const rawData = await request.json();
+                console.log('[POST-TRACE] 5.2.1 Raw JSON data received:', {
+                    ...rawData,
+                    screenshot: rawData.screenshot ? `(screenshot data, length: ${rawData.screenshot.length})` : '(none)',
+                });
+                
+                projectData = rawData;
+                
+                // Ensure required fields are present
+                projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
+                projectData.hackatime = projectData.hackatime || '';
+                projectData.codeUrl = projectData.codeUrl || '';
+                projectData.playableUrl = projectData.playableUrl || '';
+                projectData.screenshot = projectData.screenshot || '';
+                
+                if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
+                    projectData.hoursOverride = Number(projectData.hoursOverride);
+                }
+            } catch (parseError) {
+                console.error('[POST-TRACE] 5.3 Error parsing JSON:', parseError);
+                metrics.increment("errors.parse_json", 1);
+                return Response.json({ error: 'Failed to parse request JSON' }, { status: 400 });
             }
         }
         
-        console.log('[POST] Project creation payload:', {
+        console.log('[POST-TRACE] 6. Processed project data:', {
             ...projectData,
-            hasScreenshot: !!projectData.screenshot
+            screenshot: projectData.screenshot ? `(screenshot data, length: ${projectData.screenshot.length})` : '(none)'
         });
 
         // Validate required fields
+        console.log('[POST-TRACE] 7. Validating required fields');
         if (!projectData.name) {
-            console.error('[POST] Missing required field: name');
+            console.error('[POST-TRACE] 7.1 Missing required field: name');
             throw new Error('Project name is required');
         }
 
         if (!projectData.description) {
-            console.error('[POST] Missing required field: description');
+            console.error('[POST-TRACE] 7.2 Missing required field: description');
             throw new Error('Project description is required');
         }
 
         // Detailed error trapping around project creation
-        console.log('[POST] About to call createProject function');
+        console.log('[POST-TRACE] 8. About to call createProject function with data:', {
+            ...projectData,
+            userId: user.id,
+            screenshot: projectData.screenshot ? `(screenshot data, length: ${projectData.screenshot.length})` : '(none)'
+        });
+        
         let createdProject;
         try {
-            console.time('[POST] createProject execution time');
+            console.time('[POST-TRACE] createProject execution time');
             createdProject = await createProject({ 
                 ...projectData,
                 userId: user.id
             });
-            console.timeEnd('[POST] createProject execution time');
-            console.log('[POST] createProject returned successfully');
+            console.timeEnd('[POST-TRACE] createProject execution time');
+            console.log('[POST-TRACE] 9. createProject returned successfully');
         } catch (createError: unknown) {
-            console.error('[POST] createProject threw an exception:', createError);
+            console.error('[POST-TRACE] 9.1 createProject threw an exception:', createError);
+            if (createError instanceof Error) {
+                console.error('[POST-TRACE] 9.1.1 Error name:', createError.name);
+                console.error('[POST-TRACE] 9.1.2 Error message:', createError.message);
+                console.error('[POST-TRACE] 9.1.3 Error stack:', createError.stack);
+            }
             metrics.increment("errors.create_project_exception", 1);
             return Response.json({ 
                 success: false, 
@@ -151,7 +190,7 @@ export async function POST(request: Request) {
 
         // Check result
         if (!createdProject) {
-            console.error('[POST] createProject returned null or undefined');
+            console.error('[POST-TRACE] 10.1 createProject returned null or undefined');
             metrics.increment("errors.create_project_null_result", 1);
             return Response.json({ 
                 success: false, 
@@ -160,7 +199,14 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
         
+        console.log('[POST-TRACE] 10. Successfully created project:', {
+            projectID: createdProject.projectID,
+            name: createdProject.name,
+            userId: createdProject.userId
+        });
+        
         try {
+            console.log('[POST-TRACE] 11. Creating audit log entry');
             // Create audit log for project creation
             await logProjectEvent({
                 eventType: AuditLogEventType.ProjectCreated,
@@ -183,17 +229,21 @@ export async function POST(request: Request) {
                     }
                 }
             });
+            console.log('[POST-TRACE] 12. Audit log created successfully');
         } catch (logError) {
             // Log but don't throw, allow project creation to succeed even if audit log fails
-            console.error('[POST] Failed to create audit log:', logError);
+            console.error('[POST-TRACE] 12.1 Failed to create audit log:', logError);
         }
         
-        console.log(`[POST] Successfully created project ${createdProject.projectID}`);
+        console.log(`[POST-TRACE] 13. Successfully completed project creation ${createdProject.projectID}`);
         metrics.increment("success.create_project", 1);
         return Response.json({ success: true, data: createdProject });
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error('[POST] Failed to create project:', err);
+        console.error('[POST-TRACE] FATAL ERROR in project creation flow:', err);
+        console.error('[POST-TRACE] Error name:', err.name);
+        console.error('[POST-TRACE] Error message:', err.message);
+        console.error('[POST-TRACE] Error stack:', err.stack);
         metrics.increment("errors.create_project", 1);
         return Response.json({ 
             success: false, 

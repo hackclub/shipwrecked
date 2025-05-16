@@ -30,45 +30,86 @@ interface CreateAuditLogParams {
  * @returns The created audit log or null if an error occurred
  */
 export async function createAuditLog(params: CreateAuditLogParams) {
+  console.log('[AUDIT-TRACE] 1. Creating audit log:', {
+    event: params.eventType,
+    project: params.projectId || 'N/A',
+    targetUser: params.targetUserId,
+    actor: params.actorUserId || 'N/A'
+  });
+  
   try {
-    console.log('Creating audit log with params:', JSON.stringify(params, null, 2));
+    // Validate inputs
+    if (!params.targetUserId) {
+      console.error('[AUDIT-TRACE] 2. Missing required targetUserId');
+      return null;
+    }
+    
+    // Prepare create data
+    const createData = {
+      eventType: params.eventType,
+      description: params.description,
+      targetUser: {
+        connect: { id: params.targetUserId }
+      },
+      // Only include actorUser if actorUserId is provided
+      ...(params.actorUserId && {
+        actorUser: {
+          connect: { id: params.actorUserId }
+        }
+      }),
+      // Only include project if projectId is provided
+      ...(params.projectId && {
+        project: {
+          connect: { projectID: params.projectId }
+        }
+      }),
+      // Include metadata if provided
+      ...(params.metadata && { metadata: params.metadata })
+    };
+    
+    console.log('[AUDIT-TRACE] 3. Prepared audit log data:', JSON.stringify({
+      ...createData,
+      metadata: params.metadata ? 'present' : 'none'
+    }, null, 2));
+    
+    // Verify inputs before making the call
+    if (params.projectId) {
+      try {
+        console.log('[AUDIT-TRACE] 4. Verifying project exists:', params.projectId);
+        const projectExists = await prisma.project.findUnique({
+          where: { projectID: params.projectId },
+          select: { projectID: true }
+        });
+        
+        if (!projectExists) {
+          console.error('[AUDIT-TRACE] 4.1 Project not found:', params.projectId);
+          console.warn('[AUDIT-TRACE] 4.2 Will continue with audit log but project reference may fail');
+        } else {
+          console.log('[AUDIT-TRACE] 4.3 Project verified:', projectExists.projectID);
+        }
+      } catch (projectError) {
+        console.error('[AUDIT-TRACE] 4.4 Error verifying project:', projectError);
+      }
+    }
     
     // Use a try/catch inside a promise to handle errors and return null instead of throwing
     return await new Promise(async (resolve) => {
       try {
+        console.log('[AUDIT-TRACE] 5. Calling prisma.auditLog.create');
+        
         // Use @prisma/client directly
         const result = await prisma.auditLog.create({
-          data: {
-            eventType: params.eventType,
-            description: params.description,
-            targetUser: {
-              connect: { id: params.targetUserId }
-            },
-            // Only include actorUser if actorUserId is provided
-            ...(params.actorUserId && {
-              actorUser: {
-                connect: { id: params.actorUserId }
-              }
-            }),
-            // Only include project if projectId is provided
-            ...(params.projectId && {
-              project: {
-                connect: { projectID: params.projectId }
-              }
-            }),
-            // Include metadata if provided
-            ...(params.metadata && { metadata: params.metadata })
-          }
+          data: createData
         });
         
-        console.log('Successfully created audit log:', result.id);
+        console.log('[AUDIT-TRACE] 6. Successfully created audit log:', result.id);
         resolve(result);
       } catch (error) {
-        console.error('Error in createAuditLog:', error);
+        console.error('[AUDIT-TRACE] 7. Error in prisma.auditLog.create:', error);
         
         // Add more detailed error logging
         if (error instanceof Error) {
-          console.error('Error details:', {
+          console.error('[AUDIT-TRACE] 7.1 Error details:', {
             message: error.message,
             name: error.name,
             stack: error.stack,
@@ -78,13 +119,39 @@ export async function createAuditLog(params: CreateAuditLogParams) {
               targetUserId: params.targetUserId,
             }
           });
+          
+          // Check for specific error types
+          if (error.message.includes('Foreign key constraint failed')) {
+            console.error('[AUDIT-TRACE] 7.2 Foreign key constraint error - likely invalid projectId, userId or actorUserId');
+            
+            // Extra verification of user IDs
+            try {
+              console.log('[AUDIT-TRACE] 7.3 Verifying targetUserId:', params.targetUserId);
+              const targetUserExists = await prisma.user.findUnique({
+                where: { id: params.targetUserId },
+                select: { id: true }
+              });
+              console.log('[AUDIT-TRACE] 7.4 Target user exists:', !!targetUserExists);
+              
+              if (params.actorUserId) {
+                console.log('[AUDIT-TRACE] 7.5 Verifying actorUserId:', params.actorUserId);
+                const actorUserExists = await prisma.user.findUnique({
+                  where: { id: params.actorUserId },
+                  select: { id: true }
+                });
+                console.log('[AUDIT-TRACE] 7.6 Actor user exists:', !!actorUserExists);
+              }
+            } catch (verifyError) {
+              console.error('[AUDIT-TRACE] 7.7 Error during verification:', verifyError);
+            }
+          }
         }
         
         resolve(null);
       }
     });
   } catch (error) {
-    console.error('Error creating audit log:', error);
+    console.error('[AUDIT-TRACE] 8. Outer error in createAuditLog:', error);
     return null;
   }
 }
@@ -107,7 +174,14 @@ export async function logProjectEvent({
   actorUserId?: string;
   metadata?: Record<string, any>;
 }) {
-  console.log(`Logging project event: ${eventType} for project ${projectId}`);
+  console.log(`[PROJECT-AUDIT-TRACE] Logging project event: ${eventType} for project ${projectId}`);
+  
+  // Validate projectId format
+  if (!projectId || typeof projectId !== 'string') {
+    console.error('[PROJECT-AUDIT-TRACE] Invalid projectId:', projectId);
+    return null;
+  }
+  
   return createAuditLog({
     eventType,
     description,
@@ -134,7 +208,7 @@ export async function logUserEvent({
   actorUserId?: string;
   metadata?: Record<string, any>;
 }) {
-  console.log(`Logging user event: ${eventType} for user ${targetUserId}`);
+  console.log(`[USER-AUDIT-TRACE] Logging user event: ${eventType} for user ${targetUserId}`);
   return createAuditLog({
     eventType,
     description,
