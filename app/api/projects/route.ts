@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createProject } from "@/lib/project";
 import { requireUserSession } from "@/lib/requireUserSession";
 import metrics from "@/metrics";
 import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
@@ -164,21 +163,77 @@ export async function POST(request: Request) {
             screenshot: projectData.screenshot ? `(screenshot data, length: ${projectData.screenshot.length})` : '(none)'
         });
         
-        let createdProject;
         try {
             console.time('[POST-TRACE] createProject execution time');
-            createdProject = await createProject({ 
+            // Import createProject directly from the root lib path to ensure we use the correct implementation
+            const { createProject } = require('../../lib/project');
+            
+            console.log('[POST-TRACE] 8.1 Using createProject from root lib path');
+            
+            const createdProject = await createProject({ 
                 ...projectData,
                 userId: user.id
             });
+            
             console.timeEnd('[POST-TRACE] createProject execution time');
             console.log('[POST-TRACE] 9. createProject returned successfully');
+            
+            // Check result
+            if (!createdProject) {
+                console.error('[POST-TRACE] 9.1 createProject returned null or undefined');
+                metrics.increment("errors.create_project_null_result", 1);
+                return Response.json({ 
+                    success: false, 
+                    error: 'Project creation failed - no project data returned',
+                    type: 'NullResult'
+                }, { status: 500 });
+            }
+            
+            console.log('[POST-TRACE] 10. Successfully created project:', {
+                projectID: createdProject.projectID,
+                name: createdProject.name,
+                userId: createdProject.userId
+            });
+            
+            try {
+                console.log('[POST-TRACE] 11. Creating audit log entry');
+                // Create audit log for project creation
+                await logProjectEvent({
+                    eventType: AuditLogEventType.ProjectCreated,
+                    description: createdProject.hackatime 
+                        ? `Project "${createdProject.name || 'Unnamed'}" was created (Hackatime: ${createdProject.hackatime})` 
+                        : `Project "${createdProject.name || 'Unnamed'}" was created`,
+                    projectId: createdProject.projectID || 'unknown-id',
+                    userId: user.id,
+                    actorUserId: user.id,
+                    metadata: {
+                        projectDetails: {
+                            projectID: createdProject.projectID || 'unknown-id',
+                            name: createdProject.name || 'Unnamed',
+                            description: createdProject.description || '',
+                            hackatime: createdProject.hackatime || null,
+                            codeUrl: createdProject.codeUrl || "",
+                            playableUrl: createdProject.playableUrl || "",
+                            screenshot: createdProject.screenshot || "",
+                            url: createdProject.projectID ? `/bay/projects/${createdProject.projectID}` : '/bay'
+                        }
+                    }
+                });
+                console.log('[POST-TRACE] 12. Audit log created successfully');
+            } catch (logError) {
+                // Log but don't throw, allow project creation to succeed even if audit log fails
+                console.error('[POST-TRACE] 12.1 Failed to create audit log:', logError);
+            }
+            
+            console.log(`[POST-TRACE] 13. Successfully completed project creation ${createdProject.projectID}`);
+            metrics.increment("success.create_project", 1);
+            return Response.json({ success: true, data: createdProject });
         } catch (createError: unknown) {
-            console.error('[POST-TRACE] 9.1 createProject threw an exception:', createError);
+            console.error('[POST-TRACE] Error in createProject:', createError);
             if (createError instanceof Error) {
-                console.error('[POST-TRACE] 9.1.1 Error name:', createError.name);
-                console.error('[POST-TRACE] 9.1.2 Error message:', createError.message);
-                console.error('[POST-TRACE] 9.1.3 Error stack:', createError.stack);
+                console.error('[POST-TRACE] Error name:', createError.name);
+                console.error('[POST-TRACE] Error message:', createError.message);
+                console.error('[POST-TRACE] Error stack:', createError.stack);
             }
             metrics.increment("errors.create_project_exception", 1);
             return Response.json({ 
@@ -187,57 +242,6 @@ export async function POST(request: Request) {
                 type: createError instanceof Error && createError.constructor ? createError.constructor.name : 'Unknown'
             }, { status: 500 });
         }
-
-        // Check result
-        if (!createdProject) {
-            console.error('[POST-TRACE] 10.1 createProject returned null or undefined');
-            metrics.increment("errors.create_project_null_result", 1);
-            return Response.json({ 
-                success: false, 
-                error: 'Project creation failed - no project data returned',
-                type: 'NullResult'
-            }, { status: 500 });
-        }
-        
-        console.log('[POST-TRACE] 10. Successfully created project:', {
-            projectID: createdProject.projectID,
-            name: createdProject.name,
-            userId: createdProject.userId
-        });
-        
-        try {
-            console.log('[POST-TRACE] 11. Creating audit log entry');
-            // Create audit log for project creation
-            await logProjectEvent({
-                eventType: AuditLogEventType.ProjectCreated,
-                description: createdProject.hackatime 
-                    ? `Project "${createdProject.name || 'Unnamed'}" was created (Hackatime: ${createdProject.hackatime})` 
-                    : `Project "${createdProject.name || 'Unnamed'}" was created`,
-                projectId: createdProject.projectID || 'unknown-id',
-                userId: user.id,
-                actorUserId: user.id,
-                metadata: {
-                    projectDetails: {
-                        projectID: createdProject.projectID || 'unknown-id',
-                        name: createdProject.name || 'Unnamed',
-                        description: createdProject.description || '',
-                        hackatime: createdProject.hackatime || null,
-                        codeUrl: createdProject.codeUrl || "",
-                        playableUrl: createdProject.playableUrl || "",
-                        screenshot: createdProject.screenshot || "",
-                        url: createdProject.projectID ? `/bay/projects/${createdProject.projectID}` : '/bay'
-                    }
-                }
-            });
-            console.log('[POST-TRACE] 12. Audit log created successfully');
-        } catch (logError) {
-            // Log but don't throw, allow project creation to succeed even if audit log fails
-            console.error('[POST-TRACE] 12.1 Failed to create audit log:', logError);
-        }
-        
-        console.log(`[POST-TRACE] 13. Successfully completed project creation ${createdProject.projectID}`);
-        metrics.increment("success.create_project", 1);
-        return Response.json({ success: true, data: createdProject });
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error('[POST-TRACE] FATAL ERROR in project creation flow:', err);
