@@ -13,8 +13,8 @@ export default async function Page() {
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center h-[100vh] w-[100vw] bg-[url(/hut.png)]">
-        <img src="/logo-border.png" className="w-102 mb-4"></img>
+      <div className="flex flex-col items-center justify-center h-[100vh] w-[100vw] bg-[url(/hut.webp)]">
+        <img src="/logo-outline.svg" className="w-102 mb-4"></img>
         <div className="w-102">
           <ProgressBar
             value={25}

@@ -13,8 +13,8 @@ export default function Page() {
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center w-[100vw] h-[100vh] bg-[url(/hut.png)] py-12">
-        <img src="/logo-border.png" className="w-102 mb-4"></img>
+      <div className="flex flex-col items-center justify-center w-[100vw] h-[100vh] bg-[url(/hut.webp)] py-12">
+        <img src="/logo-border.svg" className="w-102 mb-4"></img>
         <div className="w-102">
           <ProgressBar
             value={100}

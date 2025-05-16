@@ -12,7 +12,7 @@ export default function Waves({ start, end }: { start: number | undefined, end: 
 
   // Memoize image paths to avoid recalculating strings on every render
   const imagePaths = useMemo(() => 
-    Array.from({ length: numFrames }, (_, i) => `/waves/${i + 1}.webp`),
+    Array.from({ length: numFrames }, (_, i) => `/waves/${i + 1}.svg`),
     [numFrames]
   );
 

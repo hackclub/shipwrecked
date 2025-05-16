@@ -13,7 +13,7 @@ export default function Sidebar({
         <div className="flex gap-2 flex-nowrap items-center justify-center">
           <a href="/info">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               width={0}
               height={0}
               alt="Shipwrecked Logo"

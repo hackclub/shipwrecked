@@ -81,7 +81,7 @@ export default function Home() {
   const bannerOpacity = Math.max(0, Math.min(1, (0.75 - scrollPercent) / 0.1));
 
   const imageUrls = [
-    "/logo.png",
+    "/logo.svg",
     "/logo-outline.svg",
     "/calendar-icon.png",
     "/location-icon.png",
@@ -89,7 +89,7 @@ export default function Home() {
     "/bottle.png",
     "/back-arrow.png",
     "/shore.webp",
-    ...Array.from({ length: 10 }, (_, i) => `/waves/${i + 1}.webp`),
+    ...Array.from({ length: 10 }, (_, i) => `/waves/${i + 1}.svg`),
   ];
 
   if (isLoading) {
