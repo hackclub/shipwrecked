@@ -28,7 +28,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProjects: 0,
-    projectsInReview: 0
+    projectsInReview: 0,
+    totalLogs: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -104,19 +105,12 @@ export default function AdminDashboard() {
           icon="⏳" 
           linkTo="/admin/projects?filter=in_review" 
         />
-      </div>
-      
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
-        <p className="text-gray-500 italic">Activity feed will appear here once implemented</p>
-        <div className="mt-4">
-          <Link 
-            href="/admin/activity" 
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-          >
-            View all activity →
-          </Link>
-        </div>
+        <StatCard 
+          title="Logs" 
+          value={stats.totalLogs} 
+          icon="📋" 
+          linkTo="/admin/audit-logs" 
+        />
       </div>
     </div>
   );

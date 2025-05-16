@@ -29,12 +29,16 @@ export async function GET() {
         in_review: true
       }
     });
+    
+    // Count total audit logs
+    const totalLogs = await prisma.auditLog.count();
 
     // Return all stats
     return NextResponse.json({
       totalUsers,
       totalProjects,
-      projectsInReview
+      projectsInReview,
+      totalLogs
     });
   } catch (error) {
     console.error('Error fetching admin dashboard stats:', error);
