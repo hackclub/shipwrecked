@@ -62,7 +62,7 @@ async function getClientIP(): Promise<string> {
 }
 
 function sanitizeEmail(email: string): string {
-    return email.toLowerCase().replace(/\s+/g, '');
+    return email.toLowerCase().replace(/[\s+']/g, '');
 }
 
 /**
