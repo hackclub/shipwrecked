@@ -435,6 +435,12 @@ export async function PUT(request: Request) {
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
+                // These fields will be filtered out for non-admin users
+                shipped: formData.get('shipped') === 'true',
+                viral: formData.get('viral') === 'true',
+                in_review: formData.get('in_review') === 'true',
+                rawHours: parseFloat(formData.get('rawHours')?.toString() || '0'),
+                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
             };
         } else {
             console.log('[PUT] Parsing JSON');
@@ -451,17 +457,65 @@ export async function PUT(request: Request) {
             return Response.json({ success: false, error: 'projectID is required' }, { status: 400 });
         }
 
+        // Define fields that regular users can update
+        const userUpdateableFields = [
+            "name",
+            "description",
+            "codeUrl",
+            "playableUrl",
+            "screenshot",
+        ];
 
-		const allowedFields = [
-			"name",
-			"description",
-			"codeUrl",
-			"playableUrl",
-			"screenshot",
-		];
+        // Define fields that only admins can update
+        const adminOnlyFields = [
+            "shipped",
+            "viral",
+            "in_review",
+            "rawHours",
+            "hoursOverride",
+        ];
 
-		const isAdmin = user.role === "Admin" || user.isAdmin;
-		updateFields = Object.fromEntries(Object.entries(updateFields).filter(([key, val]) => val !== undefined && (allowedFields.includes(key) || isAdmin)));
+        // Check if user is admin
+        const isAdmin = user.role === "Admin" || user.isAdmin === true;
+        const isReviewer = user.role === "Reviewer";
+        
+        // If non-admin user attempts to update privileged fields, log it as a potential security issue
+        if (!isAdmin) {
+            const attemptedAdminFields = Object.keys(updateFields).filter(key => 
+                adminOnlyFields.includes(key) && updateFields[key] !== undefined
+            );
+            
+            if (attemptedAdminFields.length > 0) {
+                console.warn(`[PUT] Security warning: User ${user.id} attempted to update admin-only fields: ${attemptedAdminFields.join(', ')}`);
+                metrics.increment("security.unauthorized_field_update_attempt", 1);
+            }
+        }
+
+        // Filter fields based on user role
+        if (isAdmin) {
+            // Admins can update all fields
+            updateFields = Object.fromEntries(
+                Object.entries(updateFields).filter(([_, val]) => val !== undefined)
+            );
+        } else if (isReviewer) {
+            // Reviewers can only update in_review flag 
+            updateFields = {
+                ...Object.fromEntries(
+                    Object.entries(updateFields).filter(([key, val]) => 
+                        userUpdateableFields.includes(key) && val !== undefined
+                    )
+                ),
+                // Allow reviewers to set in_review status only
+                ...(updateFields.in_review !== undefined ? { in_review: updateFields.in_review } : {})
+            };
+        } else {
+            // Regular users can only update basic fields
+            updateFields = Object.fromEntries(
+                Object.entries(updateFields).filter(([key, val]) => 
+                    userUpdateableFields.includes(key) && val !== undefined
+                )
+            );
+        }
         
         console.log(`[PUT] Updating project ${projectID} with fields:`, updateFields);
         

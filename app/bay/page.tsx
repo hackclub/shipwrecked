@@ -145,7 +145,7 @@ function ProjectDetail({
   setProjects
 }: { 
   project: ProjectType, 
-  onEdit: () => void,
+  onEdit: (project?: any) => void,
   setProjects: React.Dispatch<React.SetStateAction<ProjectType[]>>
 }): ReactElement {
   const { isReviewMode } = useReviewMode();
@@ -200,7 +200,11 @@ function ProjectDetail({
   
   const handleEdit = () => {
     // Explicitly call onEdit with the full project data to ensure proper form initialization
-    onEdit();
+    // Add isEditing flag to indicate this is an explicit edit button click
+    onEdit({
+      ...project,
+      isEditing: true
+    });
   };
 
   const handleFlagsUpdated = (updatedProject: any) => {
@@ -485,14 +489,14 @@ function BayWithReviewMode({ session, status, router }: {
         }
         
         // Log all project names for debugging
-        console.log('🔍 Hackatime project names:', projects.map(p => p.name));
+        // console.log('🔍 Hackatime project names:', projects.map(p => p.name));
         
         // Create hours map (key: project name, value: hours)
         const hours = Object.fromEntries(
           projects.map((project: HackatimeProject) => [project.name, project.hours || 0])
         );
         
-        console.log('⏱️ Hours map:', hours);
+        // console.log('⏱️ Hours map:', hours);
         
         // Create an array of projects with hours for sorting
         const projectsWithHours = projects.map((project: HackatimeProject) => ({
@@ -510,7 +514,7 @@ function BayWithReviewMode({ session, status, router }: {
           projectNames[`${project.hours}h ${project.name}`] = project.name;
         });
         
-        console.log('📋 Project names map:', projectNames);
+        // console.log('📋 Project names map:', projectNames);
         
         setHackatimeProjects(projectNames);
         setProjectHours(hours);
@@ -640,23 +644,13 @@ function BayWithReviewMode({ session, status, router }: {
           // Then deselect any selected project
           setSelectedProjectId(null);
         }
-      } else if (e.key === 'e' && selectedProjectId && !isProjectEditModalOpen) {
-        // Only open edit if the project still exists
-        const projectExists = projects.some(p => p.projectID === selectedProjectId);
-        if (projectExists) {
-          // Press 'e' to edit selected project
-          setIsProjectEditModalOpen(true);
-        } else {
-          // Clear selection if project doesn't exist
-          setSelectedProjectId(null);
-          toast.error("Project not found. It may have been deleted.");
-        }
       }
+      // The 'e' key handler has been removed to consolidate editing interfaces
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen, projects, isMobile]);
+  }, [selectedProjectId, isProjectEditModalOpen, isProjectCreateModalOpen, isMobile, projects]);
 
   // This useEffect watches for changes to selectedProjectId and initialEditState
   // and ensures the project edit form fields are properly synchronized
@@ -689,14 +683,14 @@ function BayWithReviewMode({ session, status, router }: {
   // Update total hours whenever projects or projectHours changes
   useEffect(() => {
     // Only count hours from projects that are in the projects list
-    console.log('🧮 Calculating total hours for', projects.length, 'projects');
-    console.log('📊 projectHours keys:', Object.keys(projectHours));
+    // console.log('🧮 Calculating total hours for', projects.length, 'projects');
+    // console.log('📊 projectHours keys:', Object.keys(projectHours));
     
     // Log hackatime values from projects
-    console.log('🔗 Project hackatime values:', projects.map(p => ({
-      name: p.name,
-      hackatime: p.hackatime
-    })));
+    // console.log('🔗 Project hackatime values:', projects.map(p => ({
+    //   name: p.name,
+    //   hackatime: p.hackatime
+    // })));
     
     const total = projects.reduce((sum, project) => {
       // If project is viral, it automatically counts as 15 hours
@@ -709,7 +703,7 @@ function BayWithReviewMode({ session, status, router }: {
       let hours = getProjectHackatimeHours(project);
       
       // Log the hours lookup for debugging
-      console.log(`Project ${project.name} hackatime="${project.hackatime}", hours=${hours}`);
+      // console.log(`Project ${project.name} hackatime="${project.hackatime}", hours=${hours}`);
       
       // Cap hours per project at 15
       let cappedHours = Math.min(hours, 15);
@@ -1080,7 +1074,7 @@ function BayWithReviewMode({ session, status, router }: {
             
             <div className="text-sm text-gray-500 mb-2">
               <p className="hidden md:block">
-                Click a project to select it. Use <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">E</kbd> to edit, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
+                Click a project to select it. Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd> to close.
               </p>
               <p className="md:hidden">
                 Tap a project to view details.
@@ -1107,21 +1101,28 @@ function BayWithReviewMode({ session, status, router }: {
                     editHandler={(project) => {
                       // Check if the edit request is coming from the edit button
                       const isEditRequest = 'isEditing' in project;
-                      if (isMobile) {
-                        setSelectedProjectId(project.projectID);
-                        setInitialEditState(project);
-                        setIsProjectDetailModalOpen(true);
+                      
+                      // Only process edits from explicit button clicks (isEditing flag),
+                      // No longer supporting row clicks or keyboard shortcuts for editing
+                      if (!isEditRequest) {
+                        // For non-edit clicks on project row, only handle selection
+                        if (isMobile) {
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
+                          setIsProjectDetailModalOpen(true);
+                        } else if (selectedProjectId === project.projectID) {
+                          setSelectedProjectId(null);
+                        } else {
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
+                        }
                         return;
                       }
-                      if (selectedProjectId === project.projectID && !isEditRequest) {
-                        setSelectedProjectId(null);
-                      } else {
-                        setSelectedProjectId(project.projectID);
-                        setInitialEditState(project);
-                        if (isEditRequest) {
-                          setIsProjectEditModalOpen(true);
-                        }
-                      }
+                      
+                      // Process edit button clicks
+                      setSelectedProjectId(project.projectID);
+                      setInitialEditState(project);
+                      setIsProjectEditModalOpen(true);
                     }}
                     selected={!isMobile && selectedProjectId === project.projectID}
                   />

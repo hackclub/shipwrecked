@@ -60,10 +60,6 @@ export default function ReviewSection({
     hoursOverride: undefined
   });
 
-  // Add debugging
-  console.log('ReviewSection received initialFlags:', initialFlags);
-  console.log('ReviewSection received rawHours:', rawHours);
-
   // Update flags when initialFlags changes
   useEffect(() => {
     if (initialFlags) {
