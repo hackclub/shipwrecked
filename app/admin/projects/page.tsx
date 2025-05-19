@@ -221,6 +221,14 @@ function AdminProjectsContent() {
     project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
+  
+  // Calculate total effective hours of filtered projects
+  const totalEffectiveHours = filteredProjects.reduce((total, project) => {
+    const hours = (project.hoursOverride !== undefined && project.hoursOverride !== null) 
+      ? project.hoursOverride 
+      : project.rawHours;
+    return total + hours;
+  }, 0);
 
   // Change the current filter
   const handleFilterChange = (filter: string) => {
@@ -374,6 +382,12 @@ function AdminProjectsContent() {
       {/* Projects List Panel */}
       <div className="w-full md:w-1/2 lg:w-3/5">
         <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-xl font-bold">Projects</h2>
+            <div className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+              Total Hours: {totalEffectiveHours.toFixed(1)}h
+            </div>
+          </div>
           <div className="flex items-center space-x-2 mb-4 flex-wrap">
             <button
               onClick={() => handleFilterChange('all')}
@@ -494,6 +508,11 @@ function AdminProjectsContent() {
                               {project.reviews.length}
                             </span>
                           )}
+                        </div>
+                        <div className="text-xs text-gray-600 font-semibold">
+                          {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
+                            ? `${project.hoursOverride}h` 
+                            : `${project.rawHours}h`}
                         </div>
                       </div>
                     </div>
