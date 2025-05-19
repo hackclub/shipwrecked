@@ -37,12 +37,16 @@ export async function POST(request: NextRequest) {
     // Get the project to verify it exists and belongs to the user
     const project = await prisma.project.findUnique({
       where: {
-        projectID: body.projectID,
+        projectID_userId: {
+          projectID: body.projectID,
+          userId: session.user.id
+        }
       },
     });
 
     if (!project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      console.warn(`User ${session.user.id} attempted to request review for non-existent or non-owned project ${body.projectID}`);
+      return NextResponse.json({ error: 'Project not found or does not belong to you' }, { status: 404 });
     }
 
     // Mark the project as in review

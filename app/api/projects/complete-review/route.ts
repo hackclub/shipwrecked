@@ -11,6 +11,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user is admin or reviewer
+    const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+    const isReviewer = session.user.role === 'Reviewer';
+    
+    if (!isAdmin && !isReviewer) {
+      console.warn(`Unauthorized review completion attempt by user ${session.user.id}`);
+      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     // Validate required fields

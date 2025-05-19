@@ -12,6 +12,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user is admin or reviewer
+    const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+    const isReviewer = session.user.role === 'Reviewer';
+    
+    if (!isAdmin && !isReviewer) {
+      console.warn(`Unauthorized flag update attempt by user ${session.user.id}`);
+      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     // Validate projectID is provided
@@ -22,11 +31,29 @@ export async function PATCH(request: NextRequest) {
     // Check which flags are being updated
     const updateData: any = {};
     
-    if (typeof body.shipped === 'boolean') updateData.shipped = body.shipped;
-    if (typeof body.viral === 'boolean') updateData.viral = body.viral;
-    if (typeof body.in_review === 'boolean') updateData.in_review = body.in_review;
-    if (typeof body.hoursOverride === 'number') updateData.hoursOverride = body.hoursOverride;
-    if (typeof body.rawHours === 'number') updateData.rawHours = body.rawHours;
+    // Admin users can update all flags
+    if (isAdmin) {
+      if (typeof body.shipped === 'boolean') updateData.shipped = body.shipped;
+      if (typeof body.viral === 'boolean') updateData.viral = body.viral;
+      if (typeof body.in_review === 'boolean') updateData.in_review = body.in_review;
+      if (typeof body.hoursOverride === 'number') updateData.hoursOverride = body.hoursOverride;
+      if (typeof body.rawHours === 'number') updateData.rawHours = body.rawHours;
+    } 
+    // Reviewers can only update in_review status
+    else if (isReviewer) {
+      if (typeof body.in_review === 'boolean') updateData.in_review = body.in_review;
+      
+      // Log if reviewer attempts to update other flags
+      const attemptedFields = [];
+      if (typeof body.shipped === 'boolean') attemptedFields.push('shipped');
+      if (typeof body.viral === 'boolean') attemptedFields.push('viral');
+      if (typeof body.hoursOverride === 'number') attemptedFields.push('hoursOverride');
+      if (typeof body.rawHours === 'number') attemptedFields.push('rawHours');
+      
+      if (attemptedFields.length > 0) {
+        console.warn(`Reviewer ${session.user.id} attempted to update restricted fields: ${attemptedFields.join(', ')}`);
+      }
+    }
 
     // If no valid flags provided
     if (Object.keys(updateData).length === 0) {
