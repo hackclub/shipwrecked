@@ -75,7 +75,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
     screenshot: "",
     userId: "",
     projectID: "",
-    rawHours: 0,
     hoursOverride: undefined
   });
 
@@ -110,7 +109,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
       screenshot: "",
       userId: "",
       projectID: "",
-      rawHours: 0,
       hoursOverride: undefined
     }
   });
@@ -171,7 +169,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
         shipped: project.shipped || false,
         in_review: project.in_review || false,
         approved: project.approved || false,
-        rawHours: project.rawHours || 0,
         hoursOverride: project.hoursOverride
       });
     }
@@ -194,7 +191,6 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
         shipped: initialEditState.shipped || false,
         in_review: initialEditState.in_review || false,
         approved: initialEditState.approved || false,
-        rawHours: initialEditState.rawHours || 0,
         hoursOverride: initialEditState.hoursOverride
       };
     }
@@ -475,21 +471,20 @@ function ProjectDetailContent({ params }: { params: { projectId: string } }) {
             <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <FormInput
-                  fieldName='rawHours'
-                  placeholder='Raw Hours'
-                  type="number"
-                  state={projectEditState}
-                  defaultValue={project.rawHours.toString()}
-                  disabled={true}
-                >
-                  <div className="flex items-center">
-                    Raw Hackatime Hours 
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      Read Only
-                    </span>
+                <div className="md:my-5 my-4 w-full px-3 sm:px-4">
+                  <label className="md:text-lg text-base font-semibold text-left">
+                    <div className="flex items-center">
+                      Raw Hackatime Hours 
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        Read Only
+                      </span>
+                    </div>
+                  </label>
+                  <br />
+                  <div className="md:text-base text-sm w-full px-3 sm:px-4 md:py-2 py-1.5 bg-gray-200 rounded outline-1 outline-gray-200">
+                    {project.rawHours}
                   </div>
-                </FormInput>
+                </div>
               </div>
               <div>
                 <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">

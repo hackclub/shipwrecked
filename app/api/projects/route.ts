@@ -471,8 +471,13 @@ export async function PUT(request: Request) {
             "shipped",
             "viral",
             "in_review",
-            "rawHours",
             "hoursOverride",
+        ];
+
+        // Define fields that should never be updated via the API
+        const nonUpdateableFields = [
+            "hackatime",
+            "rawHours"
         ];
 
         // Check if user is admin
@@ -493,16 +498,20 @@ export async function PUT(request: Request) {
 
         // Filter fields based on user role
         if (isAdmin) {
-            // Admins can update all fields
+            // Admins can update all fields except non-updateable ones
             updateFields = Object.fromEntries(
-                Object.entries(updateFields).filter(([_, val]) => val !== undefined)
+                Object.entries(updateFields).filter(([key, val]) => 
+                    !nonUpdateableFields.includes(key) && val !== undefined
+                )
             );
         } else if (isReviewer) {
             // Reviewers can only update in_review flag 
             updateFields = {
                 ...Object.fromEntries(
                     Object.entries(updateFields).filter(([key, val]) => 
-                        userUpdateableFields.includes(key) && val !== undefined
+                        userUpdateableFields.includes(key) && 
+                        !nonUpdateableFields.includes(key) && 
+                        val !== undefined
                     )
                 ),
                 // Allow reviewers to set in_review status only
@@ -512,7 +521,9 @@ export async function PUT(request: Request) {
             // Regular users can only update basic fields
             updateFields = Object.fromEntries(
                 Object.entries(updateFields).filter(([key, val]) => 
-                    userUpdateableFields.includes(key) && val !== undefined
+                    userUpdateableFields.includes(key) && 
+                    !nonUpdateableFields.includes(key) && 
+                    val !== undefined
                 )
             );
         }
