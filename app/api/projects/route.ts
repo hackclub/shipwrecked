@@ -520,14 +520,24 @@ export async function PUT(request: Request) {
         console.log(`[PUT] Updating project ${projectID} with fields:`, updateFields);
         
         // Verify the project exists before attempting to update
-        const existingProject = await prisma.project.findUnique({
-            where: {
-                projectID_userId: {
-                    projectID,
-                    userId: user.id
+        let existingProject;
+        
+        // If user is admin, allow editing any project
+        if (isAdmin) {
+            existingProject = await prisma.project.findUnique({
+                where: { projectID }
+            });
+        } else {
+            // Regular users can only edit their own projects
+            existingProject = await prisma.project.findUnique({
+                where: {
+                    projectID_userId: {
+                        projectID,
+                        userId: user.id
+                    }
                 }
-            }
-        });
+            });
+        }
         
         if (!existingProject) {
             console.error(`[PUT] Project ${projectID} not found for user ${user.id}`);
@@ -539,12 +549,14 @@ export async function PUT(request: Request) {
         
         try {
             const updatedProject = await prisma.project.update({
-                where: {
-                    projectID_userId: {
-                        projectID,
-                        userId: user.id
-                    }
-                },
+                where: isAdmin 
+                    ? { projectID } // Admins can update any project by ID
+                    : { // Regular users can only update their own projects
+                        projectID_userId: {
+                            projectID,
+                            userId: user.id
+                        }
+                    },
                 data: updateFields
             });
 
