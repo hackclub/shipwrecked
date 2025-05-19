@@ -1,4 +1,4 @@
-FROM alpine:3.19
+FROM node:20-alpine
 
 # Install cron and other necessary packages
 RUN apk add --no-cache \
@@ -12,6 +12,9 @@ RUN apk add --no-cache \
     build-base \
     libffi-dev
 
+# Environment variables (same as the main app)
+ENV NODE_ENV production
+
 # Install Python packages using apk where possible, fall back to pip only if needed
 RUN pip3 install --break-system-packages prisma-client-py
 
@@ -20,6 +23,11 @@ RUN touch /var/log/cron.log
 
 # Copy the jobs directory
 COPY jobs /usr/local/bin/jobs
+
+# Copy the package.json and install dependencies
+COPY package.json yarn.lock /usr/local/bin/
+WORKDIR /usr/local/bin
+RUN yarn install --frozen-lockfile --production
 
 # Copy the crontab file
 COPY crontab /etc/crontabs/root
