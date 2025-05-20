@@ -602,7 +602,7 @@ async function updateAirtableRSVPs(): Promise<void> {
     });
     
     console.log(`\nFound ${allUsers.length} users not in the RSVP list:`);
-    allUsers.forEach(user => {
+    allUsers.forEach((user: { email: string }) => {
       console.log(user.email);
     });
     
@@ -612,7 +612,7 @@ async function updateAirtableRSVPs(): Promise<void> {
       
       // Get full user data including projects for each missing user
       const missingUsersWithData = await Promise.all(
-        allUsers.map(async (user) => {
+        allUsers.map(async (user: { email: string }) => {
           return await prisma.user.findUnique({
             where: { email: user.email },
             include: { projects: true }
@@ -621,10 +621,10 @@ async function updateAirtableRSVPs(): Promise<void> {
       );
       
       // Filter out any nulls in case some users weren't found
-      const validMissingUsers = missingUsersWithData.filter(user => user !== null);
+      const validMissingUsers = missingUsersWithData.filter((user): user is UserWithProjects => user !== null);
       
       // Create new records for Airtable
-      const newRecords = validMissingUsers.map(user => {
+      const newRecords = validMissingUsers.map((user: UserWithProjects) => {
         // Calculate user metrics
         const metrics = calculateUserMetrics(user);
         

@@ -32,7 +32,12 @@ RUN npx prisma generate
 # Install tsx globally
 RUN npm install -g tsx
 
-# Copy our pipeline-specific scripts with explicit paths
+# Ensure node_modules/@prisma/client is accessible
+# This allows using @prisma/client imports that work in both local and Docker environments
+RUN mkdir -p /app/node_modules/@prisma
+RUN ln -sf /app/app/generated/prisma /app/node_modules/@prisma/client
+
+# Copy our pipeline-specific scripts
 COPY pipelines/sync-hackatime-hours.ts ./
 COPY pipelines/jobs/update-airtable-rsvp.ts ./
 
