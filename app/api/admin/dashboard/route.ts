@@ -23,6 +23,20 @@ export async function GET() {
     // Count total projects
     const totalProjects = await prisma.project.count();
 
+    // Count shipped projects
+    const shippedProjects = await prisma.project.count({
+      where: {
+        shipped: true
+      }
+    });
+
+    // Count viral projects
+    const viralProjects = await prisma.project.count({
+      where: {
+        viral: true
+      }
+    });
+
     // Count projects in review
     const projectsInReview = await prisma.project.count({
       where: {
@@ -82,6 +96,37 @@ export async function GET() {
       }
     });
 
+    // Get projects counts per user for mean and median calculation
+    const userProjectCounts = await prisma.user.findMany({
+      select: {
+        id: true,
+        _count: {
+          select: {
+            projects: true
+          }
+        }
+      }
+    });
+
+    // Calculate mean projects per user
+    const totalProjectsCount = userProjectCounts.reduce((sum, user) => sum + user._count.projects, 0);
+    const meanProjectsPerUser = totalUsers > 0 ? totalProjectsCount / totalUsers : 0;
+    
+    // Calculate median projects per user
+    const projectCountsArray = userProjectCounts.map(user => user._count.projects).sort((a, b) => a - b);
+    let medianProjectsPerUser = 0;
+    
+    if (projectCountsArray.length > 0) {
+      const midIndex = Math.floor(projectCountsArray.length / 2);
+      if (projectCountsArray.length % 2 === 0) {
+        // Even number of elements, average the middle two
+        medianProjectsPerUser = (projectCountsArray[midIndex - 1] + projectCountsArray[midIndex]) / 2;
+      } else {
+        // Odd number of elements, take the middle one
+        medianProjectsPerUser = projectCountsArray[midIndex];
+      }
+    }
+
     // Return all stats
     return NextResponse.json({
       totalUsers,
@@ -102,6 +147,31 @@ export async function GET() {
         totalEffectiveHours: Math.round(totalEffectiveHours),
         shippedHours: Math.round(shippedHours),
         reviewHours: Math.round(reviewHours)
+      },
+      projectStats: {
+        shipped: shippedProjects,
+        notShipped: totalProjects - shippedProjects,
+        viral: viralProjects,
+        notViral: totalProjects - viralProjects,
+        inReview: projectsInReview,
+        notInReview: totalProjects - projectsInReview,
+        // Pre-formatted pie chart data
+        shippedPieData: [
+          { name: 'Shipped', value: shippedProjects },
+          { name: 'Not Shipped', value: totalProjects - shippedProjects }
+        ],
+        viralPieData: [
+          { name: 'Viral', value: viralProjects },
+          { name: 'Not Viral', value: totalProjects - viralProjects }
+        ],
+        reviewPieData: [
+          { name: 'In Review', value: projectsInReview },
+          { name: 'Not In Review', value: totalProjects - projectsInReview }
+        ]
+      },
+      projectsPerUser: {
+        mean: parseFloat(meanProjectsPerUser.toFixed(2)),
+        median: parseFloat(medianProjectsPerUser.toFixed(2))
       }
     });
   } catch (error) {
