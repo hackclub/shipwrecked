@@ -21,9 +21,8 @@ RUN touch /var/log/cron.log
 # Create workspace directory
 WORKDIR /app
 
-# Copy package files and prisma schema first to leverage layer caching
+# Copy package files first to leverage layer caching
 COPY package.json yarn.lock ./
-COPY prisma ./prisma/
 
 # Install Node.js dependencies
 RUN yarn install --frozen-lockfile
@@ -31,11 +30,15 @@ RUN yarn install --frozen-lockfile
 # Install tsx globally for running TypeScript scripts
 RUN npm install -g tsx
 
-# Generate Prisma client
-RUN npx prisma generate
-
 # Copy the rest of the project
 COPY . .
+
+# Generate Prisma client if schema exists
+RUN if [ -f "./prisma/schema.prisma" ]; then \
+      npx prisma generate; \
+    else \
+      echo "Prisma schema not found, skipping generation"; \
+    fi
 
 # Copy the crontab file to the correct location
 RUN cp /app/pipelines/crontab /etc/crontabs/root
