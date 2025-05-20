@@ -6,6 +6,7 @@ import math
 import argparse
 import time
 import logging
+import re
 from typing import Callable, TypeVar, Any
 
 from dotenv import load_dotenv
@@ -97,6 +98,40 @@ def with_retry(
             raise
 
 # -----
+# IP Validation
+# -----
+
+def is_valid_ip(ip: str) -> bool:
+    """
+    Check if the provided string is a valid IPv4 or IPv6 address.
+    Also checks for common invalid values like 'unknown', 'localhost', etc.
+    
+    Args:
+        ip: The IP address to validate
+        
+    Returns:
+        bool: True if valid IP address, False otherwise
+    """
+    # Skip known invalid values
+    invalid_values = ['unknown', 'undefined', 'localhost', '127.0.0.1', 'n/a', '']
+    if ip.lower() in invalid_values:
+        return False
+    
+    # Basic IPv4 pattern
+    ipv4_pattern = re.compile(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
+    
+    # Check if it's a valid IPv4
+    if ipv4_pattern.match(ip):
+        return all(0 <= int(octet) <= 255 for octet in ip.split('.'))
+    
+    # Basic check for IPv6
+    # This is a simplified check - a full IPv6 validation is more complex
+    if ':' in ip:
+        return True
+    
+    return False
+
+# -----
 # Fetch Airtable Records
 # -----
 
@@ -138,6 +173,11 @@ records = map(parse_record, data["records"])
 
 # Get Geo Location
 def get_geoloc(ip: str) -> str:
+    # Skip invalid IPs
+    if not is_valid_ip(ip):
+        logger.warning(f"Skipping invalid IP: {ip}")
+        return "Unknown IP"
+    
     def fetch_country():
         response = requests.get(
             f"https://ipinfo.io/{ip}/country", auth=IpinfoAuth()
@@ -159,9 +199,13 @@ def get_geoloc(ip: str) -> str:
 def update(record):
     (id, ip) = record
     country = get_geoloc(ip)
-    if country in ["Rate limit exceeded", "Error fetching country"]:
-        logger.warning(f"Skipping update for {ip} due to error")
-        return None
+    if country in ["Rate limit exceeded", "Error fetching country", "Unknown IP"]:
+        if country == "Unknown IP":
+            logger.info(f"Setting country to 'Unknown' for invalid IP: {ip}")
+            return {"id": id, "fields": {"Country": "Unknown"}}
+        else:
+            logger.warning(f"Skipping update for {ip} due to error")
+            return None
     return {"id": id, "fields": {"Country": country}}
 
 logger.info("Updating Records...")

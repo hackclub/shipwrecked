@@ -37,14 +37,11 @@ RUN npm install -g tsx
 RUN mkdir -p /app/node_modules/@prisma
 RUN ln -sf /app/app/generated/prisma /app/node_modules/@prisma/client
 
-# Copy our pipeline-specific scripts
-COPY pipelines/sync-hackatime-hours.ts ./
-COPY pipelines/jobs/update-airtable-rsvp.ts ./
+# Copy the entire pipelines directory to preserve hierarchy
+COPY pipelines /app/pipelines
 
-# Setup jobs
-RUN mkdir -p /usr/local/bin/jobs
-COPY pipelines/jobs/ /usr/local/bin/jobs/
-RUN find /usr/local/bin/jobs -name "*.py" -exec chmod +x {} \;
+# Copy app directory to ensure proper imports
+COPY app /app/app
 
 # Copy the crontab and entrypoint files
 COPY pipelines/crontab /etc/crontabs/root
