@@ -8,23 +8,16 @@
  * 3. Updates all projects in the database with the latest rawHours
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from './app/generated/prisma/client';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-// Initialize Prisma client
-let prismaClient: PrismaClient | null = null;
-
-function getPrisma() {
-  if (!prismaClient) {
-    prismaClient = new PrismaClient({
-      log: ['error']
-    });
-  }
-  return prismaClient;
-}
+// Initialize Prisma client with direct path
+const prisma = new PrismaClient({
+  log: ['error']
+});
 
 // Hackatime API base URL and token
 const HACKATIME_API_URL = process.env.HACKATIME_API_URL || 'https://hackatime.hackclub.com/api';
@@ -82,8 +75,6 @@ async function main(): Promise<void> {
   console.log(`[${new Date().toISOString()}] Starting Hackatime hours synchronization...`);
   
   try {
-    const prisma = getPrisma();
-    
     console.log('Connecting to database...');
     
     // Find all users with hackatimeId
@@ -172,9 +163,7 @@ async function main(): Promise<void> {
     console.error(`Error during synchronization:`, error);
     process.exit(1);
   } finally {
-    if (prismaClient) {
-      await prismaClient.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 }
 
