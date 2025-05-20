@@ -32,8 +32,9 @@ RUN npx prisma generate
 # Install tsx globally
 RUN npm install -g tsx
 
-# Copy our pipeline-specific scripts
+# Copy our pipeline-specific scripts with explicit paths
 COPY pipelines/sync-hackatime-hours.ts ./
+COPY pipelines/jobs/update-airtable-rsvp.ts ./
 
 # Setup jobs
 RUN mkdir -p /usr/local/bin/jobs

@@ -4,4 +4,7 @@
 # Run Hackatime sync every 5 minutes
 */5 * * * * cd /app && tsx /app/sync-hackatime-hours.ts >> /var/log/cron.log 2>&1
 
+# Run Airtable RSVP update every 10 minutes
+*/10 * * * * cd /app && tsx /app/update-airtable-rsvp.ts >> /var/log/cron.log 2>&1
+
 # Empty line at the end of the file is required for a valid cron file 
