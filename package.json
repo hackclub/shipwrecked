@@ -8,7 +8,8 @@
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "sync-hackatime": "tsx scripts/sync-hackatime-hours.ts"
+    "sync-hackatime": "tsx scripts/sync-hackatime-hours.ts",
+    "update-airtable-rsvp": "tsx pipelines/jobs/update-airtable-rsvp.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
