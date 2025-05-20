@@ -29,6 +29,7 @@ export async function GET() {
         isAdmin: true,
         role: true,
         status: true,
+        hackatimeId: true,
       },
       orderBy: {
         createdAt: 'desc',

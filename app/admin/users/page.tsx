@@ -25,6 +25,7 @@ interface User {
   isAdmin: boolean;
   role: string;
   status: UserStatus;
+  hackatimeId?: string;
 }
 
 // Create a wrapper component that uses Suspense
@@ -201,6 +202,9 @@ function AdminUsersContent() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email Verified?
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hackatime
+                  </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -266,6 +270,13 @@ function AdminUsersContent() {
                         }`}>
                           {user.emailVerified ? 'Verified' : 'No'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.hackatimeId ? (
+                          <div className="text-sm text-gray-600">{user.hackatimeId}</div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not connected</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Link
@@ -356,6 +367,14 @@ function AdminUsersContent() {
                           }`}>
                             {user.emailVerified ? 'Verified' : 'No'}
                           </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Hackatime</span>
+                          {user.hackatimeId ? (
+                            <div className="text-sm text-gray-600">{user.hackatimeId}</div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">Not connected</span>
+                          )}
                         </div>
                       </div>
                       
