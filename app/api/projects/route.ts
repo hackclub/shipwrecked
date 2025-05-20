@@ -79,6 +79,11 @@ export async function POST(request: Request) {
         const user = await requireUserSession();
         console.log(`[POST-TRACE] 3. Authentication successful, user ID: ${user.id}`);
         
+        // Check if user is admin or reviewer
+        const isAdmin = user.role === 'Admin' || user.isAdmin === true;
+        const isReviewer = user.role === 'Reviewer';
+        const hasPrivilegedAccess = isAdmin || isReviewer;
+        
         // Check content type to determine how to parse the request
         const contentType = request.headers.get('content-type');
         console.log('[POST-TRACE] 4. Content-Type:', contentType);
@@ -156,6 +161,36 @@ export async function POST(request: Request) {
         if (!projectData.description) {
             console.error('[POST-TRACE] 7.2 Missing required field: description');
             throw new Error('Project description is required');
+        }
+        
+        // SECURITY CHECK: Remove restricted fields for non-privileged users
+        if (!hasPrivilegedAccess) {
+            console.log('[POST-TRACE] 7.3 Non-privileged user detected. Restricting fields.');
+            
+            if ('hoursOverride' in projectData) {
+                console.warn(`[POST-TRACE] 7.3.1 Removing 'hoursOverride' set to ${projectData.hoursOverride} by non-privileged user ${user.id}`);
+                delete projectData.hoursOverride;
+            }
+            
+            if ('rawHours' in projectData && projectData.rawHours !== 0) {
+                console.warn(`[POST-TRACE] 7.3.2 Removing 'rawHours' set to ${projectData.rawHours} by non-privileged user ${user.id}`);
+                projectData.rawHours = 0;
+            }
+            
+            if ('shipped' in projectData && projectData.shipped === true) {
+                console.warn(`[POST-TRACE] 7.3.3 Removing 'shipped' flag set by non-privileged user ${user.id}`);
+                projectData.shipped = false;
+            }
+            
+            if ('viral' in projectData && projectData.viral === true) {
+                console.warn(`[POST-TRACE] 7.3.4 Removing 'viral' flag set by non-privileged user ${user.id}`);
+                projectData.viral = false;
+            }
+            
+            if ('in_review' in projectData && projectData.in_review === true) {
+                console.warn(`[POST-TRACE] 7.3.5 Removing 'in_review' flag set by non-privileged user ${user.id}`);
+                projectData.in_review = false;
+            }
         }
 
         // Detailed error trapping around project creation
@@ -494,6 +529,13 @@ export async function PUT(request: Request) {
                 console.warn(`[PUT] Security warning: User ${user.id} attempted to update admin-only fields: ${attemptedAdminFields.join(', ')}`);
                 metrics.increment("security.unauthorized_field_update_attempt", 1);
             }
+        }
+        
+        // Explicit security check for rawHours - NEVER allow direct modification via API
+        if ('rawHours' in updateFields) {
+            console.warn(`[PUT] Security alert: Attempt to directly modify rawHours detected from user ${user.id}. Value: ${updateFields.rawHours}`);
+            metrics.increment("security.rawHours_modification_attempt", 1);
+            delete updateFields.rawHours;
         }
 
         // Filter fields based on user role
