@@ -12,29 +12,36 @@ RUN apk add --no-cache \
     build-base \
     libffi-dev
 
-# Environment variables (same as the main app)
+# Environment variables
 ENV NODE_ENV production
-
-# Install Python packages using apk where possible, fall back to pip only if needed
-RUN pip3 install --break-system-packages prisma-client-py
 
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
-# Copy the jobs directory
-COPY jobs /usr/local/bin/jobs
+# Create workspace directory
+WORKDIR /app
 
-# Copy the package.json and install dependencies
-COPY package.json yarn.lock /usr/local/bin/
-WORKDIR /usr/local/bin
-RUN yarn install --frozen-lockfile --production
+# Copy package files and prisma schema first to leverage layer caching
+COPY package.json yarn.lock ./
+COPY prisma ./prisma/
 
-# Copy the crontab file
-COPY crontab /etc/crontabs/root
+# Install Node.js dependencies
+RUN yarn install --frozen-lockfile
+
+# Install tsx globally for running TypeScript scripts
+RUN npm install -g tsx
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy the rest of the project
+COPY . .
+
+# Copy the crontab file to the correct location
+RUN cp /app/pipelines/crontab /etc/crontabs/root
 
 # Create the entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN cp /app/pipelines/entrypoint.sh /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Run the entrypoint script
 ENTRYPOINT ["/entrypoint.sh"] 
