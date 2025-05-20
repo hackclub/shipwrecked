@@ -32,12 +32,8 @@ RUN npx prisma generate
 # Install tsx globally
 RUN npm install -g tsx
 
-# Copy all scripts needed for the pipeline
-COPY scripts ./scripts/
-
-# Copy the rest of the application (needed for database access)
-COPY lib ./lib/
-COPY types ./types/
+# Copy our pipeline-specific scripts
+COPY pipelines/sync-hackatime-hours.ts ./
 
 # Setup jobs
 RUN mkdir -p /usr/local/bin/jobs
