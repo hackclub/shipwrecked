@@ -15,37 +15,38 @@ RUN apk add --no-cache \
 # Environment variables
 ENV NODE_ENV production
 
-# Create the log file to be able to run tail
+# Create the log file
 RUN touch /var/log/cron.log
 
 # Create workspace directory
 WORKDIR /app
 
-# Copy everything at once to avoid file-not-found errors with individual files
-COPY . .
+# Copy package files and prisma schema first to leverage layer caching
+COPY package.json yarn.lock ./
+COPY prisma ./prisma/
 
-# Install Node.js dependencies
-RUN if [ -f "package.json" ]; then \
-      yarn install --frozen-lockfile || npm install; \
-    else \
-      echo "No package.json found, skipping dependency installation"; \
-    fi
+# Install dependencies and generate Prisma client
+RUN yarn install --frozen-lockfile
+RUN npx prisma generate
 
-# Install tsx globally for running TypeScript scripts
+# Install tsx globally
 RUN npm install -g tsx
 
-# Generate Prisma client if schema exists
-RUN if [ -f "./prisma/schema.prisma" ]; then \
-      npx prisma generate; \
-    else \
-      echo "Prisma schema not found, skipping generation"; \
-    fi
+# Copy all scripts needed for the pipeline
+COPY scripts ./scripts/
 
-# Copy the crontab file to the correct location
-RUN cp /app/pipelines/crontab /etc/crontabs/root
+# Copy the rest of the application (needed for database access)
+COPY lib ./lib/
+COPY types ./types/
 
-# Create the entrypoint script
-RUN cp /app/pipelines/entrypoint.sh /entrypoint.sh && chmod +x /entrypoint.sh
+# Setup jobs
+RUN mkdir -p /usr/local/bin/jobs
+COPY pipelines/jobs/ /usr/local/bin/jobs/
+RUN find /usr/local/bin/jobs -name "*.py" -exec chmod +x {} \;
 
-# Run the entrypoint script
+# Copy the crontab and entrypoint files
+COPY pipelines/crontab /etc/crontabs/root
+COPY pipelines/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 ENTRYPOINT ["/entrypoint.sh"] 
