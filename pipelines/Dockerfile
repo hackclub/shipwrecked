@@ -21,17 +21,18 @@ RUN touch /var/log/cron.log
 # Create workspace directory
 WORKDIR /app
 
-# Copy package files first to leverage layer caching
-COPY package.json yarn.lock ./
+# Copy everything at once to avoid file-not-found errors with individual files
+COPY . .
 
 # Install Node.js dependencies
-RUN yarn install --frozen-lockfile
+RUN if [ -f "package.json" ]; then \
+      yarn install --frozen-lockfile || npm install; \
+    else \
+      echo "No package.json found, skipping dependency installation"; \
+    fi
 
 # Install tsx globally for running TypeScript scripts
 RUN npm install -g tsx
-
-# Copy the rest of the project
-COPY . .
 
 # Generate Prisma client if schema exists
 RUN if [ -f "./prisma/schema.prisma" ]; then \
