@@ -3,6 +3,70 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 
+// Helper function to get audit logs time series data
+async function getAuditLogTimeSeries() {
+  // Get data for the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  // Get all audit logs within the date range
+  const auditLogs = await prisma.auditLog.findMany({
+    where: {
+      createdAt: {
+        gte: thirtyDaysAgo
+      }
+    },
+    select: {
+      eventType: true,
+      createdAt: true
+    },
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+  
+  // Group logs by date and event type
+  const groupedData = new Map();
+  
+  // Initialize with dates for the past 30 days
+  for (let i = 0; i < 30; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    const dateString = date.toISOString().split('T')[0];
+    groupedData.set(dateString, {
+      date: dateString,
+      ProjectCreated: 0,
+      ProjectSubmittedForReview: 0,
+      ProjectMarkedShipped: 0,
+      ProjectMarkedViral: 0,
+      UserCreated: 0,
+      UserRoleChanged: 0,
+      UserVerified: 0,
+      ProjectDeleted: 0,
+      SlackConnected: 0,
+      OtherEvent: 0
+    });
+  }
+  
+  // Count events by type and date
+  auditLogs.forEach(log => {
+    const dateString = log.createdAt.toISOString().split('T')[0];
+    
+    if (groupedData.has(dateString)) {
+      const dateData = groupedData.get(dateString);
+      // Increment the count for this event type
+      if (dateData[log.eventType] !== undefined) {
+        dateData[log.eventType] += 1;
+      } else {
+        dateData.OtherEvent += 1;
+      }
+    }
+  });
+  
+  // Convert Map to array for the response
+  return Array.from(groupedData.values());
+}
+
 export async function GET() {
   // Check authentication
   const session = await getServerSession(opts);
@@ -127,6 +191,9 @@ export async function GET() {
       }
     }
 
+    // Get audit log time series data
+    const auditLogTimeSeries = await getAuditLogTimeSeries();
+
     // Return all stats
     return NextResponse.json({
       totalUsers,
@@ -172,7 +239,8 @@ export async function GET() {
       projectsPerUser: {
         mean: parseFloat(meanProjectsPerUser.toFixed(2)),
         median: parseFloat(medianProjectsPerUser.toFixed(2))
-      }
+      },
+      auditLogTimeSeries
     });
   } catch (error) {
     console.error('Error fetching admin dashboard stats:', error);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 // Stat card component with consistent sizing
 function StatCard({ title, value, icon, linkTo, description = '' }: { title: string, value: number | string, icon: string, linkTo?: string, description?: string }) {
@@ -87,6 +87,98 @@ function StatPieChart({ data, title }: { data: { name: string; value: number }[]
   );
 }
 
+// Audit log line chart component
+function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }) {
+  // Use all event types
+  const eventTypes = [
+    "ProjectCreated",
+    "ProjectSubmittedForReview", 
+    "ProjectMarkedShipped",
+    "ProjectMarkedViral",
+    "UserCreated",
+    "UserRoleChanged",
+    "UserVerified",
+    "ProjectDeleted",
+    "SlackConnected",
+    "OtherEvent"
+  ];
+  
+  // Color palette for different event types
+  const colorMap = {
+    ProjectCreated: "#8884d8",
+    ProjectSubmittedForReview: "#82ca9d", 
+    ProjectMarkedShipped: "#ffc658",
+    ProjectMarkedViral: "#ff8042",
+    UserCreated: "#0088FE",
+    UserRoleChanged: "#00C49F",
+    UserVerified: "#FFBB28",
+    ProjectDeleted: "#FF8042",
+    SlackConnected: "#8dd1e1",
+    OtherEvent: "#a4de6c"
+  };
+
+  // Custom legend formatter to make text smaller and more compact
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+    
+    return (
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 px-2" style={{ fontSize: '10px' }}>
+        {payload.map((entry: any, index: number) => (
+          <div key={`legend-item-${index}`} className="flex items-center">
+            <div style={{ 
+              width: '10px', 
+              height: '10px', 
+              backgroundColor: entry.color, 
+              marginRight: '4px',
+              display: 'inline-block' 
+            }} />
+            <span>{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 h-[500px] flex flex-col"> {/* Increased height for better visibility with more lines */}
+      <h3 className="text-lg font-medium mb-2">{title}</h3>
+      <div className="flex-grow">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}
+            margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              angle={-45}
+              textAnchor="end"
+              height={60}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis />
+            <Tooltip />
+            <Legend 
+              verticalAlign="top" 
+              height={40} 
+              content={renderLegend}
+            />
+            {eventTypes.map((type) => (
+              <Line 
+                key={type}
+                type="monotone" 
+                dataKey={type} 
+                stroke={colorMap[type as keyof typeof colorMap]} 
+                activeDot={{ r: 6 }}
+                name={type.replace(/([A-Z])/g, ' $1').trim()}
+                strokeWidth={1.5}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const [stats, setStats] = useState({
@@ -119,7 +211,8 @@ export default function AdminDashboard() {
     projectsPerUser: {
       mean: 0,
       median: 0
-    }
+    },
+    auditLogTimeSeries: [] // New state for audit log time series data
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -259,6 +352,16 @@ export default function AdminDashboard() {
           <StatPieChart 
             title="Hackatime Installation" 
             data={stats.hackatimeStats.pieData} 
+          />
+        </div>
+      </div>
+
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Activity Timeline</h2>
+        <div className="grid grid-cols-1 gap-6">
+          <AuditLogTimeSeriesChart 
+            title="Audit Log Events (Last 30 Days)" 
+            data={stats.auditLogTimeSeries} 
           />
         </div>
       </div>
