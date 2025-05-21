@@ -10,7 +10,6 @@ import * as fs from 'fs';
 dotenv.config();
 
 // Debug environment variables (with masking for security)
-console.log('Environment variables loaded:');
 const maskString = (str: string | undefined): string => {
   if (!str) return 'undefined';
   if (str.length <= 8) return '***masked***';
@@ -37,7 +36,6 @@ if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
   process.exit(1);
 }
 
-console.log(`Connecting to Airtable base: ${maskString(AIRTABLE_BASE_ID)}`);
 console.log(`Using Airtable table: ${AIRTABLE_RSVP_TABLE}`);
 
 Airtable.configure({ apiKey: AIRTABLE_API_KEY });
@@ -146,7 +144,27 @@ type ProjectInfo = {
 // Type for user with projects
 type UserWithProjects = User & {
   projects: ProjectInfo[];
+  ageEligibleAt?: boolean | null;
+  hasHackatimeAt?: Date | null;
+  loggedFirstHour?: boolean;
+  loggedTenHours?: boolean;
+  submittedFirstProject?: boolean;
+  firstProjectApproved?: boolean;
+  loggedFirstHourOnSecondProject?: boolean;
+  submittedSecondProject?: boolean;
+  secondProjectApproved?: boolean;
+  loggedFirstHourOnThirdProject?: boolean;
+  submittedThirdProject?: boolean;
+  thirdProjectApproved?: boolean;
+  loggedFirstHourOnFourthProject?: boolean;
+  submittedFourthProject?: boolean;
+  fourthProjectApproved?: boolean;
+  userExistsInBay?: boolean;
+  hackatimeId?: string | null;
 }
+
+// Improved field validation to handle duplicate fields
+let failedFieldCreation = false;
 
 // Function to validate and create Airtable fields if needed
 async function validateAndCreateAirtableFields(): Promise<boolean> {
@@ -161,20 +179,15 @@ async function validateAndCreateAirtableFields(): Promise<boolean> {
     
     if (metaRecords && metaRecords.length > 0) {
       Object.keys(metaRecords[0].fields).forEach(field => availableFields.add(field));
-      console.log(`Available Airtable fields: ${Array.from(availableFields).join(', ')}`);
     }
     
     // Check which fields are missing
     const missingFields = FIELD_DEFINITIONS.filter(field => !availableFields.has(field.name));
     
     if (missingFields.length > 0) {
-      console.log(`Found ${missingFields.length} fields that need to be created:`);
-      missingFields.forEach(field => {
-        console.log(`  - ${field.name} (${field.type})`);
-      });
+      console.log(`Found ${missingFields.length} fields that need to be created`);
       
-      // Get Airtable table ID (needed for API calls)
-      console.log('Getting Airtable table ID...');
+      // Get Airtable table structure to check for field names that might exist with different casing
       const baseId = AIRTABLE_BASE_ID as string;
       const tableId = await getAirtableTableId(baseId, AIRTABLE_RSVP_TABLE);
       
@@ -183,32 +196,65 @@ async function validateAndCreateAirtableFields(): Promise<boolean> {
         return false;
       }
       
-      console.log(`Creating fields in table ${AIRTABLE_RSVP_TABLE} (ID: ${tableId})...`);
+      try {
+        // Get existing fields to check for duplicates
+        const fieldsResponse = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables/${tableId}/fields`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!fieldsResponse.ok) {
+          console.error('Could not fetch existing fields. Will try to create fields anyway.');
+        } else {
+          const fieldsData = await fieldsResponse.json();
+          const existingFieldNames = new Set(fieldsData.fields.map((f: any) => f.name.toLowerCase()));
+          
+          // Filter out fields that might exist with different casing
+          missingFields.forEach(field => {
+            if (existingFieldNames.has(field.name.toLowerCase())) {
+              console.log(`Field "${field.name}" might exist with different casing. Skipping creation.`);
+              availableFields.add(field.name); // Consider it available
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Error checking for existing fields:', error);
+      }
       
-      // Create fields one by one
+      // Create fields one by one (only those still considered missing)
       const createdFields = [];
       const failedFields = [];
+      const stillMissingFields = FIELD_DEFINITIONS.filter(field => 
+        !availableFields.has(field.name) && field.name !== 'Email' // Skip Email field which is always required
+      );
       
-      for (const field of missingFields) {
+      console.log(`Attempting to create ${stillMissingFields.length} fields...`);
+      
+      for (const field of stillMissingFields) {
         try {
           const fieldId = await createAirtableField(baseId, tableId, field);
           if (fieldId) {
             createdFields.push({ ...field, id: fieldId });
+            availableFields.add(field.name); // Mark as available now
           } else {
             failedFields.push(field);
+            // Still consider it available for our script
+            availableFields.add(field.name);
           }
         } catch (error) {
           console.error(`Error creating field ${field.name}:`, error);
           failedFields.push(field);
+          // Still consider it available for our script
+          availableFields.add(field.name);
         }
       }
       
       // Show results
       if (createdFields.length > 0) {
-        console.log(`Successfully created ${createdFields.length} fields:`);
-        createdFields.forEach(field => {
-          console.log(`  ✓ ${field.name} (${field.type}) - ID: ${field.id}`);
-        });
+        console.log(`Successfully created ${createdFields.length} fields`);
         
         // Add a longer delay to allow Airtable to propagate the changes
         console.log('Waiting 3 seconds for Airtable to process changes...');
@@ -216,31 +262,9 @@ async function validateAndCreateAirtableFields(): Promise<boolean> {
       }
       
       if (failedFields.length > 0) {
-        console.warn(`Failed to create ${failedFields.length} fields:`);
-        failedFields.forEach(field => {
-          console.warn(`  ✗ ${field.name} (${field.type})`);
-        });
+        console.warn(`Failed to create ${failedFields.length} fields`);
         console.warn('Some fields could not be created. The script will continue, but some data updates may fail.');
-      }
-      
-      // Verify field creation by loading records again
-      console.log('Verifying field creation...');
-      const verifyRecords = await rsvpTable.select({ maxRecords: 1 }).firstPage();
-      const verifiedFields = new Set<string>();
-      
-      if (verifyRecords && verifyRecords.length > 0) {
-        Object.keys(verifyRecords[0].fields).forEach(field => verifiedFields.add(field));
-      }
-      
-      const stillMissingFields = missingFields.filter(field => !verifiedFields.has(field.name));
-      
-      if (stillMissingFields.length > 0) {
-        console.warn(`After verification, ${stillMissingFields.length} fields are still missing:`);
-        stillMissingFields.forEach(field => {
-          console.warn(`  - ${field.name} (${field.type})`);
-        });
-      } else if (createdFields.length > 0) {
-        console.log('Verification successful. All fields have been created.');
+        failedFieldCreation = true;
       }
     } else {
       console.log('All required fields already exist in the Airtable table.');
@@ -256,8 +280,6 @@ async function validateAndCreateAirtableFields(): Promise<boolean> {
 // Get the Airtable table ID from the base
 async function getAirtableTableId(baseId: string, tableName: string): Promise<string | null> {
   try {
-    console.log(`Fetching tables for base ${baseId}...`);
-    
     const response = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
       method: 'GET',
       headers: {
@@ -345,7 +367,7 @@ async function createAirtableField(
     }
     
     const result = await response.json();
-    console.log(`Successfully created field ${field.name} with ID ${result.id}`);
+    console.log(`Successfully created field ${field.name}`);
     
     // Add a small delay to avoid rate limits
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -369,45 +391,10 @@ async function updateAirtableRSVPs(): Promise<void> {
       return;
     }
 
-    // Get all users from PostgreSQL for logging purposes
-    console.log('Fetching all users from PostgreSQL for logging purposes...');
-    const allPgUsers = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        status: true,
-        role: true,
-        createdAt: true,
-        hackatimeId: true
-      }
-    });
-    
-    console.log(`Found ${allPgUsers.length} total users in PostgreSQL database:`);
-    allPgUsers.forEach((user, index) => {
-      console.log(`\n[${index + 1}/${allPgUsers.length}] User: ${user.email}`);
-      console.log(`  - ID: ${user.id}`);
-      console.log(`  - Name: ${user.name || 'N/A'}`);
-      console.log(`  - Status: ${user.status}`);
-      console.log(`  - Role: ${user.role}`);
-      console.log(`  - Created: ${user.createdAt.toISOString()}`);
-      console.log(`  - Hackatime ID: ${user.hackatimeId || 'N/A'}`);
-    });
-    
     // Step 1: Load existing RSVP records from Airtable (will paginate if needed)
     console.log(`\nFetching existing RSVP records from Airtable...`);
     const airtableRecords = await fetchAllAirtableRecords();
     console.log(`Found ${airtableRecords.length} RSVP records in Airtable.`);
-    
-    // Log all Airtable records for debugging
-    console.log('\nDetailed Airtable Records:');
-    airtableRecords.forEach((record, index) => {
-      console.log(`\n[${index + 1}/${airtableRecords.length}] Airtable Record ID: ${record.id}`);
-      console.log('Fields:');
-      Object.entries(record.fields).forEach(([key, value]) => {
-        console.log(`  - ${key}: ${value}`);
-      });
-    });
     
     // Step 2: Create a map of emails to Airtable record IDs for easier lookup
     const emailToRecordMap = new Map<string, string>();
@@ -426,43 +413,13 @@ async function updateAirtableRSVPs(): Promise<void> {
     });
     
     console.log(`Created lookup map for ${emailToRecordMap.size} valid email addresses.`);
-    console.log(`Available Airtable fields: ${Array.from(availableAirtableFields).join(', ')}`);
     
-    // If we've created fields, we need to fetch the records again to get the updated field list
-    if (availableAirtableFields.size < FIELD_DEFINITIONS.length + 1) { // +1 for Email
-      console.log('Fetching records again to check for newly created fields...');
-      
-      try {
-        // Temporarily force a refresh of the base connection
-        Airtable.configure({ apiKey: AIRTABLE_API_KEY });
-        const refreshBase = Airtable.base(AIRTABLE_BASE_ID as string);
-        const refreshTable = refreshBase(AIRTABLE_RSVP_TABLE);
-        
-        // Fetch a single record to check available fields
-        const refreshRecords = await refreshTable.select({ maxRecords: 1 }).firstPage();
-        if (refreshRecords && refreshRecords.length > 0) {
-          // Clear and refill the set
-          availableAirtableFields.clear();
-          Object.keys(refreshRecords[0].fields).forEach(field => availableAirtableFields.add(field));
-          console.log(`Updated available Airtable fields: ${Array.from(availableAirtableFields).join(', ')}`);
-        }
-        
-        // If we still don't have all fields, force-add the fields we just created
-        // This is a fallback since Airtable may have API caching that doesn't immediately show new fields
-        if (availableAirtableFields.size < FIELD_DEFINITIONS.length + 1) {
-          console.log('Adding newly created fields to available fields list...');
-          FIELD_DEFINITIONS.forEach(field => {
-            availableAirtableFields.add(field.name);
-          });
-          console.log(`Forced available fields: ${Array.from(availableAirtableFields).join(', ')}`);
-        }
-      } catch (error) {
-        console.error('Error refreshing field list:', error);
-      }
-    }
+    // If we've created fields, ensure they're in our available fields
+    FIELD_DEFINITIONS.forEach(field => {
+      availableAirtableFields.add(field.name);
+    });
     
-    // Step 3: Find user data from PostgreSQL
-    // We don't want to load all users - just those that match emails in Airtable
+    // Step 3: Get emails from Airtable
     const emails = Array.from(emailToRecordMap.keys());
     if (emails.length === 0) {
       console.log('No valid emails found in Airtable RSVP records. Nothing to update.');
@@ -487,35 +444,19 @@ async function updateAirtableRSVPs(): Promise<void> {
     // Create a set of Bay user emails for faster lookups
     const bayUserEmails = new Set(users.map(user => user.email.toLowerCase()));
     
-    // For debugging: check if userData contains the values we expect
-    for (const user of users) {
-      const email = user.email.toLowerCase();
-      console.log(`\nDebug userData for ${email}:`);
-      const userData = calculateUserMetrics(user);
-      
-      console.log(`- createdAt: ${userData.createdAt ? userData.createdAt.toISOString() : 'null'}`);
-      console.log(`- ageEligibleAt: ${userData.ageEligibleAt}`);
-      console.log(`- hasHackatimeAt: ${userData.hasHackatimeAt ? userData.hasHackatimeAt.toISOString() : 'null'}`);
-      console.log(`- loggedFirstHour: ${userData.loggedFirstHour}`);
-      console.log(`- loggedTenHours: ${userData.loggedTenHours}`);
-      console.log(`- submittedFirstProject: ${userData.submittedFirstProject}`);
-      console.log(`- firstProjectApproved: ${userData.firstProjectApproved}`);
-      console.log(`- loggedFirstHourOnSecondProject: ${userData.loggedFirstHourOnSecondProject}`);
-      console.log(`- submittedSecondProject: ${userData.submittedSecondProject}`);
-      console.log(`- secondProjectApproved: ${userData.secondProjectApproved}`);
-      console.log(`- loggedFirstHourOnThirdProject: ${userData.loggedFirstHourOnThirdProject}`);
-      console.log(`- submittedThirdProject: ${userData.submittedThirdProject}`);
-      console.log(`- thirdProjectApproved: ${userData.thirdProjectApproved}`);
-      console.log(`- loggedFirstHourOnFourthProject: ${userData.loggedFirstHourOnFourthProject}`);
-      console.log(`- submittedFourthProject: ${userData.submittedFourthProject}`);
-      console.log(`- fourthProjectApproved: ${userData.fourthProjectApproved}`);
-      console.log(`- userExistsInBay: ${userData.userExistsInBay}`);
-    }
-    
     // Step 5: Prepare to update all Airtable records
-    // We'll update records with Bay user data if they exist, 
-    // or explicitly set userExistsInBay=false if they don't have a Bay user
     const updates: AirtableUpdate[] = [];
+    
+    // Track metrics for logging
+    let userStats = {
+      totalUsers: users.length,
+      hasHackatimeId: 0,
+      loggedFirstHour: 0,
+      loggedTenHours: 0,
+      submittedFirstProject: 0,
+      firstProjectApproved: 0,
+      submittedSecondProject: 0,
+    };
     
     // For records with matching Bay users
     for (const user of users) {
@@ -524,26 +465,28 @@ async function updateAirtableRSVPs(): Promise<void> {
         const recordId = emailToRecordMap.get(email);
         
         if (!recordId) {
-          console.log(`No Airtable record found for user ${email}`);
           continue;
         }
 
         // Calculate derived fields
         const userData = calculateUserMetrics(user);
         
+        // Track metrics for summary
+        if (userData.hasHackatimeAt) userStats.hasHackatimeId++;
+        if (userData.loggedFirstHour) userStats.loggedFirstHour++;
+        if (userData.loggedTenHours) userStats.loggedTenHours++;
+        if (userData.submittedFirstProject) userStats.submittedFirstProject++;
+        if (userData.firstProjectApproved) userStats.firstProjectApproved++;
+        if (userData.submittedSecondProject) userStats.submittedSecondProject++;
+        
         // Prepare update object for Airtable
         const fieldsToUpdate: { [key: string]: any } = {};
-        console.log(`\nPreparing fields for ${email}:`);
         
         for (const [pgField, atField] of Object.entries(FIELD_MAPPING)) {
           if (pgField === 'email') continue; // Skip email since we use it for matching
           
-          // Debug info
-          console.log(`  - Field ${pgField} -> ${atField}: ${typeof userData[pgField as keyof UserMetrics]} value=${userData[pgField as keyof UserMetrics]}, available=${availableAirtableFields.has(atField)}`);
-          
           // Only include fields that exist in Airtable
           if (!availableAirtableFields.has(atField)) {
-            console.log(`    (Skipping ${atField} - not available in Airtable)`);
             continue;
           }
           
@@ -551,10 +494,8 @@ async function updateAirtableRSVPs(): Promise<void> {
             // Airtable requires Date objects to be in ISO format strings
             if (userData[pgField as keyof UserMetrics] instanceof Date) {
               fieldsToUpdate[atField] = (userData[pgField as keyof UserMetrics] as Date).toISOString();
-              console.log(`    Added ${atField} = ${fieldsToUpdate[atField]} (date)`);
             } else {
               fieldsToUpdate[atField] = userData[pgField as keyof UserMetrics];
-              console.log(`    Added ${atField} = ${fieldsToUpdate[atField]}`);
             }
           }
         }
@@ -565,18 +506,23 @@ async function updateAirtableRSVPs(): Promise<void> {
             id: recordId,
             fields: fieldsToUpdate
           });
-          
-          console.log(`Prepared update for ${email} with fields: ${Object.keys(fieldsToUpdate).join(', ')}`);
-        } else {
-          console.log(`No updatable fields found for ${email}. Skipping.`);
         }
       } catch (err) {
         console.error(`Error processing user ${user.email}:`, err);
       }
     }
     
+    // Log metrics summary
+    console.log('\nUser metrics summary:');
+    console.log(`- Total users: ${userStats.totalUsers}`);
+    console.log(`- Users with Hackatime ID: ${userStats.hasHackatimeId} (${Math.round(userStats.hasHackatimeId/userStats.totalUsers*100)}%)`);
+    console.log(`- Users with 1+ hours: ${userStats.loggedFirstHour} (${Math.round(userStats.loggedFirstHour/userStats.totalUsers*100)}%)`);
+    console.log(`- Users with 10+ hours: ${userStats.loggedTenHours} (${Math.round(userStats.loggedTenHours/userStats.totalUsers*100)}%)`);
+    console.log(`- Users with submitted first project: ${userStats.submittedFirstProject} (${Math.round(userStats.submittedFirstProject/userStats.totalUsers*100)}%)`);
+    console.log(`- Users with approved first project: ${userStats.firstProjectApproved} (${Math.round(userStats.firstProjectApproved/userStats.totalUsers*100)}%)`);
+    console.log(`- Users with submitted second project: ${userStats.submittedSecondProject} (${Math.round(userStats.submittedSecondProject/userStats.totalUsers*100)}%)`);
+    
     // Find Airtable records with no matching Bay user
-    // We need to set userExistsInBay=false for these
     console.log('\nFinding RSVP records with no matching Bay user...');
     const unmatchedRecords = airtableRecords.filter(record => {
       const email = record.fields.Email?.toLowerCase();
@@ -597,20 +543,37 @@ async function updateAirtableRSVPs(): Promise<void> {
 
     // Step 6: Batch update Airtable (max 10 records per update)
     if (updates.length > 0) {
-      console.log(`Updating ${updates.length} records in Airtable...`);
+      console.log(`\nUpdating ${updates.length} records in Airtable...`);
       
-      for (let i = 0; i < updates.length; i += 10) {
-        const batch = updates.slice(i, i + 10);
-        await rsvpTable.update(batch);
-        console.log(`Updated batch ${i/10 + 1}/${Math.ceil(updates.length/10)}`);
+      // Progress indicators
+      let processed = 0;
+      const totalBatches = Math.ceil(updates.length/10);
+      
+      // Airtable has a hard limit of 10 records per request
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+        const batch = updates.slice(i, i + BATCH_SIZE);
+        const batchStart = Date.now();
+        try {
+          await rsvpTable.update(batch);
+          processed += batch.length;
+          const batchDuration = Date.now() - batchStart;
+          
+          // Log progress every 10th batch
+          if (Math.floor(i/BATCH_SIZE) % 10 === 0 || i + BATCH_SIZE >= updates.length) {
+            console.log(`Progress: ${processed}/${updates.length} records (${Math.round(processed/updates.length*100)}%) - Batch ${Math.floor(i/BATCH_SIZE) + 1}/${totalBatches} took ${batchDuration}ms`);
+          }
+        } catch (error) {
+          console.error(`Error updating batch ${Math.floor(i/BATCH_SIZE) + 1}:`, error);
+        }
         
-        // Add a small delay to avoid hitting rate limits
-        if (i + 10 < updates.length) {
+        // Add a small delay between batches
+        if (i + BATCH_SIZE < updates.length) {
           await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
       
-      console.log(`Successfully updated ${updates.length} records in Airtable.`);
+      console.log(`Successfully updated ${processed} records in Airtable.`);
     } else {
       console.log('No records to update in Airtable.');
     }
@@ -618,16 +581,11 @@ async function updateAirtableRSVPs(): Promise<void> {
     // Step 7: Find Bay users who are not in the RSVP list
     console.log('\nChecking for Bay users who are not in the RSVP list...');
     
-    // Query for all users since there's no specific Bay field in the schema
-    // We'll get all users and print them - the Bay filtering would need to be 
-    // implemented based on other data sources if available
     const allUsers = await prisma.user.findMany({
       select: {
         email: true,
       },
       where: {
-        // No specific Bay filter in the schema
-        // This is just getting all users for demonstration
         NOT: {
           email: {
             in: Array.from(emailToRecordMap.keys())
@@ -636,86 +594,91 @@ async function updateAirtableRSVPs(): Promise<void> {
       }
     });
     
-    console.log(`\nFound ${allUsers.length} users not in the RSVP list:`);
-    allUsers.forEach((user: { email: string }) => {
-      console.log(user.email);
-    });
+    console.log(`Found ${allUsers.length} users not in the RSVP list.`);
     
     // Step 8: Add missing users to the Airtable RSVP table
     if (allUsers.length > 0) {
-      console.log(`\nAdding ${allUsers.length} missing users to the Airtable RSVP table...`);
+      console.log(`Adding ${allUsers.length} missing users to the Airtable RSVP table...`);
       
-      // Get full user data including projects for each missing user
-      const missingUsersWithData = await Promise.all(
-        allUsers.map(async (user: { email: string }) => {
-          return await prisma.user.findUnique({
-            where: { email: user.email },
-            include: { projects: true }
-          }) as UserWithProjects;
-        })
-      );
+      // Get full user data including projects - process in batches to avoid memory issues
+      const BATCH_SIZE = 50;
       
-      // Filter out any nulls in case some users weren't found
-      const validMissingUsers = missingUsersWithData.filter((user): user is UserWithProjects => user !== null);
-      
-      // Create new records for Airtable
-      const newRecords = validMissingUsers.map((user: UserWithProjects) => {
-        // Calculate user metrics
-        const metrics = calculateUserMetrics(user);
+      for (let i = 0; i < allUsers.length; i += BATCH_SIZE) {
+        const userBatch = allUsers.slice(i, i + BATCH_SIZE);
+        const emails = userBatch.map(u => u.email);
         
-        // Create record fields
-        const fields: { [key: string]: any } = {
-          // Required Airtable fields
-          'Email': user.email,
-          // Optional user fields if available
-          'First Name': user.name?.split(' ')[0] || '',
-          'Last Name': user.name?.split(' ').slice(1).join(' ') || '',
-          // These users exist in the Bay database
-          'userExistsInBay': true
-        };
+        const missingUserBatch = await prisma.user.findMany({
+          where: { 
+            email: { in: emails } 
+          },
+          include: { projects: true }
+        }) as UserWithProjects[];
         
-        // Add all metric fields
-        for (const [pgField, atField] of Object.entries(FIELD_MAPPING)) {
-          if (pgField === 'email') continue; // Skip email since we already set it
+        // Create new records for Airtable batch
+        const newRecords = missingUserBatch.map((user: UserWithProjects) => {
+          // Calculate user metrics
+          const metrics = calculateUserMetrics(user);
           
-          // Only include fields that exist in Airtable and have values
-          if (metrics[pgField as keyof UserMetrics] !== undefined) {
-            // Format dates as ISO strings
-            if (metrics[pgField as keyof UserMetrics] instanceof Date) {
-              fields[atField] = (metrics[pgField as keyof UserMetrics] as Date).toISOString();
-            } else {
-              fields[atField] = metrics[pgField as keyof UserMetrics];
+          // Create record fields
+          const fields: { [key: string]: any } = {
+            // Required Airtable fields
+            'Email': user.email,
+            // Optional user fields if available
+            'First Name': user.name?.split(' ')[0] || '',
+            'Last Name': user.name?.split(' ').slice(1).join(' ') || '',
+            // These users exist in the Bay database
+            'userExistsInBay': true
+          };
+          
+          // Add all metric fields
+          for (const [pgField, atField] of Object.entries(FIELD_MAPPING)) {
+            if (pgField === 'email') continue; // Skip email since we already set it
+            
+            // Only include fields that have values
+            if (metrics[pgField as keyof UserMetrics] !== undefined) {
+              // Format dates as ISO strings
+              if (metrics[pgField as keyof UserMetrics] instanceof Date) {
+                fields[atField] = (metrics[pgField as keyof UserMetrics] as Date).toISOString();
+              } else {
+                fields[atField] = metrics[pgField as keyof UserMetrics];
+              }
             }
           }
-        }
+          
+          return { fields };
+        });
         
-        return { fields };
-      });
-      
-      // Add new records to Airtable in batches
-      if (newRecords.length > 0) {
-        console.log(`Preparing to add ${newRecords.length} new records to Airtable...`);
-        
-        for (let i = 0; i < newRecords.length; i += 10) {
-          const batch = newRecords.slice(i, i + 10);
-          try {
-            await rsvpTable.create(batch);
-            console.log(`Added batch ${Math.floor(i/10) + 1}/${Math.ceil(newRecords.length/10)}`);
+        // Add new records to Airtable in internal batches
+        if (newRecords.length > 0) {
+          // Airtable has a hard limit of 10 records per request
+          const AIRTABLE_BATCH_SIZE = 10;
+          for (let j = 0; j < newRecords.length; j += AIRTABLE_BATCH_SIZE) {
+            const recordBatch = newRecords.slice(j, j + AIRTABLE_BATCH_SIZE);
+            try {
+              const batchStart = Date.now();
+              await rsvpTable.create(recordBatch);
+              const batchDuration = Date.now() - batchStart;
+              
+              // Only log every 10 batches to reduce noise
+              if (Math.floor(j/AIRTABLE_BATCH_SIZE) % 10 === 0 || j + AIRTABLE_BATCH_SIZE >= newRecords.length) {
+                console.log(`User batch ${Math.floor(i/BATCH_SIZE) + 1}: Added ${j+recordBatch.length}/${newRecords.length} records in ${batchDuration}ms`);
+              }
+            } catch (error) {
+              console.error(`Error adding batch of new users:`, error);
+            }
             
-            // Add a small delay to avoid hitting rate limits
-            if (i + 10 < newRecords.length) {
+            // Always add a small delay between batches to avoid rate limits
+            if (j + AIRTABLE_BATCH_SIZE < newRecords.length) {
               await new Promise(resolve => setTimeout(resolve, 200));
             }
-          } catch (error) {
-            console.error(`Error adding batch ${Math.floor(i/10) + 1}:`, error);
           }
         }
-        
-        console.log(`Successfully added ${newRecords.length} new records to Airtable.`);
-      } else {
-        console.log('No valid records to add to Airtable.');
       }
+      
+      console.log(`Completed adding new users to Airtable.`);
     }
+    
+    console.log(`[${new Date().toISOString()}] Airtable RSVP update complete.`);
   } catch (error) {
     console.error('Error updating Airtable RSVPs:', error);
   }
@@ -723,27 +686,49 @@ async function updateAirtableRSVPs(): Promise<void> {
 
 // Calculate user metrics
 function calculateUserMetrics(user: UserWithProjects): UserMetrics {
-  // Implementation of calculateUserMetrics function
-  // This is a placeholder and should be replaced with the actual implementation
+  // Extract real metrics from projects
+  const hasProjects = user.projects?.length > 0;
+  const totalHours = hasProjects 
+    ? user.projects.reduce((sum, project) => sum + (project.rawHours || 0), 0) 
+    : 0;
+  
+  // Actually calculate metrics based on project data
+  const loggedFirstHour = totalHours >= 1;
+  const loggedTenHours = totalHours >= 10;
+  
+  // Count projects in various states
+  let submittedProjects = 0;
+  let approvedProjects = 0;
+  
+  if (hasProjects) {
+    for (const project of user.projects) {
+      if (project.in_review) submittedProjects++;
+      if (project.shipped) approvedProjects++;
+    }
+  }
+  
+  // Set hasHackatimeAt based on whether user has a hackatimeId
+  const hasHackatimeAt = user.hackatimeId ? user.createdAt : null;
+  
   return {
     email: user.email,
     createdAt: user.createdAt,
-    ageEligibleAt: user.ageEligibleAt,
-    hasHackatimeAt: user.hasHackatimeAt,
-    loggedFirstHour: user.loggedFirstHour,
-    loggedTenHours: user.loggedTenHours,
-    submittedFirstProject: user.submittedFirstProject,
-    firstProjectApproved: user.firstProjectApproved,
-    loggedFirstHourOnSecondProject: user.loggedFirstHourOnSecondProject,
-    submittedSecondProject: user.submittedSecondProject,
-    secondProjectApproved: user.secondProjectApproved,
-    loggedFirstHourOnThirdProject: user.loggedFirstHourOnThirdProject,
-    submittedThirdProject: user.submittedThirdProject,
-    thirdProjectApproved: user.thirdProjectApproved,
-    loggedFirstHourOnFourthProject: user.loggedFirstHourOnFourthProject,
-    submittedFourthProject: user.submittedFourthProject,
-    fourthProjectApproved: user.fourthProjectApproved,
-    userExistsInBay: user.userExistsInBay
+    ageEligibleAt: user.ageEligibleAt ?? null,
+    hasHackatimeAt: hasHackatimeAt,
+    loggedFirstHour: loggedFirstHour,
+    loggedTenHours: loggedTenHours,
+    submittedFirstProject: submittedProjects >= 1,
+    firstProjectApproved: approvedProjects >= 1,
+    loggedFirstHourOnSecondProject: submittedProjects >= 2 && loggedFirstHour,
+    submittedSecondProject: submittedProjects >= 2,
+    secondProjectApproved: approvedProjects >= 2,
+    loggedFirstHourOnThirdProject: submittedProjects >= 3 && loggedFirstHour,
+    submittedThirdProject: submittedProjects >= 3,
+    thirdProjectApproved: approvedProjects >= 3,
+    loggedFirstHourOnFourthProject: submittedProjects >= 4 && loggedFirstHour,
+    submittedFourthProject: submittedProjects >= 4,
+    fourthProjectApproved: approvedProjects >= 4,
+    userExistsInBay: true
   };
 }
 
@@ -751,16 +736,12 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
 async function fetchAllAirtableRecords(): Promise<AirtableRecord[]> {
   const records: AirtableRecord[] = [];
   
-  console.log(`Fetching records from Airtable table ${AIRTABLE_RSVP_TABLE}...`);
-  
   try {
     await new Promise<void>((resolve, reject) => {
       rsvpTable.select({
         // Don't limit the fields - we need all fields for proper validation
-        // and for accessing all data in the records
       }).eachPage(
         function page(pageRecords, fetchNextPage) {
-          console.log(`Got ${pageRecords.length} records from Airtable (page)`);
           records.push(...pageRecords);
           fetchNextPage();
         },
@@ -769,7 +750,6 @@ async function fetchAllAirtableRecords(): Promise<AirtableRecord[]> {
             console.error('Error fetching records from Airtable:', err);
             reject(err);
           } else {
-            console.log(`Successfully fetched ${records.length} total records`);
             resolve();
           }
         }
