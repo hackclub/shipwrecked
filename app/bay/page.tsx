@@ -172,12 +172,6 @@ function ProjectDetail({
     // Safety check for null project
     if (!project) return 0;
     
-    // If viral, it's 15 hours (25% toward the 60-hour goal)
-    if (projectFlags?.viral === true) {
-      console.log(`ProjectDetail: ${project.name} is viral, returning 15 hours`);
-      return 15;
-    }
-    
     // Get hours from project properties
     // Use hoursOverride if present, otherwise use rawHours
     const rawHours = typeof project?.hoursOverride === 'number' && project.hoursOverride !== null 
@@ -693,11 +687,6 @@ function BayWithReviewMode({ session, status, router }: {
     // })));
     
     const total = projects.reduce((sum, project) => {
-      // If project is viral, it automatically counts as 15 hours
-      if (project.viral) {
-        console.log(`Project ${project.name} is viral, contributing 15 hours`);
-        return sum + 15;
-      }
       
       // Get hours using our helper function
       let hours = getProjectHackatimeHours(project);
@@ -744,9 +733,9 @@ function BayWithReviewMode({ session, status, router }: {
       // Cap hours per project
       let cappedHours = Math.min(hours, 15);
       
-      // If the project is viral, it counts as 15 hours
+      // If it's viral
       if (project?.viral === true) {
-        viralHours += 15;
+        viralHours += cappedHours;
       } 
       // If it's shipped but not viral
       else if (project?.shipped === true) {
@@ -1411,11 +1400,6 @@ function BayWithReviewMode({ session, status, router }: {
               
               if (!selectedProject) {
                 return 0;
-              }
-              
-              // If viral, it's 15 hours
-              if (selectedProject?.viral === true) {
-                return 15;
               }
               
               // Use hoursOverride if available, otherwise use raw hours
