@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -89,6 +89,8 @@ function StatPieChart({ data, title }: { data: { name: string; value: number }[]
 
 // Audit log line chart component
 function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }) {
+  const [dayRange, setDayRange] = useState<number>(7); // Default to 7 days
+  
   // Use all event types
   const eventTypes = [
     "ProjectCreated",
@@ -139,13 +141,52 @@ function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }
     );
   };
 
+  // Filter data based on selected day range
+  const filteredData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    // For shorter ranges, only show the most recent days
+    if (dayRange < 30) {
+      return data.slice(-dayRange);
+    }
+    
+    return data;
+  }, [data, dayRange]);
+
+  // Day range selector component
+  const DayRangeSelector = () => (
+    <div className="flex items-center justify-end mb-2">
+      <span className="text-xs text-gray-500 mr-2">Time Range:</span>
+      <div className="flex space-x-1">
+        {[3, 7, 30].map(days => (
+          <button
+            key={days}
+            onClick={() => setDayRange(days)}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              dayRange === days 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {days === 30 ? '30d' : days === 7 ? '7d' : '3d'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-lg shadow p-6 h-[500px] flex flex-col"> {/* Increased height for better visibility with more lines */}
-      <h3 className="text-lg font-medium mb-2">{title}</h3>
+    <div className="bg-white rounded-lg shadow p-6 h-[500px] flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">{title}</h3>
+        <DayRangeSelector />
+      </div>
       <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}
-            margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+          <LineChart 
+            data={filteredData}
+            margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="date" 
