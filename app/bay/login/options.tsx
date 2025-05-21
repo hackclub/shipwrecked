@@ -24,7 +24,7 @@ export default function LoginOptions() {
       <div className="flex justify-center flex-col items-center my-4 rounded-lg bg-gray-100/60 p-2">
         <h2 className="text-2xl font-bold mb-4 text-dark-blue">Welcome, hacker!</h2>
         <p className="text-base text-black mb-2 max-w-xs text-center break-words">Use the same email / slack account on your Hackatime account to sign in! You do not need to have a shipwrecked account to begin.</p>
-        <button className="my-2" onClick={loginWithSlack}>
+        <button className="my-2 cursor-pointer" onClick={loginWithSlack}>
           <img
             src="https://platform.slack-edge.com/img/sign_in_with_slack.png"
             srcSet="https://platform.slack-edge.com/img/sign_in_with_slack.png 1x, https://platform.slack-edge.com/img/sign_in_with_slack@2x.png 2x"
@@ -43,7 +43,7 @@ export default function LoginOptions() {
             />
           <button
             type="submit"
-            className="flex-shrink-0 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+            className="flex-shrink-0 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap cursor-pointer"
             style={{ minWidth: 80 }}
           >
               Sign In
