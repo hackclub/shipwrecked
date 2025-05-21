@@ -279,7 +279,7 @@ function ProjectDetail({
               <p className="text-lg font-semibold mt-1">{project.rawHours}h</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">Effective Hours</span>
+              <span className="text-sm text-gray-500">Approved Hours</span>
               <p className="text-lg font-semibold text-blue-600 mt-1">
                 {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
                   ? `${project.hoursOverride}h` 
@@ -1459,7 +1459,7 @@ function BayWithReviewMode({ session, status, router }: {
                         <p className="text-lg font-semibold mt-1">{selectedProject.rawHours}h</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-500">Effective Hours</span>
+                        <span className="text-sm text-gray-500">Approved Hours</span>
                         <p className="text-lg font-semibold text-blue-600 mt-1">
                           {(selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null) 
                             ? `${selectedProject.hoursOverride}h` 
