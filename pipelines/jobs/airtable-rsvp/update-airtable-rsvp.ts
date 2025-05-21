@@ -68,7 +68,21 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
   { name: 'loggedFirstHourOnFourthProject', type: 'checkbox' },
   { name: 'submittedFourthProject', type: 'checkbox' },
   { name: 'fourthProjectApproved', type: 'checkbox' },
-  { name: 'userExistsInBay', type: 'checkbox' }
+  { name: 'userExistsInBay', type: 'checkbox' },
+  { 
+    name: 'totalRawHackatimeHours', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    } 
+  },
+  { 
+    name: 'totalApprovedHackatimeHours', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    }
+  }
 ];
 
 // Map for our local field names to Airtable field names
@@ -90,7 +104,9 @@ const FIELD_MAPPING: Record<string, string> = {
   loggedFirstHourOnFourthProject: 'loggedFirstHourOnFourthProject',
   submittedFourthProject: 'submittedFourthProject',
   fourthProjectApproved: 'fourthProjectApproved',
-  userExistsInBay: 'userExistsInBay'
+  userExistsInBay: 'userExistsInBay',
+  totalRawHackatimeHours: 'totalRawHackatimeHours',
+  totalApprovedHackatimeHours: 'totalApprovedHackatimeHours'
 };
 
 // Interface for our metrics data
@@ -113,6 +129,8 @@ interface UserMetrics {
   submittedFourthProject: boolean;
   fourthProjectApproved: boolean;
   userExistsInBay: boolean;
+  totalRawHackatimeHours: number;
+  totalApprovedHackatimeHours: number;
 }
 
 // Type for Airtable record
@@ -139,6 +157,7 @@ type ProjectInfo = {
   shipped: boolean;
   in_review: boolean;
   rawHours: number;
+  hoursOverride?: number | null;
 }
 
 // Type for user with projects
@@ -319,8 +338,9 @@ async function createAirtableField(
     console.log(`Creating field ${field.name} (${field.type})...`);
     
     // Create options object based on field type
-    let options = {};
+    let options = field.options || {};
     
+    // Default options if not provided
     switch (field.type) {
       case 'dateTime':
         options = {
@@ -330,20 +350,33 @@ async function createAirtableField(
           timeFormat: {
             name: '24hour'
           },
-          timeZone: 'client' // Valid values are 'client', 'utc', or specific timezone names
+          timeZone: 'client', // Valid values are 'client', 'utc', or specific timezone names
+          ...options
         };
         break;
       case 'checkbox':
         options = {
           icon: 'check',
-          color: 'greenBright'
+          color: 'greenBright',
+          ...options
+        };
+        break;
+      case 'number':
+        // Ensure precision is set
+        options = {
+          precision: 1, // Default to 1 decimal place
+          ...options
         };
         break;
       case 'singleLineText':
-        options = {};
+        options = {
+          ...options
+        };
         break;
       default:
-        options = {};
+        options = {
+          ...options
+        };
     }
     
     const response = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables/${tableId}/fields`, {
@@ -456,6 +489,8 @@ async function updateAirtableRSVPs(): Promise<void> {
       submittedFirstProject: 0,
       firstProjectApproved: 0,
       submittedSecondProject: 0,
+      totalRawHours: 0,
+      totalApprovedHours: 0
     };
     
     // For records with matching Bay users
@@ -478,6 +513,8 @@ async function updateAirtableRSVPs(): Promise<void> {
         if (userData.submittedFirstProject) userStats.submittedFirstProject++;
         if (userData.firstProjectApproved) userStats.firstProjectApproved++;
         if (userData.submittedSecondProject) userStats.submittedSecondProject++;
+        userStats.totalRawHours += userData.totalRawHackatimeHours;
+        userStats.totalApprovedHours += userData.totalApprovedHackatimeHours;
         
         // Prepare update object for Airtable
         const fieldsToUpdate: { [key: string]: any } = {};
@@ -521,6 +558,9 @@ async function updateAirtableRSVPs(): Promise<void> {
     console.log(`- Users with submitted first project: ${userStats.submittedFirstProject} (${Math.round(userStats.submittedFirstProject/userStats.totalUsers*100)}%)`);
     console.log(`- Users with approved first project: ${userStats.firstProjectApproved} (${Math.round(userStats.firstProjectApproved/userStats.totalUsers*100)}%)`);
     console.log(`- Users with submitted second project: ${userStats.submittedSecondProject} (${Math.round(userStats.submittedSecondProject/userStats.totalUsers*100)}%)`);
+    console.log(`- Total raw Hackatime hours: ${Math.round(userStats.totalRawHours)} hours`);
+    console.log(`- Total approved Hackatime hours: ${Math.round(userStats.totalApprovedHours)} hours`);
+    console.log(`- Average raw hours per user: ${Math.round(userStats.totalRawHours/userStats.totalUsers * 10) / 10} hours`);
     
     // Find Airtable records with no matching Bay user
     console.log('\nFinding RSVP records with no matching Bay user...');
@@ -692,6 +732,18 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     ? user.projects.reduce((sum, project) => sum + (project.rawHours || 0), 0) 
     : 0;
   
+  // Calculate approved hours using ONLY hoursOverride
+  const approvedHours = hasProjects
+    ? user.projects.reduce((sum, project) => {
+        // Only count hoursOverride as approved hours
+        if (project.hoursOverride !== undefined && project.hoursOverride !== null) {
+          return sum + project.hoursOverride;
+        }
+        // No hoursOverride means no approved hours for this project
+        return sum;
+      }, 0)
+    : 0;
+  
   // Actually calculate metrics based on project data
   const loggedFirstHour = totalHours >= 1;
   const loggedTenHours = totalHours >= 10;
@@ -728,7 +780,9 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     loggedFirstHourOnFourthProject: submittedProjects >= 4 && loggedFirstHour,
     submittedFourthProject: submittedProjects >= 4,
     fourthProjectApproved: approvedProjects >= 4,
-    userExistsInBay: true
+    userExistsInBay: true,
+    totalRawHackatimeHours: Math.round(totalHours * 10) / 10, // Round to 1 decimal place
+    totalApprovedHackatimeHours: Math.round(approvedHours * 10) / 10 // Round to 1 decimal place
   };
 }
 
