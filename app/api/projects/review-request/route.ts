@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const reviewTypeLabels: Record<string, string> = {
       ShippedApproval: '🚢 Shipped Approval',
       ViralApproval: '🔥 Viral Approval',
-      HoursApproval: '⏱️ Hours Approval',
+      HoursApproval: '⏱️ Ship Updates',
       Other: '❓ Other Request'
     };
 

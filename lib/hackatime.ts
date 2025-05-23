@@ -41,9 +41,12 @@ export async function fetchHackatimeProjects(
     // console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
     console.log(`✅ Hackatime projects fetched successfully. Found ${data.data.projects.length} projects`);
     
-    // if (data.data.projects.length > 0) {
-    //   console.log(`📊 Project names:`, data.data.projects.map(p => p.name).join(', '));
-    // }
+    // Log hours for debugging
+    console.log(`📊 Hours for projects:`, data.data.projects.map(p => ({ 
+      name: p.name, 
+      hours: p.hours, 
+      total_seconds: p.total_seconds
+    })));
 
     metrics.increment("success.fetch_hackatime", 1);
     return data.data.projects;

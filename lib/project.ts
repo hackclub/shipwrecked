@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchHackatimeProjects } from "@/lib/hackatime";
+import { addHackatimeProjectLink } from "@/lib/hackatime-links";
 
 export type Project = {
     projectID: string
@@ -8,77 +9,41 @@ export type Project = {
     codeUrl: string
     playableUrl: string
     screenshot: string
-    hackatime?: string
     submitted: boolean
     userId: string
     shipped: boolean
     viral: boolean
     in_review: boolean
-    rawHours: number
-    hoursOverride?: number
 }
 
-export type ProjectInput = Omit<Project, 'projectID' | 'submitted'>;
+export type ProjectInput = Omit<Project, 'projectID' | 'submitted'> & {
+    hackatimeName?: string; // Keep this in the input for backward compatibility
+    hackatimeProjects?: string[]; // For multiple hackatime projects
+};
 export type ProjectUpdateInput = Partial<Omit<Project, 'projectID' | 'userId' | 'submitted'>>;
 
 export async function createProject(data: ProjectInput) {
     console.log('[createProject-TRACE] 1. Starting project creation with data:', {
         name: data.name,
         description: data.description?.substring(0, 20) + '...',
-        hackatime: data.hackatime || 'N/A',
+        hackatimeName: data.hackatimeName || 'N/A',
+        hackatimeProjects: data.hackatimeProjects || [],
         userId: data.userId,
         hasCodeUrl: !!data.codeUrl,
         hasPlayableUrl: !!data.playableUrl,
         hasScreenshot: !!data.screenshot
     });
-
-    let rawHours = typeof data.rawHours === 'number' ? data.rawHours : 0;
-    
-    console.log('[createProject-TRACE] 2. Initialized rawHours:', rawHours);
     
     // Ensure hackatime is defined
-    const hackatimeName = data.hackatime || "";
-    console.log('[createProject-TRACE] 3. Hackatime name:', hackatimeName);
+    const hackatimeName = data.hackatimeName || "";
+    const hackatimeProjects = data.hackatimeProjects || [];
     
-    // If hackatime is provided, try to fetch the hours from Hackatime
-    if (hackatimeName.trim() !== "") {
-        console.log('[createProject-TRACE] 4. Hackatime name is provided, fetching hours');
-        try {
-            // Get user's hackatimeId
-            console.log('[createProject-TRACE] 4.1 Looking up user hackatimeId');
-            const user = await prisma.user.findUnique({
-                where: { id: data.userId },
-                select: { hackatimeId: true }
-            });
-            
-            console.log('[createProject-TRACE] 4.2 User hackatimeId result:', user?.hackatimeId || 'not found');
-            
-            if (user?.hackatimeId) {
-                console.log('[createProject-TRACE] 4.3 Fetching projects from Hackatime');
-                // Fetch projects from Hackatime
-                const hackatimeProjects = await fetchHackatimeProjects(user.hackatimeId);
-                
-                console.log(`[createProject-TRACE] 4.4 Fetched ${hackatimeProjects.length} projects from Hackatime`);
-                
-                // Find the matching project
-                const hackatimeProject = hackatimeProjects.find(hp => hp.name === hackatimeName);
-                
-                if (hackatimeProject && typeof hackatimeProject.hours === 'number') {
-                    console.log(`[createProject-TRACE] 4.5 Found Hackatime project '${hackatimeName}' with ${hackatimeProject.hours} hours`);
-                    rawHours = hackatimeProject.hours;
-                } else {
-                    console.log(`[createProject-TRACE] 4.5 No matching Hackatime project found for '${hackatimeName}'`);
-                }
-            } else {
-                console.log('[createProject-TRACE] 4.3 User has no hackatimeId, skipping hours fetch');
-            }
-        } catch (error) {
-            console.error(`[createProject-TRACE] 4.6 Error fetching Hackatime hours for project '${hackatimeName}':`, error);
-            // Continue with rawHours = 0 if there's an error
-        }
-    } else {
-        console.log('[createProject-TRACE] 4. No hackatime name provided, skipping hours fetch');
+    // Merge hackatimeName into hackatimeProjects if not already there
+    if (hackatimeName && !hackatimeProjects.includes(hackatimeName)) {
+        hackatimeProjects.push(hackatimeName);
     }
+    
+    console.log('[createProject-TRACE] 3. Hackatime projects:', hackatimeProjects);
     
     try {
         console.log('[createProject-TRACE] 5. Preparing project payload');
@@ -90,14 +55,11 @@ export async function createProject(data: ProjectInput) {
             codeUrl: data.codeUrl || '',
             playableUrl: data.playableUrl || '',
             screenshot: data.screenshot || "",
-            hackatime: hackatimeName,
             userId: data.userId,
             submitted: false,
             shipped: !!data.shipped,
             viral: !!data.viral,
             in_review: !!data.in_review,
-            rawHours: rawHours,
-            hoursOverride: typeof data.hoursOverride === 'number' ? data.hoursOverride : undefined
         };
         
         console.log('[createProject-TRACE] 6. Project payload created:', {
@@ -166,31 +128,79 @@ export async function createProject(data: ProjectInput) {
             }
             
             console.log('[createProject-TRACE] 10. Project created successfully with ID:', creationResult.projectID);
+            
+            // If hackatime projects are provided, create links to them
+            if (hackatimeProjects.length > 0) {
+                console.log('[createProject-TRACE] 11. Creating Hackatime project links for:', hackatimeProjects);
+                const linkPromises = [];
+                
+                for (const projectName of hackatimeProjects) {
+                    try {
+                        linkPromises.push(addHackatimeProjectLink(creationResult.projectID, projectName));
+                    } catch (linkError) {
+                        console.error(`[createProject-TRACE] 11.2 Error creating Hackatime project link for ${projectName}:`, linkError);
+                        // Continue even if one link creation fails
+                    }
+                }
+                
+                try {
+                    await Promise.allSettled(linkPromises);
+                    console.log(`[createProject-TRACE] 11.1 Successfully created ${linkPromises.length} Hackatime project links`);
+                } catch (error) {
+                    console.error('[createProject-TRACE] 11.3 Error waiting for link creations:', error);
+                    // Continue even if link creation fails
+                }
+            }
+            
             return creationResult;
         } catch (prismaError: any) {
-            console.error('[createProject-TRACE] 11. Prisma error details:', prismaError);
+            console.error('[createProject-TRACE] 12. Prisma error details:', prismaError);
             
             // Check for known error types
             const errorMessage = prismaError.message || '';
-            console.error('[createProject-TRACE] 11.1 Error message:', errorMessage);
+            console.error('[createProject-TRACE] 12.1 Error message:', errorMessage);
             
             if (errorMessage.includes('Unique constraint')) {
                 if (errorMessage.includes('projectID')) {
                     // Project ID collision - very unlikely but possible
-                    console.error('[createProject-TRACE] 11.2 Project ID collision, retrying with a new ID');
+                    console.error('[createProject-TRACE] 12.2 Project ID collision, retrying with a new ID');
                     
                     // Try once more with a new projectID
                     projectPayload.projectID = crypto.randomUUID();
-                    console.log('[createProject-TRACE] 11.3 Retrying with new projectID:', projectPayload.projectID);
+                    console.log('[createProject-TRACE] 12.3 Retrying with new projectID:', projectPayload.projectID);
                     
                     try {
                         const project = await prisma.project.create({
                             data: projectPayload
                         });
-                        console.log('[createProject-TRACE] 11.4 Project created successfully on second attempt:', project.projectID);
+                        console.log('[createProject-TRACE] 12.4 Project created successfully on second attempt:', project.projectID);
+                        
+                        // If hackatime projects are provided, create links to them
+                        if (hackatimeProjects.length > 0) {
+                            console.log('[createProject-TRACE] 12.5 Creating Hackatime project links for:', hackatimeProjects);
+                            const linkPromises = [];
+                            
+                            for (const projectName of hackatimeProjects) {
+                                try {
+                                    linkPromises.push(addHackatimeProjectLink(project.projectID, projectName));
+                                } catch (linkError) {
+                                    console.error(`[createProject-TRACE] 12.6 Error creating Hackatime project link for ${projectName}:`, linkError);
+                                    // Continue even if one link creation fails
+                                }
+                            }
+                            
+                            try {
+                                await Promise.allSettled(linkPromises);
+                                console.log(`[createProject-TRACE] 12.1 Successfully created ${linkPromises.length} Hackatime project links`);
+                            } catch (error) {
+                                console.error('[createProject-TRACE] 12.3 Error waiting for link creations:', error);
+                                // Continue even if link creation fails
+                            }
+                        }
+                        
                         return project;
                     } catch (retryError: any) {
-                        console.error('[createProject-TRACE] 11.5 Retry also failed:', retryError);
+                        console.error('[createProject-TRACE] 12.8 Retry also failed:', retryError);
                         throw new Error('Project creation failed on retry: ' + 
                             (retryError.message || 'Unknown error'));
                     }
@@ -202,11 +212,11 @@ export async function createProject(data: ProjectInput) {
                 (prismaError.message || 'Unknown database error'));
         }
     } catch (error) {
-        console.error('[createProject-TRACE] 12. Failed to create project in database:', error);
+        console.error('[createProject-TRACE] 13. Failed to create project in database:', error);
         if (error instanceof Error) {
-            console.error('[createProject-TRACE] 12.1 Error name:', error.name);
-            console.error('[createProject-TRACE] 12.2 Error message:', error.message);
-            console.error('[createProject-TRACE] 12.3 Error stack:', error.stack);
+            console.error('[createProject-TRACE] 13.1 Error name:', error.name);
+            console.error('[createProject-TRACE] 13.2 Error message:', error.message);
+            console.error('[createProject-TRACE] 13.3 Error stack:', error.stack);
         }
         throw error; // Re-throw to be handled by the caller
     }

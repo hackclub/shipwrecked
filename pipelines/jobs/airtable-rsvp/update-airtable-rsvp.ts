@@ -423,7 +423,7 @@ async function updateAirtableRSVPs(): Promise<void> {
       console.error('Terminating script due to inability to access Airtable table.');
       return;
     }
-
+    
     // Step 1: Load existing RSVP records from Airtable (will paginate if needed)
     console.log(`\nFetching existing RSVP records from Airtable...`);
     const airtableRecords = await fetchAllAirtableRecords();
@@ -448,9 +448,9 @@ async function updateAirtableRSVPs(): Promise<void> {
     console.log(`Created lookup map for ${emailToRecordMap.size} valid email addresses.`);
     
     // If we've created fields, ensure they're in our available fields
-    FIELD_DEFINITIONS.forEach(field => {
-      availableAirtableFields.add(field.name);
-    });
+          FIELD_DEFINITIONS.forEach(field => {
+            availableAirtableFields.add(field.name);
+          });
     
     // Step 3: Get emails from Airtable
     const emails = Array.from(emailToRecordMap.keys());
@@ -595,7 +595,7 @@ async function updateAirtableRSVPs(): Promise<void> {
         const batch = updates.slice(i, i + BATCH_SIZE);
         const batchStart = Date.now();
         try {
-          await rsvpTable.update(batch);
+        await rsvpTable.update(batch);
           processed += batch.length;
           const batchDuration = Date.now() - batchStart;
           
@@ -651,50 +651,50 @@ async function updateAirtableRSVPs(): Promise<void> {
           where: { 
             email: { in: emails } 
           },
-          include: { projects: true }
+            include: { projects: true }
         }) as UserWithProjects[];
-        
+      
         // Create new records for Airtable batch
         const newRecords = missingUserBatch.map((user: UserWithProjects) => {
-          // Calculate user metrics
-          const metrics = calculateUserMetrics(user);
+        // Calculate user metrics
+        const metrics = calculateUserMetrics(user);
+        
+        // Create record fields
+        const fields: { [key: string]: any } = {
+          // Required Airtable fields
+          'Email': user.email,
+          // Optional user fields if available
+          'First Name': user.name?.split(' ')[0] || '',
+          'Last Name': user.name?.split(' ').slice(1).join(' ') || '',
+          // These users exist in the Bay database
+          'userExistsInBay': true
+        };
+        
+        // Add all metric fields
+        for (const [pgField, atField] of Object.entries(FIELD_MAPPING)) {
+          if (pgField === 'email') continue; // Skip email since we already set it
           
-          // Create record fields
-          const fields: { [key: string]: any } = {
-            // Required Airtable fields
-            'Email': user.email,
-            // Optional user fields if available
-            'First Name': user.name?.split(' ')[0] || '',
-            'Last Name': user.name?.split(' ').slice(1).join(' ') || '',
-            // These users exist in the Bay database
-            'userExistsInBay': true
-          };
-          
-          // Add all metric fields
-          for (const [pgField, atField] of Object.entries(FIELD_MAPPING)) {
-            if (pgField === 'email') continue; // Skip email since we already set it
-            
             // Only include fields that have values
-            if (metrics[pgField as keyof UserMetrics] !== undefined) {
-              // Format dates as ISO strings
-              if (metrics[pgField as keyof UserMetrics] instanceof Date) {
-                fields[atField] = (metrics[pgField as keyof UserMetrics] as Date).toISOString();
-              } else {
-                fields[atField] = metrics[pgField as keyof UserMetrics];
-              }
+          if (metrics[pgField as keyof UserMetrics] !== undefined) {
+            // Format dates as ISO strings
+            if (metrics[pgField as keyof UserMetrics] instanceof Date) {
+              fields[atField] = (metrics[pgField as keyof UserMetrics] as Date).toISOString();
+            } else {
+              fields[atField] = metrics[pgField as keyof UserMetrics];
             }
           }
-          
-          return { fields };
-        });
+        }
         
+        return { fields };
+      });
+      
         // Add new records to Airtable in internal batches
-        if (newRecords.length > 0) {
+      if (newRecords.length > 0) {
           // Airtable has a hard limit of 10 records per request
           const AIRTABLE_BATCH_SIZE = 10;
           for (let j = 0; j < newRecords.length; j += AIRTABLE_BATCH_SIZE) {
             const recordBatch = newRecords.slice(j, j + AIRTABLE_BATCH_SIZE);
-            try {
+          try {
               const batchStart = Date.now();
               await rsvpTable.create(recordBatch);
               const batchDuration = Date.now() - batchStart;
@@ -803,7 +803,7 @@ async function fetchAllAirtableRecords(): Promise<AirtableRecord[]> {
           if (err) {
             console.error('Error fetching records from Airtable:', err);
             reject(err);
-          } else {
+  } else {
             resolve();
           }
         }
@@ -815,8 +815,8 @@ async function fetchAllAirtableRecords(): Promise<AirtableRecord[]> {
     console.error('Error fetching all Airtable records:', error);
     return [];
   }
-}
-
+      }
+      
 // Entry point
 if (require.main === module) {
   updateAirtableRSVPs();

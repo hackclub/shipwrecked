@@ -17,7 +17,7 @@
   /* background-color: #47D1F6; */
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 90%;
+  width: 95%; /* Increased from 90% to use more screen space */
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
@@ -60,13 +60,36 @@
 }
 
 .content {
-  padding: 1.25rem;
+  padding: 1rem; /* Reduced from 1.25rem */
   padding-bottom: 2rem;
   color: #374151;
   line-height: 1.5;
   flex-grow: 1;
   overflow-y: auto;
   position: relative;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    width: 100%; /* Full width on mobile */
+    max-width: none; /* Remove max-width constraint on mobile */
+    height: 100%; /* Full height on mobile */
+    max-height: 100vh;
+    border-radius: 0; /* No rounded corners on full-screen mobile */
+  }
+  
+  .content {
+    padding: 0.5rem; /* Even less padding on mobile */
+    padding-bottom: 1.5rem;
+  }
+  
+  .header {
+    padding: 0.75rem; /* Less padding in header on mobile */
+  }
+  
+  .title {
+    font-size: 1.75rem; /* Slightly smaller title on mobile */
+  }
 }
 
 .footer {

@@ -33,7 +33,7 @@ interface Project {
   user: User;
   reviews: { id: string }[];
   rawHours: number;
-  hoursOverride?: number;
+  hackatimeLinks: { id: string; hackatimeName: string; rawHours: number; hoursOverride?: number }[];
 }
 
 // Type for form state
@@ -90,10 +90,31 @@ function AdminProjectsContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmProjectName, setConfirmProjectName] = useState('');
   
+  // State variables for Hackatime link management
+  const [showUnlinkModal, setShowUnlinkModal] = useState<boolean>(false);
+  const [linkToUnlink, setLinkToUnlink] = useState<{id: string; hackatimeName: string; projectID: string} | null>(null);
+  const [confirmLinkName, setConfirmLinkName] = useState<string>('');
+  const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
+  
+  // State for adding new Hackatime links
+  const [showAddLinkModal, setShowAddLinkModal] = useState(false);
+  const [newHackatimeName, setNewHackatimeName] = useState('');
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<string[]>([]);
+  
   // Get the current filter from URL
   const currentFilter = searchParams.get('filter') || 'all';
   // Get the selected project ID from URL if available
   const selectedProjectId = searchParams.get('projectId');
+  
+  // Add this helper function for consistent calculation
+  const calculateApprovedHours = (links: { id: string; hackatimeName: string; rawHours: number; hoursOverride?: number }[]) => {
+    return links.reduce((sum, link) => {
+      // Only include hours that have been explicitly approved
+      const linkHours = typeof link.hoursOverride === 'number' ? link.hoursOverride : undefined;
+      return sum + (typeof linkHours === 'number' ? linkHours : 0);
+    }, 0);
+  };
   
   // Handle form submission
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -222,12 +243,17 @@ function AdminProjectsContent() {
     (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
   
-  // Calculate total effective hours of filtered projects
+  // Calculate total effective hours and raw hours of filtered projects
   const totalEffectiveHours = filteredProjects.reduce((total, project) => {
-    const hours = (project.hoursOverride !== undefined && project.hoursOverride !== null) 
-      ? project.hoursOverride 
-      : project.rawHours;
-    return total + hours;
+    // Calculate approved hours for this project
+    if (!project.hackatimeLinks || project.hackatimeLinks.length === 0) {
+      return total;
+    }
+    
+    // Sum up only hours that have been explicitly approved
+    const projectApprovedHours = calculateApprovedHours(project.hackatimeLinks);
+    
+    return total + projectApprovedHours;
   }, 0);
 
   // Change the current filter
@@ -360,6 +386,166 @@ function AdminProjectsContent() {
     setShowDeleteModal(true);
   };
 
+  // Function to handle Hackatime link deletion
+  const handleUnlinkHackatime = async () => {
+    if (!linkToUnlink) return;
+    
+    // Extra verification - check if Hackatime project name matches confirmation input
+    if (confirmLinkName !== linkToUnlink.hackatimeName) {
+      toast.error("Project name doesn't match. Unlinking aborted.");
+      return;
+    }
+    
+    setIsUnlinking(true);
+    try {
+      const response = await fetch(`/api/admin/projects/${linkToUnlink.projectID}/hackatime-links/${linkToUnlink.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        toast.success(`Successfully unlinked "${linkToUnlink.hackatimeName}"`);
+        
+        // Update the selected project in state by removing the link
+        setSelectedProject(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            hackatimeLinks: prev.hackatimeLinks.filter(l => l.id !== linkToUnlink.id)
+          };
+        });
+        
+        // Also update the projects list
+        setProjects(prevProjects => 
+          prevProjects.map(p => {
+            if (p.projectID === linkToUnlink.projectID) {
+              return {
+                ...p,
+                hackatimeLinks: p.hackatimeLinks?.filter(l => l.id !== linkToUnlink.id)
+              };
+            }
+            return p;
+          })
+        );
+        
+        // Close the modal
+        setShowUnlinkModal(false);
+        setLinkToUnlink(null);
+        setConfirmLinkName('');
+      } else {
+        const errorData = await response.json();
+        toast.error(`Failed to unlink Hackatime project: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error unlinking Hackatime project:', error);
+      toast.error('Failed to unlink Hackatime project');
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+  
+  // Function to open the unlink confirmation modal
+  const openUnlinkModal = (link: {id: string; hackatimeName: string; projectID: string}) => {
+    setLinkToUnlink(link);
+    setConfirmLinkName(''); // Reset the confirmation input
+    setShowUnlinkModal(true);
+  };
+  
+  // Function to fetch available Hackatime projects for a user
+  const fetchAvailableHackatimeProjects = async (userId: string) => {
+    try {
+      // This would fetch all Hackatime projects for the user
+      const response = await fetch(`/api/admin/users/${userId}/hackatime-projects`);
+      
+      if (!response.ok) {
+        toast.error("Failed to fetch Hackatime projects");
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Filter out projects that are already linked
+      const alreadyLinkedProjects = selectedProject?.hackatimeLinks.map(link => link.hackatimeName) || [];
+      const availableProjects = data.projects.filter(
+        (project: string) => !alreadyLinkedProjects.includes(project)
+      );
+      
+      setAvailableHackatimeProjects(availableProjects);
+    } catch (error) {
+      console.error('Error fetching Hackatime projects:', error);
+      toast.error("Failed to fetch Hackatime projects");
+    }
+  };
+  
+  // Function to open the add link modal
+  const openAddLinkModal = () => {
+    if (!selectedProject) return;
+    
+    // Reset form state
+    setNewHackatimeName('');
+    setIsAddingLink(false);
+    
+    // Fetch available Hackatime projects for the project owner
+    fetchAvailableHackatimeProjects(selectedProject.userId);
+    
+    // Open the modal
+    setShowAddLinkModal(true);
+  };
+  
+  // Function to add a new Hackatime link
+  const handleAddHackatimeLink = async () => {
+    if (!selectedProject || !newHackatimeName) {
+      toast.error("Please select a Hackatime project");
+      return;
+    }
+    
+    setIsAddingLink(true);
+    
+    try {
+      const response = await fetch(`/api/admin/projects/${selectedProject.projectID}/hackatime-links`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ hackatimeName: newHackatimeName })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add Hackatime link");
+      }
+      
+      const data = await response.json();
+      
+      // Update the selected project with the new link
+      if (selectedProject) {
+        const updatedLinks = [...selectedProject.hackatimeLinks, data.link];
+        const updatedProject = { 
+          ...selectedProject, 
+          hackatimeLinks: updatedLinks,
+          // Update rawHours if the API provided a new total
+          rawHours: data.link.rawHours + (selectedProject.rawHours || 0)
+        };
+        
+        setSelectedProject(updatedProject);
+        
+        // Also update the project in the main projects list
+        setProjects(prevProjects => 
+          prevProjects.map(p => 
+            p.projectID === updatedProject.projectID ? updatedProject : p
+          )
+        );
+      }
+      
+      toast.success(`Added Hackatime project "${newHackatimeName}"`);
+      setShowAddLinkModal(false);
+    } catch (error) {
+      console.error('Error adding Hackatime link:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to add Hackatime link");
+    } finally {
+      setIsAddingLink(false);
+    }
+  };
+
   if (status !== 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -384,8 +570,9 @@ function AdminProjectsContent() {
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-xl font-bold">Projects</h2>
-            <div className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
-              Total Hours: {totalEffectiveHours.toFixed(1)}h
+            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg flex items-center">
+              <span className="text-sm font-medium mr-1">Total Approved Hours:</span>
+              <span className="text-xl font-bold">{totalEffectiveHours.toFixed(1)}h</span>
             </div>
           </div>
           <div className="flex items-center space-x-2 mb-4 flex-wrap">
@@ -510,9 +697,29 @@ function AdminProjectsContent() {
                           )}
                         </div>
                         <div className="text-xs text-gray-600 font-semibold">
-                          {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
-                            ? `${project.hoursOverride}h` 
-                            : `${project.rawHours}h`}
+                          {(() => {
+                            try {
+                              // Calculate raw hours
+                              const rawHours = project.hackatimeLinks?.reduce(
+                                (sum, link) => sum + (typeof link?.rawHours === 'number' ? link.rawHours : 0),
+                                0
+                              ) || 0;
+                              
+                              // Calculate approved hours using our helper
+                              const approvedHours = project.hackatimeLinks ? 
+                                calculateApprovedHours(project.hackatimeLinks) : 0;
+                              
+                              // If there are both raw hours and different approved hours, show both
+                              if (approvedHours > 0 && Math.abs(rawHours - approvedHours) > 0.01) {
+                                return `${approvedHours.toFixed(1)}h (${rawHours.toFixed(1)}h raw)`;
+                              }
+                              // Otherwise just show the raw hours
+                              return `${rawHours.toFixed(1)}h`;
+                            } catch (e) {
+                              // Fallback in case of any error
+                              return `0.0h`;
+                            }
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -582,25 +789,101 @@ function AdminProjectsContent() {
             
             <div className="mb-5 bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
-              <div>
-                <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">
-                  Override Hours (optional)
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="number"
-                    id="hoursOverride"
-                    name="hoursOverride"
-                    className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="e.g. 12.5"
-                    defaultValue={selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null ? selectedProject.hoursOverride.toString() : ''}
-                    step="0.1"
-                  />
-                  <span className="ml-3 text-sm text-gray-500">
-                    (Hackatime reported: {selectedProject.rawHours}h)
-                  </span>
+              
+              {/* Hackatime Links Section */}
+              {selectedProject?.hackatimeLinks && selectedProject.hackatimeLinks.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500">
+                      This project is linked to {selectedProject.hackatimeLinks.length} Hackatime project{selectedProject.hackatimeLinks.length > 1 ? 's' : ''}. 
+                      You can set approved hours for each individual link below.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openAddLinkModal}
+                      className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Link
+                    </button>
+                  </div>
+                  
+                  {selectedProject.hackatimeLinks.map((link) => (
+                    <div key={link.id} className="border border-gray-200 p-3 rounded-md">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-sm">{link.hackatimeName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">
+                            {typeof link.rawHours === 'number' ? `${link.rawHours}h` : '0h'} from Hackatime
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openUnlinkModal({
+                              id: link.id,
+                              hackatimeName: link.hackatimeName,
+                              projectID: selectedProject.projectID
+                            })}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                            aria-label={`Remove link to ${link.hackatimeName}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <label htmlFor={`linkOverride-${link.id}`} className="text-xs text-gray-600 mr-2">
+                          Approved:
+                        </label>
+                        <input
+                          type="number"
+                          id={`linkOverride-${link.id}`}
+                          name={`linkOverride-${link.id}`}
+                          className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="e.g. 10.5"
+                          defaultValue={link.hoursOverride?.toString() || ''}
+                          step="0.1"
+                        />
+                        <span className="ml-2 text-xs text-gray-500">hours</span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Total Approved Hours:</span>
+                      <span>
+                        {calculateApprovedHours(selectedProject.hackatimeLinks).toFixed(1)}h
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Note: Individual approved hours will replace raw hours from Hackatime when calculating the project's total hours.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-yellow-700">
+                      This project doesn't have any Hackatime links.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openAddLinkModal}
+                      className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Link
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
@@ -735,25 +1018,101 @@ function AdminProjectsContent() {
               
               <div className="mb-5 bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
-                <div>
-                  <label htmlFor="hoursOverride" className="block text-sm font-medium text-gray-700 mb-1">
-                    Override Hours (optional)
-                  </label>
-                  <div className="flex items-center">
-                    <input
-                      type="number"
-                      id="hoursOverride"
-                      name="hoursOverride"
-                      className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="e.g. 12.5"
-                      defaultValue={selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null ? selectedProject.hoursOverride.toString() : ''}
-                      step="0.1"
-                    />
-                    <span className="ml-3 text-sm text-gray-500">
-                      (Hackatime reported: {selectedProject.rawHours}h)
-                    </span>
+                
+                {/* Hackatime Links Section */}
+                {selectedProject?.hackatimeLinks && selectedProject.hackatimeLinks.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-gray-500">
+                        This project is linked to {selectedProject.hackatimeLinks.length} Hackatime project{selectedProject.hackatimeLinks.length > 1 ? 's' : ''}. 
+                        You can set approved hours for each individual link below.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openAddLinkModal}
+                        className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Link
+                      </button>
+                    </div>
+                    
+                    {selectedProject.hackatimeLinks.map((link) => (
+                      <div key={`mobile-${link.id}`} className="border border-gray-200 p-3 rounded-md">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-sm">{link.hackatimeName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">
+                              {typeof link.rawHours === 'number' ? `${link.rawHours}h` : '0h'} from Hackatime
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openUnlinkModal({
+                                id: link.id,
+                                hackatimeName: link.hackatimeName,
+                                projectID: selectedProject.projectID
+                              })}
+                              className="text-red-500 hover:text-red-700 text-xs"
+                              aria-label={`Remove link to ${link.hackatimeName}`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <label htmlFor={`mobile-linkOverride-${link.id}`} className="text-xs text-gray-600 mr-2">
+                            Approved:
+                          </label>
+                          <input
+                            type="number"
+                            id={`mobile-linkOverride-${link.id}`}
+                            name={`linkOverride-${link.id}`}
+                            className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            placeholder="e.g. 10.5"
+                            defaultValue={link.hoursOverride?.toString() || ''}
+                            step="0.1"
+                          />
+                          <span className="ml-2 text-xs text-gray-500">hours</span>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">Total Approved Hours:</span>
+                        <span>
+                          {calculateApprovedHours(selectedProject.hackatimeLinks).toFixed(1)}h
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Note: Individual approved hours will replace raw hours from Hackatime when calculating the project's total hours.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-yellow-700">
+                        This project doesn't have any Hackatime links.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openAddLinkModal}
+                        className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Link
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
@@ -873,6 +1232,146 @@ function AdminProjectsContent() {
                 disabled={isDeleting || confirmProjectName !== projectToDelete?.name}
               >
                 {isDeleting ? "Deleting..." : "Delete Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Add Hackatime Link Modal */}
+      {showAddLinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Add Hackatime Project Link</h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-700 mb-4">
+                Select a Hackatime project to link to this project. This will add the project&apos;s hours to the total.
+              </p>
+              
+              {availableHackatimeProjects.length > 0 ? (
+                <>
+                  <div className="mb-4">
+                    <label htmlFor="hackatimeProject" className="block text-sm font-medium text-gray-700 mb-1">
+                      Hackatime Project
+                    </label>
+                    <select
+                      id="hackatimeProject"
+                      value={newHackatimeName}
+                      onChange={(e) => setNewHackatimeName(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a project</option>
+                      {availableHackatimeProjects.map((project) => (
+                        <option key={project} value={project}>{project}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowAddLinkModal(false)}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                      disabled={isAddingLink}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddHackatimeLink}
+                      className={`px-4 py-2 text-white rounded ${
+                        newHackatimeName
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-blue-300 cursor-not-allowed'
+                      }`}
+                      disabled={isAddingLink || !newHackatimeName}
+                    >
+                      {isAddingLink ? (
+                        <>
+                          <span className="inline-block animate-spin mr-2">⟳</span>
+                          Adding...
+                        </>
+                      ) : (
+                        'Add Link'
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                  <p className="text-sm text-yellow-700">
+                    No available Hackatime projects found for this user. Either all projects are already linked or the user has no Hackatime projects.
+                  </p>
+                  <button
+                    onClick={() => setShowAddLinkModal(false)}
+                    className="mt-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Hackatime Unlink Confirmation Modal */}
+      {showUnlinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Unlink</h3>
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to unlink the Hackatime project{" "}
+                <span className="font-semibold">{linkToUnlink?.hackatimeName || 'Unknown'}</span>?
+                This action cannot be undone.
+              </p>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      For extra security, please type the Hackatime project name to confirm unlinking.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type "{linkToUnlink?.hackatimeName}" to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmLinkName}
+                onChange={(e) => setConfirmLinkName(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Hackatime project name"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowUnlinkModal(false);
+                  setLinkToUnlink(null);
+                  setConfirmLinkName('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                disabled={isUnlinking}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUnlinkHackatime}
+                className={`px-4 py-2 text-white rounded ${
+                  confirmLinkName === linkToUnlink?.hackatimeName
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-300 cursor-not-allowed'
+                }`}
+                disabled={isUnlinking || confirmLinkName !== linkToUnlink?.hackatimeName}
+              >
+                {isUnlinking ? "Unlinking..." : "Unlink Project"}
               </button>
             </div>
           </div>

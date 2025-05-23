@@ -99,10 +99,12 @@ export async function POST(request: NextRequest) {
 
     // nah, send the review email from here
     const host = process.env.NEXTAUTH_URL;
-    const updateContent = `Review Update for ${project.name} just came in! Check it out at https://${host}/bay`;
+    // Still include result text in notifications if provided in the request
+    const resultText = body.result ? `${body.result === 'approve' ? 'Approved' : 'Rejected'}: ` : '';
+    const updateContent = `Review Update for ${project.name} just came in! ${resultText}Check it out at https://${host}/bay`;
 
     const date = new Date();
-    const datetime = `${date.getDate()}/${date.getMonth()}/${date.getFullYear()} - ${date.getHours()}:${date.getMinutes()}`
+    const datetime = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} - ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
           
     await sendNotificationEmail(project.user.email, project.name, datetime, updateContent);
 

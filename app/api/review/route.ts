@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
             createdAt: 'desc',
           },
         },
+        hackatimeLinks: true,
       },
     });
 
@@ -61,6 +62,12 @@ export async function GET(request: NextRequest) {
     const formattedProjects = (projectsInReview || []).map((project: any) => {
       const latestReview = project.reviews.length > 0 ? project.reviews[0] : null;
       
+      // Calculate raw hours from hackatime links
+      const rawHours = project.hackatimeLinks.reduce(
+        (sum: number, link: any) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
+        0
+      );
+      
       return {
         ...project,
         userName: project.user?.name || null,
@@ -68,6 +75,7 @@ export async function GET(request: NextRequest) {
         userImage: project.user?.image || null,
         latestReview,
         reviewCount: project.reviews?.length || 0,
+        rawHours: rawHours,
       };
     });
 

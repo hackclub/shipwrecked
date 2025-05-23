@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
 
@@ -10,18 +10,29 @@ export type ReviewRequestType = 'ShippedApproval' | 'ViralApproval' | 'HoursAppr
 interface ProjectReviewRequestProps {
   projectID: string;
   isInReview: boolean;
+  isShipped?: boolean; // Add shipped status prop
+  isViral?: boolean; // Add viral status prop
   onRequestSubmitted: (updatedProject: any, review: any) => void;
 }
 
 export default function ProjectReviewRequest({
   projectID,
   isInReview,
+  isShipped = false, // Default to false if not provided
+  isViral = false, // Default to false if not provided
   onRequestSubmitted
 }: ProjectReviewRequestProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
-  const [reviewType, setReviewType] = useState<ReviewRequestType>('ShippedApproval');
+  const [reviewType, setReviewType] = useState<ReviewRequestType>(isShipped ? 'HoursApproval' : 'ShippedApproval');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Effect to update default reviewType when isShipped or isViral changes
+  useEffect(() => {
+    // If project is already shipped, default to HoursApproval
+    // Otherwise default to ShippedApproval
+    setReviewType(isShipped ? 'HoursApproval' : 'ShippedApproval');
+  }, [isShipped]);
 
   // Don't show this component in review mode or if project is already in review
   if (isReviewMode || isInReview) {
@@ -78,7 +89,7 @@ export default function ProjectReviewRequest({
       case 'ViralApproval':
         return "Explain why this project should be considered 'viral'. Include links to social media that prove you have met one of the requirements on shipwrecked.hackclub.com/info/go-viral (if doing hacker news, link archive.org snapshot)";
       case 'HoursApproval':
-        return "Provide details about the hours spent on this project since you last submitted for hour approval that backup your time logged on hackatime. (ex. I implemented feature X, Y, & Z.) Please keep it short & use bullets for readability.";
+        return "Provide details about the updates you've made to this project since it was approved as shipped. (ex. I implemented feature X, Y, & Z.) Please keep it short & use bullets for readability.";
       case 'Other':
         return "Specify what you need reviewed about this project.";
       default:
@@ -103,9 +114,15 @@ export default function ProjectReviewRequest({
             disabled={isSubmitting}
             required
           >
-            <option value="ShippedApproval">I want this project approved as shipped</option>
-            <option value="ViralApproval">I want this project approved as viral</option>
-            <option value="HoursApproval">I want this project's currently reported hours to be approved</option>
+            {!isShipped && (
+              <option value="ShippedApproval">I want this project approved as shipped</option>
+            )}
+            {!isViral && (
+              <option value="ViralApproval">I want this project approved as viral</option>
+            )}
+            {isShipped && (
+              <option value="HoursApproval">I want to ship an update to this project</option>
+            )}
             <option value="Other">Other</option>
           </select>
         </div>

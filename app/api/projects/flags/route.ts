@@ -36,8 +36,6 @@ export async function PATCH(request: NextRequest) {
       if (typeof body.shipped === 'boolean') updateData.shipped = body.shipped;
       if (typeof body.viral === 'boolean') updateData.viral = body.viral;
       if (typeof body.in_review === 'boolean') updateData.in_review = body.in_review;
-      if (typeof body.hoursOverride === 'number') updateData.hoursOverride = body.hoursOverride;
-      if (typeof body.rawHours === 'number') updateData.rawHours = body.rawHours;
     } 
     // Reviewers can only update in_review status
     else if (isReviewer) {
@@ -47,16 +45,19 @@ export async function PATCH(request: NextRequest) {
       const attemptedFields = [];
       if (typeof body.shipped === 'boolean') attemptedFields.push('shipped');
       if (typeof body.viral === 'boolean') attemptedFields.push('viral');
-      if (typeof body.hoursOverride === 'number') attemptedFields.push('hoursOverride');
-      if (typeof body.rawHours === 'number') attemptedFields.push('rawHours');
       
       if (attemptedFields.length > 0) {
         console.warn(`Reviewer ${session.user.id} attempted to update restricted fields: ${attemptedFields.join(', ')}`);
       }
     }
 
-    // If no valid flags provided
-    if (Object.keys(updateData).length === 0) {
+    // Check for hackatime link overrides
+    const hackatimeLinkOverrides = body.hackatimeLinkOverrides;
+    const hasLinkOverrides = hackatimeLinkOverrides !== undefined && 
+                             typeof hackatimeLinkOverrides === 'object';
+
+    // If no valid flags provided and no link overrides
+    if (Object.keys(updateData).length === 0 && !hasLinkOverrides) {
       return NextResponse.json({ error: 'No valid fields provided to update' }, { status: 400 });
     }
 
@@ -70,7 +71,8 @@ export async function PATCH(request: NextRequest) {
           select: {
             id: true,
           }
-        }
+        },
+        hackatimeLinks: true
       }
     });
 
@@ -78,12 +80,60 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Update the project
-    const updatedProject = await prisma.project.update({
-      where: {
-        projectID: body.projectID,
-      },
-      data: updateData,
+    // Create a transaction to update both project flags and hackatime link overrides
+    const updatedProject = await prisma.$transaction(async (prismaClient) => {
+      // 1. Update the project
+      const updated = await prismaClient.project.update({
+        where: {
+          projectID: body.projectID,
+        },
+        data: updateData,
+        include: {
+          hackatimeLinks: true
+        }
+      });
+      
+      // 2. Process Hackatime link overrides if provided (even if empty)
+      if (isAdmin && hasLinkOverrides) {
+        console.log(`Processing Hackatime link overrides`);
+        
+        // Get all link IDs from the current project
+        const projectLinkIds = currentProject.hackatimeLinks.map(link => link.id);
+        
+        // For each link in the project, check if it has an override in the request
+        for (const linkId of projectLinkIds) {
+          // Check if this link ID exists in the overrides object
+          const hasOverrideValue = linkId in hackatimeLinkOverrides;
+          const overrideValue = hackatimeLinkOverrides[linkId];
+          
+          // Only process if this link is mentioned in the overrides (either to set or clear)
+          if (hasOverrideValue) {
+            console.log(`Processing override for link ${linkId}: ${overrideValue}`);
+            
+            if (typeof overrideValue === 'number' && !isNaN(overrideValue)) {
+              // Set a specific override value
+              await prismaClient.hackatimeProjectLink.update({
+                where: { id: linkId },
+                data: { hoursOverride: overrideValue }
+              });
+              console.log(`Set override to ${overrideValue} for link ${linkId}`);
+            } else {
+              // Clear the override (null)
+              await prismaClient.hackatimeProjectLink.update({
+                where: { id: linkId },
+                data: { hoursOverride: null }
+              });
+              console.log(`Cleared override for link ${linkId}`);
+            }
+          }
+        }
+      }
+      
+      // Refresh project data with updated links
+      return await prismaClient.project.findUnique({
+        where: { projectID: body.projectID },
+        include: { hackatimeLinks: true }
+      });
     });
 
     // Log appropriate audit events based on what changed
@@ -127,10 +177,40 @@ export async function PATCH(request: NextRequest) {
         userId: targetUserId,
         actorUserId: actorId,
         metadata: {
-          shipped: updatedProject.shipped,
-          viral: updatedProject.viral
+          shipped: updatedProject?.shipped ?? currentProject.shipped,
+          viral: updatedProject?.viral ?? currentProject.viral
         }
       });
+    }
+    
+    // Log Hackatime hour overrides
+    if (hasLinkOverrides && isAdmin) {
+      const linkChanges = Object.entries(hackatimeLinkOverrides).map(([linkId, hours]) => {
+        const link = currentProject.hackatimeLinks.find(l => l.id === linkId);
+        if (!link) return null;
+        
+        const previousHours = link.hoursOverride;
+        return {
+          linkId,
+          hackatimeName: link.hackatimeName,
+          previousHours: previousHours,
+          newHours: hours
+        };
+      }).filter(Boolean);
+      
+      if (linkChanges.length > 0) {
+        await logProjectEvent({
+          eventType: AuditLogEventType.OtherEvent,
+          description: `Hours overrides updated for project "${currentProject.name}"`,
+          projectId: body.projectID,
+          userId: targetUserId,
+          actorUserId: actorId,
+          metadata: {
+            action: "hours_override_update",
+            linkChanges
+          }
+        });
+      }
     }
 
     return NextResponse.json(updatedProject);
