@@ -1,5 +1,5 @@
 'use client'
-import type { Project } from "@/app/api/projects/route"
+import type { Project, ProjectType } from "@/app/api/projects/route"
 import Icon from "@hackclub/icons"
 import { toast } from "sonner"
 import { useState, useEffect } from "react";
@@ -8,12 +8,13 @@ import { useIsMobile } from "@/lib/hooks";
 type ProjectProps = Project & { 
     userId: string, 
     hoursOverride?: number,
-    rawHours: number,
-    editHandler?: (project: Project) => void,
+    rawHours?: number,
+    hackatime?: string,
+    editHandler?: (project: ProjectType) => void,
     selected?: boolean
 };
 
-export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hoursOverride, rawHours, selected, viral, shipped, in_review }: ProjectProps) {
+export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hoursOverride, rawHours = 0, selected, viral, shipped, in_review }: ProjectProps) {
     // Detect mobile screen size
     const isMobile = useIsMobile();
 
@@ -38,7 +39,7 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
         }
     };
 
-    const displayHours = typeof hoursOverride === 'number' ? hoursOverride : rawHours;
+    const displayHours = typeof hoursOverride === 'number' ? hoursOverride : (rawHours || 0);
     return (
         <div 
             className={`flex items-center p-3 hover:bg-gray-50 border-b border-gray-200 cursor-pointer transition-colors ${

@@ -90,7 +90,7 @@ export default function Modal({
             <img className='w-[40px]' src="/mark-cross.svg" />
           </button>
         </div>
-        <div className={styles.content} ref={contentRef}>
+        <div className={`${styles.content} overflow-x-auto`} ref={contentRef}>
           {children}
         </div>
         {!hideFooter && (

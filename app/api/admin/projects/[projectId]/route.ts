@@ -24,7 +24,7 @@ export async function GET(
     // Use destructuring to access params properly
     const { projectId } = params;
     
-    // Fetch the specific project with user info and reviews
+    // Fetch the specific project with user info, reviews, and hackatime links
     const project = await prisma.project.findUnique({
       where: {
         projectID: projectId,
@@ -43,6 +43,7 @@ export async function GET(
             id: true,
           },
         },
+        hackatimeLinks: true
       },
     });
 
@@ -50,7 +51,19 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    // Calculate total raw hours from all hackatime links
+    const rawHours = project.hackatimeLinks.reduce(
+      (sum, link) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0), 
+      0
+    );
+    
+    // Return project with calculated rawHours
+    const processedProject = {
+      ...project,
+      rawHours
+    };
+
+    return NextResponse.json(processedProject);
   } catch (error) {
     console.error('Error fetching project:', error);
     return NextResponse.json(
@@ -86,7 +99,8 @@ export async function DELETE(
         projectID: projectId,
       },
       include: {
-        user: true // Include user info to identify the project owner
+        user: true, // Include user info to identify the project owner
+        hackatimeLinks: true // Include hackatime links
       }
     });
     
@@ -100,9 +114,7 @@ export async function DELETE(
     console.log(`[ADMIN DELETE] Creating audit log for project deletion: ${projectId}`);
     const auditLogResult = await logProjectEvent({
       eventType: AuditLogEventType.ProjectDeleted,
-      description: projectToDelete.hackatime 
-          ? `Project "${projectToDelete.name}" was deleted by admin (Hackatime: ${projectToDelete.hackatime})` 
-          : `Project "${projectToDelete.name}" was deleted by admin`,
+      description: `Project "${projectToDelete.name}" was deleted by admin`,
       projectId: projectId,
       userId: projectToDelete.userId, // Target user is the project owner
       actorUserId: session.user.id, // Actor is the admin
@@ -111,7 +123,6 @@ export async function DELETE(
           projectID: projectToDelete.projectID,
           name: projectToDelete.name,
           description: projectToDelete.description,
-          hackatime: projectToDelete.hackatime || null,
           adminAction: true,
           ownerName: projectToDelete.user?.name,
           ownerEmail: projectToDelete.user?.email
@@ -123,6 +134,13 @@ export async function DELETE(
     
     // First delete any reviews associated with the project
     await prisma.review.deleteMany({
+      where: {
+        projectID: projectId,
+      },
+    });
+    
+    // Delete hackatime links associated with the project
+    await prisma.hackatimeProjectLink.deleteMany({
       where: {
         projectID: projectId,
       },

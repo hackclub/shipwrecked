@@ -126,10 +126,14 @@ export async function GET() {
     // Calculate project hour statistics
     const projects = await prisma.project.findMany({
       select: {
-        rawHours: true,
-        hoursOverride: true,
         shipped: true,
-        in_review: true
+        in_review: true,
+        hackatimeLinks: {
+          select: {
+            rawHours: true,
+            hoursOverride: true
+          }
+        }
       }
     });
 
@@ -139,26 +143,40 @@ export async function GET() {
     let shippedHours = 0;
     let reviewHours = 0;
 
-    projects.forEach(project => {
-      // Add to total raw hours
-      totalRawHours += project.rawHours || 0;
-      
-      // Calculate effective hours (with override if present)
-      const effectiveHours = project.hoursOverride !== null && project.hoursOverride !== undefined
-        ? project.hoursOverride
-        : project.rawHours || 0;
-      totalEffectiveHours += effectiveHours;
-      
-      // Add to shipped hours if project is shipped
-      if (project.shipped) {
-        shippedHours += effectiveHours;
-      }
-      
-      // Add to review hours if project is in review
-      if (project.in_review) {
-        reviewHours += effectiveHours;
-      }
-    });
+    if (projects && projects.length > 0) {
+      projects.forEach(project => {
+        // Calculate raw hours and effective hours from hackatime links
+        const rawHours = project.hackatimeLinks.reduce(
+          (sum, link) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
+          0
+        );
+        
+        // Calculate effective hours with overrides if present
+        const effectiveHours = project.hackatimeLinks.reduce(
+          (sum, link) => {
+            const linkHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
+              ? link.hoursOverride
+              : (typeof link.rawHours === 'number' ? link.rawHours : 0);
+            return sum + linkHours;
+          },
+          0
+        );
+        
+        // Add to totals
+        totalRawHours += rawHours;
+        totalEffectiveHours += effectiveHours;
+        
+        // Add to shipped hours if project is shipped
+        if (project.shipped) {
+          shippedHours += effectiveHours;
+        }
+        
+        // Add to review hours if project is in review
+        if (project.in_review) {
+          reviewHours += effectiveHours;
+        }
+      });
+    }
 
     // Get projects counts per user for mean and median calculation
     const userProjectCounts = await prisma.user.findMany({

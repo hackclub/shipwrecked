@@ -204,8 +204,8 @@ def update(record):
             logger.info(f"Setting country to 'Unknown' for invalid IP: {ip}")
             return {"id": id, "fields": {"Country": "Unknown"}}
         else:
-            logger.warning(f"Skipping update for {ip} due to error")
-            return None
+        logger.warning(f"Skipping update for {ip} due to error")
+        return None
     return {"id": id, "fields": {"Country": country}}
 
 logger.info("Updating Records...")

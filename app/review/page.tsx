@@ -108,13 +108,19 @@ interface Project {
   reviewCount: number;
   rawHours: number;
   hoursOverride?: number;
+  hackatimeLinks?: {
+    id: string;
+    hackatimeName: string;
+    rawHours: number;
+    hoursOverride?: number;
+  }[];
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
   const reviewTypeLabels: Record<string, { label: string, color: string }> = {
     ShippedApproval: { label: 'Shipped', color: 'blue' },
     ViralApproval: { label: 'Viral', color: 'purple' },
-    HoursApproval: { label: 'Hours', color: 'green' },
+    HoursApproval: { label: 'Ship Updates', color: 'green' },
     Other: { label: 'Other', color: 'gray' }
   };
 
@@ -184,7 +190,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
     viral: !!project.viral,
     in_review: !!project.in_review,
     approved: !!project.approved,
-    hoursOverride: project.hoursOverride
   });
   
   // Handle project flag updates
@@ -194,7 +199,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
       viral: !!updatedProject.viral,
       in_review: !!updatedProject.in_review,
       approved: !!updatedProject.approved,
-      hoursOverride: updatedProject.hoursOverride
     });
     
     // If in_review was changed to false, notify the parent component to refresh the list
@@ -300,6 +304,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
             rawHours={project.rawHours}
+            hackatimeLinks={project.hackatimeLinks}
           />
         </div>
       </div>
@@ -448,7 +453,7 @@ function ReviewPage() {
                     : 'bg-green-100 text-green-700 hover:bg-green-200'
                 }`}
               >
-                Hours Approval
+                Ship Updates
               </button>
               <button
                 onClick={() => setActiveFilter('Other')}
