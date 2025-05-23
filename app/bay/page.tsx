@@ -2,7 +2,7 @@
 import styles from './page.module.css';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
-import { useState, useEffect, useActionState, useContext, useMemo, ReactElement, useCallback } from 'react';
+import { useState, useEffect, useActionState, useContext, useMemo, ReactElement } from 'react';
 import type { FormSave } from '@/components/form/FormInput';
 import { Project } from '@/components/common/Project';
 import FormSelect from '@/components/form/FormSelect';
@@ -88,35 +88,9 @@ function AccessDeniedHaiku() {
 
 // Add these action functions before the Bay component
 async function createProjectAction(state: FormSave, formData: FormData): Promise<FormSave> {
-  // Convert FormData to a normal object for better debugging
-  const formDataObj: Record<string, any> = {};
-  
-  // Extract multiple hackatimeProjects entries correctly
-  const hackatimeProjects: string[] = [];
-  
-  // Process all form fields
-  for (const [key, value] of formData.entries()) {
-    if (key === 'hackatimeProjects') {
-      // Collect all hackatimeProjects values into an array
-      if (typeof value === 'string') {
-        hackatimeProjects.push(value);
-      }
-    } else {
-      // For other fields, just store the last value
-      formDataObj[key] = value;
-    }
-  }
-  
-  // Add the collected hackatimeProjects array to the form data object
-  formDataObj.hackatimeProjects = hackatimeProjects;
-  
-  // Make the API call
   const response = await fetch('/api/projects', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(formDataObj)
+    body: formData
   });
 
   if (!response.ok) {
@@ -174,8 +148,6 @@ function ProjectDetail({
   onEdit: (project?: any) => void,
   setProjects: React.Dispatch<React.SetStateAction<ProjectType[]>>
 }): ReactElement {
-  console.log(`[DEBUG] ProjectDetail render for ${project.name} - projectID: ${project.projectID}`);
-  
   const { isReviewMode } = useReviewMode();
   const [projectFlags, setProjectFlags] = useState<ProjectFlags>({
     shipped: !!project.shipped,
@@ -187,8 +159,6 @@ function ProjectDetail({
   const isEditingAllowed = isReviewMode || !projectFlags.in_review;
   
   // Update projectFlags when project prop changes
-  // This was part of the problem - it was causing re-renders when project changed
-  // which then caused another state update in a loop
   useEffect(() => {
     console.log(`[DEBUG] ProjectDetail useEffect for project changes - ${project.name}`);
     
@@ -210,31 +180,34 @@ function ProjectDetail({
     }
   }, [project.shipped, project.viral, project.in_review]);
 
-  // Calculate project's contribution percentage - memoize to avoid recalculations
-  const projectHours = useMemo(() => {
-    console.log(`[DEBUG] ProjectDetail calculating hours for ${project.name}`);
+  // Calculate project's contribution percentage
+  const getProjectHours = () => {
+    // Safety check for null project
+    if (!project) return 0;
     
     // If viral, it's 15 hours (25% toward the 60-hour goal)
     if (projectFlags.viral) {
       return 15;
     }
     
+    // Get hours from project properties
     // Use hoursOverride if present, otherwise use rawHours
-    const rawHours = typeof project.hoursOverride === 'number' && project.hoursOverride !== null 
+    const rawHours = typeof project?.hoursOverride === 'number' && project.hoursOverride !== null 
       ? project.hoursOverride 
-      : (project.rawHours || 0);
+      : project?.rawHours || 0;
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
     
     // If the project is not shipped, cap it at 14.75 hours
-    if (!projectFlags.shipped && cappedHours > 14.75) {
+    if (projectFlags?.shipped !== true && cappedHours > 14.75) {
       cappedHours = 14.75;
     }
     
     return cappedHours;
-  }, [project.hoursOverride, project.rawHours, projectFlags.viral, projectFlags.shipped]);
+  };
   
+  const projectHours = getProjectHours();
   const contributionPercentage = Math.round((projectHours / 60) * 100);
   
   const handleEdit = () => {
@@ -247,197 +220,26 @@ function ProjectDetail({
   };
 
   const handleFlagsUpdated = (updatedProject: any) => {
-    console.log('[DEBUG] handleFlagsUpdated called with:', updatedProject);
-    console.log('[DEBUG] Full updated project data:', JSON.stringify(updatedProject));
-    
-    // Make a copy of the incoming project data to avoid mutation
-    const incomingData = {
+    setProjectFlags({
       shipped: !!updatedProject.shipped,
-      viral: !!updatedProject.viral, 
-      in_review: !!updatedProject.in_review,
-      hackatimeLinkOverrides: updatedProject.hackatimeLinkOverrides 
-        ? {...updatedProject.hackatimeLinkOverrides}
-        : undefined
-    };
-    
-    console.log('[DEBUG] Incoming data normalized:', JSON.stringify(incomingData));
-    
-    // Deep comparison for hackatimeLinkOverrides to detect actual changes
-    const hasOverrideChanges = (): boolean => {
-      // If neither has overrides, no changes
-      if (!incomingData.hackatimeLinkOverrides && !projectFlags.hackatimeLinkOverrides) {
-        return false;
-      }
-      
-      // If one has overrides but the other doesn't, there are changes
-      if (!incomingData.hackatimeLinkOverrides || !projectFlags.hackatimeLinkOverrides) {
-        return true;
-      }
-      
-      const keys1 = Object.keys(incomingData.hackatimeLinkOverrides);
-      const keys2 = Object.keys(projectFlags.hackatimeLinkOverrides || {});
-      
-      // Different number of keys means changes
-      if (keys1.length !== keys2.length) {
-        return true;
-      }
-      
-      // Check each key for changes
-      for (const key of keys1) {
-        const val1 = incomingData.hackatimeLinkOverrides[key];
-        const val2 = projectFlags.hackatimeLinkOverrides?.[key];
-        
-        // Handle undefined/null equality correctly
-        if ((val1 === null || val1 === undefined) && (val2 === null || val2 === undefined)) {
-          continue;
-        }
-        
-        // If values are different, there are changes
-        if (val1 !== val2) {
-          return true;
-        }
-      }
-      
-      // No changes detected
-      return false;
-    };
-    
-    // Detect what specific changes occurred
-    const hasViralChanged = incomingData.viral !== projectFlags.viral;
-    const hasShippedChanged = incomingData.shipped !== projectFlags.shipped;
-    const hasInReviewChanged = incomingData.in_review !== projectFlags.in_review;
-    const hasHourChanges = hasOverrideChanges();
-    
-    // Check if there's any actual change to avoid unnecessary updates
-    const hasChanges = hasViralChanged || hasShippedChanged || hasInReviewChanged || hasHourChanges;
-    
-    console.log('[DEBUG] Change detection results:', {
-      shipped: hasShippedChanged,
-      viral: hasViralChanged,
-      inReview: hasInReviewChanged,
-      hours: hasHourChanges,
-      anyChange: hasChanges
+      viral: !!updatedProject.viral,
+      in_review: !!updatedProject.in_review
     });
     
-    if (!hasChanges) {
-      console.log('[DEBUG] No flag changes, skipping updates');
-      return;
-    }
-    
-    // First, update the local flag state to track what's changed
-    const newProjectFlags: ProjectFlags = {
-      ...projectFlags,
-      shipped: incomingData.shipped,
-      viral: incomingData.viral,
-      in_review: incomingData.in_review,
-    };
-    
-    // Preserve hour overrides regardless of viral status
-    if (incomingData.hackatimeLinkOverrides) {
-      newProjectFlags.hackatimeLinkOverrides = Object.fromEntries(
-        Object.entries(incomingData.hackatimeLinkOverrides).map(([key, value]) => 
-          [key, value === null ? undefined : (value as number | undefined)]
-        )
-      ) as Record<string, number | undefined>;
-    } else if (projectFlags.hackatimeLinkOverrides) {
-      // If no new overrides but we had some before, preserve them
-      newProjectFlags.hackatimeLinkOverrides = {...projectFlags.hackatimeLinkOverrides};
-    }
-    
-    // IMPORTANT: Process the hackatimeLinkOverrides if present
-    let hackatimeLinks = [...(project.hackatimeLinks || [])];
-    
-    // Only update link overrides if we explicitly received changes to them
-    if (incomingData.hackatimeLinkOverrides) {
-      console.log('[DEBUG] Processing hackatimeLinkOverrides:', incomingData.hackatimeLinkOverrides);
-      
-      // Track whether any links were actually changed
-      let linksChanged = false;
-      
-      // Update each link's hoursOverride based on the overrides object
-      hackatimeLinks = hackatimeLinks.map(link => {
-        // Only update links that were explicitly included in the overrides
-        if (link.id in incomingData.hackatimeLinkOverrides) {
-          const override = incomingData.hackatimeLinkOverrides[link.id];
-          
-          // Normalize the existing value for comparison
-          const currentOverride = link.hoursOverride === null ? undefined : link.hoursOverride;
-          
-          // Skip if they're equivalent
-          if (override === currentOverride) {
-            return link;
-          }
-          
-          console.log(`[DEBUG] Updating link ${link.id} (${link.hackatimeName}) override: ${link.hoursOverride} → ${override}`);
-          linksChanged = true;
-          
-          return {
-            ...link,
-            // Override can be number or undefined, but not null, so convert null to undefined
-            hoursOverride: override === null ? undefined : (typeof override === 'number' ? override : undefined)
-          };
-        }
-        
-        // For links not explicitly mentioned, keep their current value
-        return link;
-      });
-      
-      console.log('[DEBUG] Updated hackatimeLinks:', JSON.stringify(hackatimeLinks));
-    }
-    
-    // Update local state first
-    setProjectFlags(newProjectFlags);
-    
-    // Calculate new total hoursOverride if needed
-    // NOTE: Even for viral projects, we track the hour overrides separately
-    // so that if viral status is later removed, the hour overrides are still there
-    let hoursOverride: number | undefined = undefined;
-    
-    // Only recalculate hoursOverride if we have links with overrides
-    if (hackatimeLinks && hackatimeLinks.length > 0) {
-      // Check if at least one link has an override
-      const hasAnyOverride = hackatimeLinks.some(link => 
-        link.hoursOverride !== undefined && link.hoursOverride !== null
-      );
-      
-      if (hasAnyOverride) {
-        // Sum up all hours, using overrides where available
-        const totalOverrideHours = hackatimeLinks.reduce((sum, link) => {
-          // Handle both null and undefined properly for hoursOverride
-          const hours = (link.hoursOverride === null || link.hoursOverride === undefined) ? 
-            link.rawHours : 
-            link.hoursOverride;
-          
-          return sum + (typeof hours === 'number' ? hours : 0);
-        }, 0);
-        
-        console.log(`[DEBUG] Calculated new total hoursOverride: ${totalOverrideHours}`);
-        hoursOverride = totalOverrideHours;
-      }
-    }
-    
-    console.log(`[DEBUG] Final hoursOverride value: ${hoursOverride}`);
-    
-    // Create a new object with the updated flags and links
+    // Also update the project in the projects array
     const updatedProjectData = {
       ...project,
-      shipped: incomingData.shipped,
-      viral: incomingData.viral,
-      in_review: incomingData.in_review,
-      hackatimeLinks,
-      // Make sure hoursOverride is the correct type (number or undefined, not null)
-      hoursOverride: hoursOverride
+      shipped: updatedProject.shipped,
+      viral: updatedProject.viral,
+      in_review: updatedProject.in_review
     };
     
-    console.log('[DEBUG] Updating project in projects array:', JSON.stringify(updatedProjectData));
-    
-    // Update the projects array with the new data - do it synchronously
-    setProjects(prevProjects => {
-      console.log('[DEBUG] In setProjects callback, prevProjects.length:', prevProjects.length);
-      return prevProjects.map(p => 
+    // Update the projects array
+    setProjects(prevProjects => 
+      prevProjects.map(p => 
         p.projectID === project.projectID ? updatedProjectData as ProjectType : p
-      );
-    });
+      )
+    );
   };
   
   // Track the current flag changes from the editor
@@ -445,25 +247,7 @@ function ProjectDetail({
   
   // Handle changes from the flag editor
   const handleFlagEditorChange = (flags: ProjectFlags) => {
-    console.log('[DEBUG] ProjectDetail handleFlagEditorChange:', JSON.stringify(flags));
-    
-    // Update our local state to track what's in the editor
     setCurrentEditorFlags(flags);
-    
-    // Forward changes to the handler immediately without setTimeout
-    handleFlagsUpdated({
-      ...project,
-      shipped: flags.shipped,
-      viral: flags.viral,
-      in_review: flags.in_review,
-      hackatimeLinkOverrides: flags.hackatimeLinkOverrides ? 
-        // Ensure correct types when passing override values
-        Object.fromEntries(
-          Object.entries(flags.hackatimeLinkOverrides).map(([key, value]) => 
-            [key, value === null ? undefined : (value as number | undefined)]
-          )
-        ) as Record<string, number | undefined> : {}
-    });
   };
   
   // console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
@@ -506,108 +290,35 @@ function ProjectDetail({
         
         {/* Project Hours Details Section */}
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Total Hours</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="text-sm text-gray-500">Raw Hours</span>
-              <p className="text-lg font-semibold mt-1">
-                {(() => {
-                  // Calculate the sum of raw hours from all hackatimeLinks
-                  const totalRawHours = (project.hackatimeLinks || []).reduce(
-                    (sum, link: {id: string; hackatimeName: string; rawHours: number; hoursOverride?: number | null}) => 
-                      sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
-                    0
-                  );
-                  return `${totalRawHours.toFixed(1)}h`;
-                })()}
-              </p>
+              <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+              <p className="text-lg font-semibold mt-1">{project.rawHours}h</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">Approved</span>
+              <span className="text-sm text-gray-500">Admin Hours Override</span>
               <p className="text-lg font-semibold mt-1">
-                {(() => {
-                  // Calculate if any links have overrides
-                  const hasAnyOverride = (project.hackatimeLinks || []).some(link => 
-                    link.hoursOverride !== undefined && link.hoursOverride !== null
-                  );
-                  
-                  if (hasAnyOverride) {
-                    // Sum up all hours, using overrides where available
-                    const totalOverrideHours = (project.hackatimeLinks || []).reduce((sum, link) => {
-                      // Use override if available, otherwise use raw hours
-                      const hours = (link.hoursOverride === null || link.hoursOverride === undefined) ? 
-                        link.rawHours : 
-                        link.hoursOverride;
-                      
-                      return sum + (typeof hours === 'number' ? hours : 0);
-                    }, 0);
-                    
-                    return `${totalOverrideHours.toFixed(1)}h`;
-                  }
-                  
-                  return '—';
-                })()}
+                {project.hoursOverride !== undefined && project.hoursOverride !== null 
+                  ? `${project.hoursOverride}h` 
+                  : '—'}
+              </p>
+            </div>
+            <div className="col-span-2 mt-2">
+              <span className="text-sm text-gray-500">Effective Hours</span>
+              <p className="text-lg font-semibold text-blue-600 mt-1">
+                {(project.hoursOverride !== undefined && project.hoursOverride !== null) 
+                  ? `${project.hoursOverride}h` 
+                  : `${project.rawHours}h`}
               </p>
             </div>
           </div>
-          
-          {/* Project Flag Editor - Only shown in review mode */}
-          {isReviewMode && (
-            <div className="mt-4">
-              <ProjectFlagsEditor
-                projectID={project.projectID}
-                initialShipped={projectFlags.shipped}
-                initialViral={projectFlags.viral}
-                initialInReview={projectFlags.in_review}
-                hackatimeLinks={project.hackatimeLinks}
-                onChange={handleFlagEditorChange}
-              />
-              <div className="mt-2 text-xs text-gray-500">
-                <p>These changes will be applied when you submit a review.</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Hackatime Links Section */}
-          {project.hackatimeLinks && project.hackatimeLinks.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Hackatime Project Links</h4>
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                      <th className="px-1 sm:px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Raw</th>
-                      <th className="px-1 sm:px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Approved</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {project.hackatimeLinks.map((link) => (
-                      <tr key={link.id}>
-                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-900 break-words">{link.hackatimeName}</td>
-                        <td className="px-1 sm:px-3 py-2 text-xs sm:text-sm text-gray-500 text-center">
-                          {typeof link.rawHours === 'number' ? `${link.rawHours}h` : '—'}
-                        </td>
-                        <td className="px-1 sm:px-3 py-2 text-xs sm:text-sm text-center text-blue-600">
-                          {link.hoursOverride !== undefined && link.hoursOverride !== null 
-                            ? `${link.hoursOverride}h` 
-                            : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
         
         {/* Project Review Request - only visible when NOT in review mode and not already in review */}
         <ProjectReviewRequest
           projectID={project.projectID}
           isInReview={projectFlags.in_review}
-          isShipped={projectFlags.shipped}
-          isViral={projectFlags.viral}
           onRequestSubmitted={(updatedProject, review) => {
             // Update projectFlags with the updated data
             setProjectFlags(prev => ({
@@ -704,41 +415,10 @@ function ProjectDetail({
           initialFlags={projectFlags}
           onFlagsUpdated={handleFlagsUpdated}
           rawHours={project.rawHours}
-          hackatimeLinks={project.hackatimeLinks}
         />
       </div>
     </div>
   );
-}
-
-// Create a custom hook for project hours calculation to avoid conditional hook calls
-function useProjectHours(projectId: string | null, projects: ProjectType[]): number {
-  // This hook will be called consistently on every render
-  return useMemo(() => {
-    if (!projectId) return 0;
-    
-    const project = projects.find(p => p.projectID === projectId);
-    if (!project) return 0;
-    
-    // If viral, it's 15 hours
-    if (project.viral) return 15;
-    
-    // Use hoursOverride if present, otherwise use rawHours
-    const hoursOverride = project.hoursOverride;
-    const rawHours = (typeof hoursOverride === 'number' && hoursOverride !== null) 
-      ? hoursOverride 
-      : (project.rawHours || 0);
-    
-    // Cap hours per project at 15
-    let cappedHours = Math.min(rawHours, 15);
-    
-    // If the project is not shipped, cap it at 14.75 hours
-    if (project.shipped !== true && cappedHours > 14.75) {
-      cappedHours = 14.75;
-    }
-    
-    return cappedHours;
-  }, [projectId, projects]);
 }
 
 export default function Bay() {
@@ -763,8 +443,6 @@ function BayWithReviewMode({ session, status, router }: {
   status: string;
   router: any;
 }) {
-  console.log('[DEBUG] BayWithReviewMode render');
-
   // Track if we've loaded projects for this user
   const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -774,25 +452,15 @@ function BayWithReviewMode({ session, status, router }: {
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState<boolean>(false);
   const [isProjectDetailModalOpen, setIsProjectDetailModalOpen] = useState<boolean>(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
-  const [projects, setProjectsRaw] = useState<ProjectType[]>([]);
+  const [projects, setProjects] = useState<ProjectType[]>([]);
   const [hackatimeProjects, setHackatimeProjects] = useState<Record<string, string>>({});
   const [projectHours, setProjectHours] = useState<Record<string, number>>({});
   const [isLoadingHackatime, setIsLoadingHackatime] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
-  const [linkedHackatimeProjects, setLinkedHackatimeProjects] = useState<string[]>([]);
   const isMobile = useIsMobile();
   const { isReviewMode } = useReviewMode();
-  
-  // Create a wrapped setProjects function that logs when it's called
-  const setProjects = useCallback((updater: React.SetStateAction<ProjectType[]>) => {
-    console.log('[DEBUG] setProjects called with:', typeof updater === 'function' ? 'function updater' : 'value updater');
-    setProjectsRaw(updater);
-  }, []);
-  
-  // Always call this hook in the same place, regardless of selected project
-  const selectedProjectHours = useProjectHours(selectedProjectId, projects);
   
   // Check if user is admin
   const isAdmin = session?.user?.role === 'Admin' || session?.user?.isAdmin === true;
@@ -801,43 +469,46 @@ function BayWithReviewMode({ session, status, router }: {
   useEffect(() => {
     const userId = session?.user?.id;
     const hackatimeId = session?.user?.hackatimeId;
-    console.log('[DEBUG] Hackatime useEffect triggered', { userId, loadedForUserId, hackatimeId });
+    // console.log('⚡ Effect triggered.', { userId, loadedForUserId, hackatimeId });
 
     // Skip if no user ID or we've already loaded for this user
     if (!userId || userId === loadedForUserId) {
-      console.log('[DEBUG] Skipping load:', !userId ? 'no user ID' : 'already loaded for this user');
+      console.log('⏭️ Skipping load:', !userId ? 'no user ID' : 'already loaded for this user');
       return;
     }
 
-    // Check Hackatime setup from session
+    // Check Hackatime setup from session... this really shouldn't happen, given our check earlier - but just in case
     if (!hackatimeId) {
-      console.log('[DEBUG] No Hackatime ID in session, redirecting to setup...');
+      console.log('⚠️ No Hackatime ID in session, redirecting to setup...');
       router.push('/bay/setup');
       return;
     }
 
     async function loadHackatimeProjects() {
       try {
-        console.log('[DEBUG] Loading Hackatime projects for user:', userId);
+        console.log('🚀 Loading Hackatime projects for user:', userId);
         const projectsData = await getHackatimeProjects();
         
         // Ensure we have an array of projects
         const projects = Array.isArray(projectsData) ? projectsData : [];
-        console.log(`[DEBUG] Received ${projects.length} Hackatime projects`);
+        console.log(`📦 Received ${projects.length} Hackatime projects`);
         
         if (projects.length === 0) {
-          console.log('[DEBUG] No projects found or invalid data received');
+          console.log('No projects found or invalid data received');
           setHackatimeProjects({});
           setProjectHours({});
           return;
         }
+        
+        // Log all project names for debugging
+        // console.log('🔍 Hackatime project names:', projects.map(p => p.name));
         
         // Create hours map (key: project name, value: hours)
         const hours = Object.fromEntries(
           projects.map((project: HackatimeProject) => [project.name, project.hours || 0])
         );
         
-        console.log('[DEBUG] Hours map created with', Object.keys(hours).length, 'entries');
+        // console.log('⏱️ Hours map:', hours);
         
         // Create an array of projects with hours for sorting
         const projectsWithHours = projects.map((project: HackatimeProject) => ({
@@ -855,13 +526,13 @@ function BayWithReviewMode({ session, status, router }: {
           projectNames[`${project.hours}h ${project.name}`] = project.name;
         });
         
-        console.log('[DEBUG] Project names map created with', Object.keys(projectNames).length, 'entries');
+        // console.log('📋 Project names map:', projectNames);
         
         setHackatimeProjects(projectNames);
         setProjectHours(hours);
         setLoadedForUserId(userId || null);
       } catch (error) {
-        console.error('[DEBUG] Failed to load Hackatime projects:', error);
+        console.error('Failed to load Hackatime projects:', error);
         // Set empty objects to prevent undefined errors
         setHackatimeProjects({});
         setProjectHours({});
@@ -873,6 +544,16 @@ function BayWithReviewMode({ session, status, router }: {
     loadHackatimeProjects();
   }, [session?.user?.id, loadedForUserId, router, session?.user?.hackatimeId]);
 
+  // Trigger a re-render of projects list when projectHours changes
+  // This ensures the sorting stays current when hours data updates
+  useEffect(() => {
+    if (Object.keys(projectHours).length > 0) {
+      // console.log('Project hours updated, triggering re-render for sorting');
+      // Create a new array reference to force re-render with updated sort order
+      setProjects([...projects]);
+    }
+  }, [projectHours]);
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToastMessage(message);
     setToastType(type);
@@ -882,42 +563,15 @@ function BayWithReviewMode({ session, status, router }: {
     toast.promise(createProjectAction(state, payload), {
       loading: "Creating project...",
       error: () => { reject(); return "Failed to create new project" },
-      success: async data => {
+      success: data => {
         if (!data?.data) {
           reject(new Error('No project data received'));
           return "Failed to create new project";
         }
-        
-        // Store the successful form submission
         resolve(data as FormSave);
         setIsProjectCreateModalOpen(false);
-        
-        // Get the project ID from the created project
-        const createdProject = data.data as ProjectType;
-        const projectID = createdProject.projectID;
-        
-        console.log(`[DEBUG] Project created successfully with ID: ${projectID}`);
-        
-        // Instead of directly adding the project to state, refresh all projects
-        // This ensures we get the complete project data including correct hours
-        try {
-          console.log('[DEBUG] Refreshing projects list to get updated hours');
-          const response = await fetch("/api/projects");
-          if (response.ok) {
-            const refreshedProjects = await response.json();
-            setProjects(refreshedProjects);
-            console.log('[DEBUG] Projects refreshed successfully with updated data');
-          } else {
-            console.error('[DEBUG] Failed to refresh projects after creation');
-            // Fall back to adding the newly created project
-            setProjects(prev => [...prev, createdProject]);
-          }
-        } catch (error) {
-          console.error('[DEBUG] Error refreshing projects:', error);
-          // Fall back to adding the newly created project
-          setProjects(prev => [...prev, createdProject]);
-        }
-        
+        // Update projects list with new project
+        setProjects(prev => [...prev, data.data as ProjectType]);
         return "Created new project"
       }
     });
@@ -974,28 +628,8 @@ function BayWithReviewMode({ session, status, router }: {
     setProjects(data);
   }
 
-  // Fetch all user projects
   useEffect(() => {
     getUserProjects();
-  }, []);
-  
-  // Fetch all linked Hackatime projects across all users
-  useEffect(() => {
-    async function fetchLinkedHackatimeProjects() {
-      try {
-        const response = await fetch('/api/hackatime/linked-projects');
-        if (response.ok) {
-          const data = await response.json();
-          setLinkedHackatimeProjects(data.linkedProjects || []);
-        } else {
-          console.error('Failed to fetch linked Hackatime projects');
-        }
-      } catch (error) {
-        console.error('Error fetching linked Hackatime projects:', error);
-      }
-    }
-    
-    fetchLinkedHackatimeProjects();
   }, []);
 
   // Handle keyboard navigation
@@ -1060,12 +694,16 @@ function BayWithReviewMode({ session, status, router }: {
 
   // Update total hours whenever projects or projectHours changes
   useEffect(() => {
-    console.log('[DEBUG] Total hours calculation useEffect triggered', { 
-      projectsLength: projects.length, 
-      projectHoursKeys: Object.keys(projectHours).length 
-    });
-    
     // Only count hours from projects that are in the projects list
+    // console.log('🧮 Calculating total hours for', projects.length, 'projects');
+    // console.log('📊 projectHours keys:', Object.keys(projectHours));
+    
+    // Log hackatime values from projects
+    // console.log('🔗 Project hackatime values:', projects.map(p => ({
+    //   name: p.name,
+    //   hackatime: p.hackatime
+    // })));
+    
     const total = projects.reduce((sum, project) => {
       // If project is viral, it automatically counts as 15 hours
       if (project.viral) {
@@ -1074,6 +712,9 @@ function BayWithReviewMode({ session, status, router }: {
       
       // Get hours using our helper function
       let hours = getProjectHackatimeHours(project);
+      
+      // Log the hours lookup for debugging
+      // console.log(`Project ${project.name} hackatime="${project.hackatime}", hours=${hours}`);
       
       // Cap hours per project at 15
       let cappedHours = Math.min(hours, 15);
@@ -1089,7 +730,6 @@ function BayWithReviewMode({ session, status, router }: {
     // Calculate percentage (0-100)
     const percentage = Math.min(Math.round((total / 60) * 100), 100);
     
-    console.log('[DEBUG] Setting totalHours to', percentage);
     setTotalHours(percentage);
   }, [projects, projectHours]);
 
@@ -1236,33 +876,20 @@ function BayWithReviewMode({ session, status, router }: {
   
   // Helper to get project hours with our matching logic
   const getProjectHackatimeHours = (project: ProjectType): number => {
-    console.log(`[DEBUG] getProjectHackatimeHours called for project: ${project?.name}`);
-    
     // Safety check for null/undefined project
     if (!project) return 0;
     
     // Use hoursOverride if available
-    if (typeof project.hoursOverride === 'number' && project.hoursOverride !== null) {
-      console.log(`[DEBUG] Using hoursOverride value: ${project.hoursOverride}`);
+    if (typeof project?.hoursOverride === 'number' && project.hoursOverride !== null) {
       return project.hoursOverride;
     }
     
     // Otherwise use raw hours from hackatime
-    if (!project.hackatime) {
-      console.log(`[DEBUG] No hackatime project linked, using rawHours: ${project.rawHours || 0}`);
-      return project.rawHours || 0;
-    }
+    if (!project?.hackatime) return project?.rawHours || 0;
     
     const matchingKey = findMatchingHackatimeKey(project.hackatime);
-    console.log(`[DEBUG] Hackatime matching key: ${matchingKey}, hours: ${matchingKey ? projectHours[matchingKey] : 'not found'}`);
-    
-    return matchingKey && projectHours[matchingKey] ? projectHours[matchingKey] : (project.rawHours || 0);
+    return matchingKey ? (projectHours[matchingKey] || 0) : (project?.rawHours || 0);
   };
-
-  // Effect to track when selectedProjectId changes
-  useEffect(() => {
-    console.log('[DEBUG] selectedProjectId changed to:', selectedProjectId);
-  }, [selectedProjectId]);
 
   return (
     <div className={styles.container}>
@@ -1466,55 +1093,51 @@ function BayWithReviewMode({ session, status, router }: {
             </div>
             
             <div className="bg-white rounded-lg shadow">
-              {useMemo(() => {
-                console.log('[DEBUG] Memoizing project list rendering');
-                
-                return projects
-                  .sort((a, b) => {
-                    // Use hoursOverride if set, otherwise rawHours
-                    const hoursA = typeof a.hoursOverride === 'number' ? a.hoursOverride : a.rawHours || 0;
-                    const hoursB = typeof b.hoursOverride === 'number' ? b.hoursOverride : b.rawHours || 0;
-                    return hoursB - hoursA;
-                  })
-                  .map((project, index) => (
-                    <Project
-                      key={project.projectID}
-                      {...project}
-                      rawHours={project.rawHours}
-                      hoursOverride={project.hoursOverride === null ? undefined : project.hoursOverride}
-                      viral={!!project.viral}
-                      shipped={!!project.shipped}
-                      in_review={!!project.in_review}
-                      editHandler={(project) => {
-                        // Check if the edit request is coming from the edit button
-                        const isEditRequest = 'isEditing' in project;
-                        
-                        // Only process edits from explicit button clicks (isEditing flag),
-                        // No longer supporting row clicks or keyboard shortcuts for editing
-                        if (!isEditRequest) {
-                          // For non-edit clicks on project row, only handle selection
-                          if (isMobile) {
-                            setSelectedProjectId(project.projectID);
-                            setInitialEditState(project);
-                            setIsProjectDetailModalOpen(true);
-                          } else if (selectedProjectId === project.projectID) {
-                            setSelectedProjectId(null);
-                          } else {
-                            setSelectedProjectId(project.projectID);
-                            setInitialEditState(project);
-                          }
-                          return;
+              {projects
+                .sort((a, b) => {
+                  // Use hoursOverride if set, otherwise rawHours
+                  const hoursA = typeof a.hoursOverride === 'number' ? a.hoursOverride : a.rawHours || 0;
+                  const hoursB = typeof b.hoursOverride === 'number' ? b.hoursOverride : b.rawHours || 0;
+                  return hoursB - hoursA;
+                })
+                .map((project, index) => (
+                  <Project
+                    key={project.projectID}
+                    {...project}
+                    rawHours={project.rawHours}
+                    hoursOverride={project.hoursOverride}
+                    viral={!!project.viral}
+                    shipped={!!project.shipped}
+                    in_review={!!project.in_review}
+                    editHandler={(project) => {
+                      // Check if the edit request is coming from the edit button
+                      const isEditRequest = 'isEditing' in project;
+                      
+                      // Only process edits from explicit button clicks (isEditing flag),
+                      // No longer supporting row clicks or keyboard shortcuts for editing
+                      if (!isEditRequest) {
+                        // For non-edit clicks on project row, only handle selection
+                        if (isMobile) {
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
+                          setIsProjectDetailModalOpen(true);
+                        } else if (selectedProjectId === project.projectID) {
+                          setSelectedProjectId(null);
+                        } else {
+                          setSelectedProjectId(project.projectID);
+                          setInitialEditState(project);
                         }
-                        
-                        // Process edit button clicks
-                        setSelectedProjectId(project.projectID);
-                        setInitialEditState(project);
-                        setIsProjectEditModalOpen(true);
-                      }}
-                      selected={!isMobile && selectedProjectId === project.projectID}
-                    />
-                  ));
-              }, [projects, selectedProjectId, isMobile])}
+                        return;
+                      }
+                      
+                      // Process edit button clicks
+                      setSelectedProjectId(project.projectID);
+                      setInitialEditState(project);
+                      setIsProjectEditModalOpen(true);
+                    }}
+                    selected={!isMobile && selectedProjectId === project.projectID}
+                  />
+                ))}
               {projects.length === 0 && (
                 <div className="p-4 text-center text-gray-500">
                   No projects yet. Click "Add Project" to get started!
@@ -1689,8 +1312,6 @@ function BayWithReviewMode({ session, status, router }: {
             ) : (
               // Project Detail View
               (() => {
-                console.log(`[DEBUG] Desktop ProjectDetail wrapper render - selectedProjectId: ${selectedProjectId}`);
-                
                 const selectedProject = projects.find(p => p.projectID === selectedProjectId);
                 
                 if (!selectedProject) {
@@ -1708,11 +1329,25 @@ function BayWithReviewMode({ session, status, router }: {
                   );
                 }
                 
+                console.log(`Rendering ProjectDetail for ${selectedProject.name}:`, {
+                  hackatime: selectedProject.hackatime,
+                  hours: getProjectHackatimeHours(selectedProject),
+                  viral: !!selectedProject.viral,
+                  shipped: !!selectedProject.shipped
+                });
+                
+                // Create an object with all the necessary properties
+                const projectWithProps = {
+                  ...selectedProject,
+                  hours: getProjectHackatimeHours(selectedProject),
+                  viral: !!selectedProject.viral,
+                  shipped: !!selectedProject.shipped,
+                };
+                
                 // Otherwise show the project details
                 return (
                   <ProjectDetail 
-                    key={`project-detail-${selectedProject.projectID}`} // Add key to force proper re-rendering
-                    project={selectedProject}
+                    project={projectWithProps}
                     onEdit={() => {
                       // Make sure to set initialEditState with the full project data
                       const projectWithDefaults = {
@@ -1727,7 +1362,7 @@ function BayWithReviewMode({ session, status, router }: {
                         hoursOverride: selectedProject.hoursOverride
                       };
                       
-                      console.log("[DEBUG] Opening edit form with data:", projectWithDefaults);
+                      console.log("Opening edit form with data:", projectWithDefaults);
                       
                       // Update the form state
                       setInitialEditState(projectWithDefaults);
@@ -1737,13 +1372,7 @@ function BayWithReviewMode({ session, status, router }: {
                         setIsProjectEditModalOpen(true);
                       }, 0);
                     }}
-                    setProjects={(updater) => {
-                      console.log("[DEBUG] ProjectDetail calling setProjects");
-                      // Use setTimeout to break the render cycle
-                      setTimeout(() => {
-                        setProjects(updater);
-                      }, 0);
-                    }}
+                    setProjects={setProjects}
                   />
                 );
               })()
@@ -1762,7 +1391,6 @@ function BayWithReviewMode({ session, status, router }: {
           isLoadingHackatime={isLoadingHackatime}
           hideFooter={true}
           existingProjects={projects}
-          linkedHackatimeProjects={linkedHackatimeProjects}
           isAdmin={isAdmin}
         />
         {/* Project Detail Modal - Mobile Only */}
@@ -1774,10 +1402,6 @@ function BayWithReviewMode({ session, status, router }: {
         >
           {(() => {
             const selectedProject = projects.find(p => p.projectID === selectedProjectId);
-            
-            // Always calculate contribution percentage using our custom hook
-            // (which will be called consistently regardless of render path)
-            const contributionPercentage = Math.round((selectedProjectHours / 60) * 100);
             
             if (!selectedProject) {
               return (
@@ -1798,15 +1422,15 @@ function BayWithReviewMode({ session, status, router }: {
             );
             
             return (
-              <div className="p-2 sm:p-4"> {/* Reduced padding on mobile */}
+              <div className="p-4">
                 {/* Review Mode Banner */}
                 {isReviewMode && (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-2 sm:p-3 mb-3 rounded-r">
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
                         <Icon glyph="view" size={20} className="text-blue-500" />
                       </div>
-                      <div className="ml-2">
+                      <div className="ml-3">
                         <p className="text-sm text-blue-700">
                           <strong>Review Mode Active:</strong> You can now add and delete reviews on this project.
                         </p>
@@ -1816,14 +1440,14 @@ function BayWithReviewMode({ session, status, router }: {
                 )}
                 
                 <div className="space-y-5 pb-8">
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
                     <p className="text-base text-gray-900">{selectedProject.description || "No description provided."}</p>
                   </div>
                   
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="text-center text-sm">
-                      <p>This project contributes <strong>{selectedProjectHours}</strong> hour{selectedProjectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
+                      <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
                       <ProjectStatus 
                         viral={selectedProject.viral} 
                         shipped={selectedProject.shipped}
@@ -1832,83 +1456,37 @@ function BayWithReviewMode({ session, status, router }: {
                     </div>
                   </div>
                   
-                                      {/* Project Hours Details Section */}
-                    <div className="bg-gray-50 p-3 sm:p-4 rounded-lg mb-3 sm:mb-4">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">Total Hours</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <span className="text-sm text-gray-500">Raw Hours</span>
-                          <p className="text-lg font-semibold mt-1">{totalRawHours.toFixed(1)}h</p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-500">Override</span>
-                          <p className="text-lg font-semibold mt-1">
-                            {(() => {
-                              // Calculate if any links have overrides
-                              const hasAnyOverride = (selectedProject.hackatimeLinks || []).some(link => 
-                                link.hoursOverride !== undefined && link.hoursOverride !== null
-                              );
-                              
-                              if (hasAnyOverride) {
-                                // Sum up all hours, using overrides where available
-                                const totalOverrideHours = (selectedProject.hackatimeLinks || []).reduce((sum, link) => {
-                                  // Use override if available, otherwise use raw hours
-                                  const hours = (link.hoursOverride === null || link.hoursOverride === undefined) ? 
-                                    link.rawHours : 
-                                    link.hoursOverride;
-                                  
-                                  return sum + (typeof hours === 'number' ? hours : 0);
-                                }, 0);
-                                
-                                return `${totalOverrideHours.toFixed(1)}h`;
-                              }
-                              
-                              return '—';
-                            })()}
-                          </p>
-                        </div>
+                  {/* Project Hours Details Section */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+                        <p className="text-lg font-semibold mt-1">{selectedProject.rawHours}h</p>
                       </div>
-                                          
-                    {/* Hackatime Links Section */}
-                    {selectedProject.hackatimeLinks && selectedProject.hackatimeLinks.length > 0 && (
-                      <div className="mt-3 sm:mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Hackatime Project Links</h4>
-                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                          <table className="w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                <th className="px-1 sm:px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Raw</th>
-                                <th className="px-1 sm:px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Approved</th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {selectedProject.hackatimeLinks.map((link) => (
-                                <tr key={link.id}>
-                                  <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-900 break-words">{link.hackatimeName}</td>
-                                  <td className="px-1 sm:px-3 py-2 text-xs sm:text-sm text-gray-500 text-center">
-                                    {typeof link.rawHours === 'number' ? `${link.rawHours}h` : '—'}
-                                  </td>
-                                  <td className="px-1 sm:px-3 py-2 text-xs sm:text-sm text-center text-blue-600">
-                                    {link.hoursOverride !== undefined && link.hoursOverride !== null 
-                                      ? `${link.hoursOverride}h` 
-                                      : '—'}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Admin Hours Override</span>
+                        <p className="text-lg font-semibold mt-1">
+                          {selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null 
+                            ? `${selectedProject.hoursOverride}h` 
+                            : '—'}
+                        </p>
                       </div>
-                    )}
+                      <div className="col-span-2 mt-2">
+                        <span className="text-sm text-gray-500">Effective Hours</span>
+                        <p className="text-lg font-semibold text-blue-600 mt-1">
+                          {(selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null) 
+                            ? `${selectedProject.hoursOverride}h` 
+                            : `${selectedProject.rawHours}h`}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Project Review Request for Mobile - only visible when NOT in review mode and not already in review */}
                   <ProjectReviewRequest
                     projectID={selectedProject.projectID}
                     isInReview={selectedProject.in_review}
-                    isShipped={selectedProject.shipped}
-                    isViral={selectedProject.viral}
                     onRequestSubmitted={(updatedProject, review) => {
                       // Update the project in the projects array
                       setProjects(prevProjects => 
@@ -1926,78 +1504,25 @@ function BayWithReviewMode({ session, status, router }: {
                   />
                   
                   {/* Project Flags Editor for Mobile - only visible in review mode */}
-                  {isReviewMode && (
-                    <div className="mt-4 pb-10"> {/* Added extra bottom padding */}
-                      <ProjectFlagsEditor
-                        projectID={selectedProject.projectID}
-                        initialShipped={!!selectedProject.shipped}
-                        initialViral={!!selectedProject.viral}
-                        initialInReview={!!selectedProject.in_review}
-                        hackatimeLinks={selectedProject.hackatimeLinks}
-                        onChange={(flags: ProjectFlags) => {
-                          console.log('[DEBUG] Mobile ProjectFlagsEditor onChange:', JSON.stringify(flags));
-                          
-                          // Update the project in the projects array using the same pattern
-                          // that's used by the desktop ProjectDetail component
-                          const projectToUpdate = projects.find(p => p.projectID === selectedProject.projectID);
-                          if (projectToUpdate) {
-                            // Make a deep copy of the project and apply updates
-                            const updatedProjectData = {
-                              ...projectToUpdate,
-                              shipped: flags.shipped,
-                              viral: flags.viral,
-                              in_review: flags.in_review
-                            };
-                            
-                            // Process hackatimeLinkOverrides if present
-                            if (flags.hackatimeLinkOverrides) {
-                              // Update hackatimeLinks with the new overrides
-                              updatedProjectData.hackatimeLinks = (projectToUpdate.hackatimeLinks || []).map(link => {
-                                const override = flags.hackatimeLinkOverrides?.[link.id];
-                                if (override !== undefined) {
-                                  return {
-                                    ...link,
-                                    hoursOverride: override === null ? undefined : override
-                                  };
-                                }
-                                return link;
-                              });
-                              
-                              // Check if at least one link has an override
-                              const hasAnyOverride = updatedProjectData.hackatimeLinks.some(link => 
-                                link.hoursOverride !== undefined && link.hoursOverride !== null
-                              );
-                              
-                              if (hasAnyOverride) {
-                                // Calculate new total hours override
-                                const totalOverrideHours = updatedProjectData.hackatimeLinks.reduce(
-                                  (sum, link) => {
-                                    const hours = (link.hoursOverride === null || link.hoursOverride === undefined) ? 
-                                      link.rawHours : link.hoursOverride;
-                                    return sum + (typeof hours === 'number' ? hours : 0);
-                                  }, 0
-                                );
-                                
-                                console.log(`[DEBUG] Mobile: calculated total hours override: ${totalOverrideHours}`);
-                                updatedProjectData.hoursOverride = totalOverrideHours;
-                              } else {
-                                updatedProjectData.hoursOverride = undefined;
-                              }
-                            }
-                            
-                            console.log('[DEBUG] Mobile: updating project with:', JSON.stringify(updatedProjectData));
-                            
-                            // Update the projects array
-                            setProjects(prevProjects => 
-                              prevProjects.map(p => 
-                                p.projectID === selectedProject.projectID ? updatedProjectData as ProjectType : p
-                              )
-                            );
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
+                  <ProjectFlagsEditor
+                    projectID={selectedProject.projectID}
+                    initialShipped={!!selectedProject.shipped}
+                    initialViral={!!selectedProject.viral}
+                    initialInReview={!!selectedProject.in_review}
+                    onChange={(flags: ProjectFlags) => {
+                      // Create a new object with the updated flags
+                      const updatedSelectedProject = {
+                        ...selectedProject,
+                      };
+                      
+                      // Update the project in the projects array
+                      setProjects(prevProjects => 
+                        prevProjects.map(p => 
+                          p.projectID === selectedProject.projectID ? updatedSelectedProject : p
+                        )
+                      );
+                    }}
+                  />
                   
                   {selectedProject.hackatime && (
                     <div className="bg-gray-50 p-4 rounded-lg">
@@ -2094,7 +1619,6 @@ function BayWithReviewMode({ session, status, router }: {
                       );
                     }}
                     rawHours={selectedProject.rawHours}
-                    hackatimeLinks={selectedProject.hackatimeLinks}
                   />
                   
                   {/* Edit button at bottom */}
@@ -2155,7 +1679,6 @@ function BayWithReviewMode({ session, status, router }: {
               isLoadingHackatime={isLoadingHackatime}
               projectID={selectedProjectId}
               isAdmin={isAdmin}
-              linkedHackatimeProjects={linkedHackatimeProjects}
               {...(initialEditState as any)}
               existingProjects={projects}
             />
@@ -2226,7 +1749,6 @@ function BayWithReviewMode({ session, status, router }: {
           isLoadingHackatime={isLoadingHackatime}
           hideFooter={true}
           existingProjects={projects}
-          linkedHackatimeProjects={linkedHackatimeProjects}
           isAdmin={isAdmin}
           {...initialEditState}
         />
@@ -2246,27 +1768,12 @@ type ProjectModalProps = Partial<ProjectType> & {
   isLoadingHackatime: boolean,
   hideFooter?: boolean,
   existingProjects?: ProjectType[],
-  linkedHackatimeProjects?: string[],
   isAdmin?: boolean
 }
 
 function ProjectModal(props: ProjectModalProps): ReactElement {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  
-  // Initialize selectedProjects when props change
-  useEffect(() => {
-    if (props.isOpen) {
-      // If editing an existing project with hackatime, initialize the selection
-      if (props.hackatime && typeof props.hackatime === 'string') {
-        setSelectedProjects([props.hackatime]);
-      } else {
-        // Reset selections when opening a new modal
-        setSelectedProjects([]);
-      }
-    }
-  }, [props.isOpen, props.hackatime]);
   
   // Filter out already added projects for create mode
   const availableHackatimeProjects = useMemo(() => {
@@ -2275,12 +1782,22 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
       return props.hackatimeProjects;
     }
     
-    // For creation - filter out projects that are already added by any user
+    // For creation - filter out projects that are already added
+    // This uses the existing projects prop passed to every ProjectModal instance
+    const allProjects = props.existingProjects || [];
+    
     // Create a new filtered map for creating new projects
     const filtered: Record<string, string> = {};
     
-    // Combine locally used projects with globally linked projects
-    const usedHackatimeProjects = props.linkedHackatimeProjects || [];
+    // Get already used hackatime project names
+    const usedHackatimeProjects: string[] = [];
+    
+    // Collect all hackatime project names that are already used
+    allProjects.forEach((project: ProjectType) => {
+      if (project.hackatime) {
+        usedHackatimeProjects.push(project.hackatime);
+      }
+    });
     
     // Add only unused projects to the filtered map
     Object.entries(props.hackatimeProjects).forEach(([label, projectName]) => {
@@ -2290,7 +1807,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
     });
     
     return filtered;
-  }, [isCreate, props.hackatimeProjects, props.linkedHackatimeProjects]);
+  }, [isCreate, props.hackatimeProjects, props.existingProjects]);
   
   const handleDeleteConfirm = () => {
     // Close the confirmation modal
@@ -2303,47 +1820,6 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
      toast.error("Sorry, you cannot unlink your hackatime project from Shipwrecked.");
   };
   
-  // Handle project selection/deselection
-  const toggleProject = (projectName: string, e?: React.MouseEvent | React.ChangeEvent) => {
-    // Prevent event bubbling if an event was passed
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    console.log('Toggling project:', projectName);
-    setSelectedProjects(prev => 
-      prev.includes(projectName)
-        ? prev.filter(p => p !== projectName)
-        : [...prev, projectName]
-    );
-  };
-  
-  // Handle form submission to include multiple projects
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    // Create a FormData object to add the selected projects
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    
-    // Remove any existing hackatime field (single selection)
-    formData.delete('hackatime');
-    
-    // Add each selected project as a hackatimeProjects[] field
-    selectedProjects.forEach(project => {
-      formData.append('hackatimeProjects', project);
-    });
-    
-    // If no projects selected and in create mode, show an error
-    if (isCreate && selectedProjects.length === 0) {
-      toast.error('Please select at least one Hackatime project');
-      return;
-    }
-    
-    // Call the form action with the updated FormData
-    props.formAction(formData);
-  };
-  
   return (
     <>
       <Modal
@@ -2353,7 +1829,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
         okText="Done"
         hideFooter={props.hideFooter || isCreate}
       >
-        <form onSubmit={handleFormSubmit} className="relative">
+        <form action={props.formAction} className="relative">
           <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
             <FormInput
               fieldName='projectID'
@@ -2416,6 +1892,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 </FormInput>
               </div>
               
+
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
                 <label className="flex items-center gap-2 text-sm">
@@ -2448,58 +1925,26 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
             </>
           )}
           
-          {isCreate && (
-            <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Your Hackatime Projects 
-                <span className="text-sm text-gray-500 ml-1 font-normal">(select one or more)</span>
-              </h3>
-              
-              {props.isLoadingHackatime ? (
-                <div className="py-3 text-center text-gray-500">
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
-                  Loading projects...
-                </div>
-              ) : Object.keys(availableHackatimeProjects).length === 0 ? (
-                <div className="py-3 text-center text-gray-500">
-                  No Hackatime projects found
-                </div>
-              ) : (
-                <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md">
-                  <div className="p-2">
-                    {Object.entries(availableHackatimeProjects).map(([label, project]) => (
-                      <div 
-                        key={project} 
-                        className={`flex items-center p-2 rounded-md mb-1 cursor-pointer hover:bg-gray-100 ${
-                          selectedProjects.includes(project) ? 'bg-blue-50 border border-blue-200' : ''
-                        }`}
-                        onClick={(e) => toggleProject(project, e)}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedProjects.includes(project)}
-                          onChange={(e) => toggleProject(project, e)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 mr-3"
-                          // Add this to prevent the event from bubbling to the parent div
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="text-sm">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="mt-3 text-sm text-blue-600">
-                Selected projects: {selectedProjects.length}
-              </div>
-              
-              {/* Hidden input for backward compatibility */}
-              {selectedProjects.length > 0 && (
-                <input type="hidden" name="hackatime" value={selectedProjects[0]} />
-              )}
-            </div>
-          )}
+          <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+            <FormSelect 
+              fieldName='hackatime'
+              placeholder={
+                props.isLoadingHackatime 
+                  ? 'Loading projects...' 
+                  : Object.keys(props.hackatimeProjects).length === 0
+                    ? 'No Hackatime projects found'
+                    : 'Select a Hackatime Project'
+              }
+              required
+              values={availableHackatimeProjects}
+              {...(props.hackatime && { 
+                defaultValue: props.hackatime
+              })}
+              disabled={!isCreate || props.isLoadingHackatime || Object.keys(props.hackatimeProjects).length === 0}
+            >
+              Your Hackatime Project
+            </FormSelect>
+          </div>
           
           {/* Fixed button at bottom of modal */}
           <div 
@@ -2509,7 +1954,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
             <button
               type="submit"
               className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-              disabled={props.pending || props.isLoadingHackatime || (isCreate && selectedProjects.length === 0)}
+              disabled={props.pending || props.isLoadingHackatime}
             >
               {isCreate ? "Create Project" : "Save Changes"}
             </button>
@@ -2540,12 +1985,12 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               Cancel
             </button>
             
-            <button
-              className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
-              onClick={handleDeleteConfirm}
-            >
-              Delete Project
-            </button>
+                          <button
+                className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
+                onClick={handleDeleteConfirm}
+              >
+                Delete Project
+              </button>
           </div>
         </div>
       </Modal>

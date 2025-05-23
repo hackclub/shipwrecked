@@ -7,7 +7,7 @@ export default function TriggerButton({ children, targetPercent, backwards = fal
   const [, scrollToPercent] = useContext(ScrollProgressContext);
 
   return (
-    <button className={`${children ? 'py-2 md:px-4 px-2' : 'p-2'} uppercase italic bg-dark-blue text-white border border-sand whitespace-nowrap text-xs md:text-base transition-all duration-300 hover:border-yellow hover:scale-105 hover:shadow-lg hover:shadow-dark-blue/20 backdrop-blur-sm rounded-full cursor-pointer active:scale-95`} onClick={() => {
+    <button className={`${children ? 'py-2 md:px-4 md:pr-5 px-2 pr-4 w-fit' : 'p-2'} uppercase italic bg-dark-blue text-white border border-sand whitespace-nowrap text-xs md:text-base transition-all duration-300 hover:border-yellow hover:scale-105 hover:shadow-lg hover:shadow-dark-blue/20 backdrop-blur-sm rounded-full cursor-pointer active:scale-95`} onClick={() => {
       scrollToPercent(targetPercent, waves ? undefined : 0.1);
     }}>
       <span className="flex items-center gap-3 flex-nowrap">

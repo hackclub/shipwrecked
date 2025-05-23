@@ -263,7 +263,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
                 id="userRole"
                 value={userRole}
                 onChange={(e) => setUserRole(e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
               >
                 <option value={UserRole.User}>User</option>
                 <option value={UserRole.Reviewer}>Reviewer</option>
@@ -282,7 +282,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
                 id="userStatus"
                 value={userStatus}
                 onChange={(e) => setUserStatus(e.target.value as UserStatus)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
               >
                 <option value={UserStatus.Unknown}>Unknown</option>
                 <option value={UserStatus.L1}>L1</option>
@@ -315,4 +315,4 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
       <Toaster richColors />
     </div>
   );
-} 
+}
