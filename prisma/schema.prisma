@@ -156,14 +156,11 @@ model Project {
   codeUrl     String
   playableUrl String
   screenshot  String
-  hackatime   String // hackatime project name
   submitted   Boolean @default(false)
 
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
   in_review Boolean @default(false)
-  rawHours     Float
-  hoursOverride Float?
 
   // user relation
   userId String
@@ -174,6 +171,9 @@ model Project {
 
   // Audit logs related to this project
   auditLogs AuditLog[]
+
+  // Hackatime project links
+  hackatimeLinks HackatimeProjectLink[]
 
   @@id([projectID, userId])
 }
@@ -225,4 +225,22 @@ model AuditLog {
   @@index([targetUserId])
   @@index([actorUserId])
   @@index([projectId])
+}
+
+// New model to link Bay projects with Hackatime projects
+model HackatimeProjectLink {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  // Link to the Bay project
+  projectID String
+  project   Project @relation(fields: [projectID], references: [projectID], onDelete: Cascade)
+  
+  // Hackatime project details
+  hackatimeName String  // The name of the Hackatime project
+  rawHours      Float   // Raw hours from Hackatime for this specific project
+  hoursOverride Float?  // Override for the Hackatime reported hours
+
+  @@unique([projectID, hackatimeName])
+  @@index([projectID])
 }

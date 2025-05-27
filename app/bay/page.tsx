@@ -172,6 +172,12 @@ function ProjectDetail({
     // Safety check for null project
     if (!project) return 0;
     
+    // If viral, it's 15 hours (25% toward the 60-hour goal)
+    if (projectFlags?.viral === true) {
+      console.log(`ProjectDetail: ${project.name} is viral, returning 15 hours`);
+      return 15;
+    }
+    
     // Get hours from project properties
     // Use hoursOverride if present, otherwise use rawHours
     const rawHours = typeof project?.hoursOverride === 'number' && project.hoursOverride !== null 
@@ -235,10 +241,8 @@ function ProjectDetail({
   // console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
   
   return (
-    <div className={`${styles.editForm} md:max-h-screen md:overflow-y-scroll`}>
-      <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10"
-        style={{ paddingTop: '1.5rem' }}
-      >
+    <div className={`${styles.editForm}`}>
+      <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10">
         <h2 className="text-2xl font-bold">{project.name}</h2>
         {isEditingAllowed ? (
           <button
@@ -689,6 +693,11 @@ function BayWithReviewMode({ session, status, router }: {
     // })));
     
     const total = projects.reduce((sum, project) => {
+      // If project is viral, it automatically counts as 15 hours
+      if (project.viral) {
+        console.log(`Project ${project.name} is viral, contributing 15 hours`);
+        return sum + 15;
+      }
       
       // Get hours using our helper function
       let hours = getProjectHackatimeHours(project);
@@ -735,9 +744,9 @@ function BayWithReviewMode({ session, status, router }: {
       // Cap hours per project
       let cappedHours = Math.min(hours, 15);
       
-      // If it's viral
+      // If the project is viral, it counts as 15 hours
       if (project?.viral === true) {
-        viralHours += cappedHours;
+        viralHours += 15;
       } 
       // If it's shipped but not viral
       else if (project?.shipped === true) {
@@ -1402,6 +1411,11 @@ function BayWithReviewMode({ session, status, router }: {
               
               if (!selectedProject) {
                 return 0;
+              }
+              
+              // If viral, it's 15 hours
+              if (selectedProject?.viral === true) {
+                return 15;
               }
               
               // Use hoursOverride if available, otherwise use raw hours

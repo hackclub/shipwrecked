@@ -13,17 +13,25 @@ export type Project = {
     codeUrl: string
     playableUrl: string
     screenshot: string
-    hackatime?: string
     submitted: boolean
     userId: string
     viral: boolean
     shipped: boolean
     in_review: boolean
-    rawHours: number
-    hoursOverride?: number
 }
 
-export type ProjectType = Project;
+// Include backward compatibility fields
+export type ProjectType = Project & {
+    rawHours?: number;
+    hoursOverride?: number | null;
+    hackatime?: string;
+    hackatimeLinks?: {
+        id: string;
+        hackatimeName: string;
+        rawHours: number;
+        hoursOverride?: number | null;
+    }[];
+};
 
 export type ProjectInput = Omit<Project, 'projectID' | 'submitted'>
 
@@ -56,14 +64,49 @@ export async function GET(request: Request) {
         const user = await requireUserSession();
         console.log(`[GET] Authenticated user ${user.id}, fetching their projects`);
         
+        // Get projects with their Hackatime links
         const projects = await prisma.project.findMany({
             where: {
                 userId: user.id
+            },
+            include: {
+                hackatimeLinks: true
             }
         });
+        
+        // Enhance the project data with computed properties
+        const enhancedProjects = projects.map((project) => {
+            // Get the main Hackatime name (for backwards compatibility)
+            const hackatimeName = project.hackatimeLinks.length > 0 
+                ? project.hackatimeLinks[0].hackatimeName 
+                : '';
+            
+            // Calculate total raw hours from all links, applying individual overrides when available
+            const rawHours = project.hackatimeLinks.reduce(
+                (sum, link) => {
+                    // Use the link's hoursOverride if it exists, otherwise use rawHours
+                    const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
+                        ? link.hoursOverride
+                        : (typeof link.rawHours === 'number' ? link.rawHours : 0);
+                    
+                    return sum + effectiveHours;
+                }, 
+                0
+            );
+            
+            console.log(`[GET] Project ${project.projectID} (${project.name}): calculated rawHours = ${rawHours}`);
+            
+            // Return the enhanced project with additional properties
+            return {
+                ...project,
+                hackatimeName,
+                rawHours
+            };
+        });
+        
         console.log(`[GET] Successfully fetched ${projects.length} projects for user ${user.id}`);
         metrics.increment("success.fetch_project", 1);
-        return Response.json(projects);
+        return Response.json(enhancedProjects);
     } catch (err) {
         console.error("[GET] Error fetching projects:", err);
         metrics.increment("errors.fetch_project", 1);
@@ -105,18 +148,21 @@ export async function POST(request: Request) {
                 }
             }
             
+            // Explicitly log the hackatime field value
+            const hackatimeValue = formData.get('hackatime')?.toString();
+            console.log('[POST-TRACE] 5.1.2 Hackatime field value:', hackatimeValue);
+            
             projectData = {
                 name: formData.get('name')?.toString() || '',
                 description: formData.get('description')?.toString() || '',
-                hackatime: formData.get('hackatime')?.toString() || '',
+                hackatimeName: hackatimeValue || '',
+                hackatimeProjects: formData.getAll('hackatimeProjects').map(p => p.toString()),
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
-                rawHours: parseFloat(formData.get('rawHours')?.toString() || '0'),
-                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
             };
         } else {
             console.log('[POST-TRACE] 5.2 Parsing as JSON');
@@ -130,15 +176,14 @@ export async function POST(request: Request) {
                 projectData = rawData;
                 
                 // Ensure required fields are present
-                projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
-                projectData.hackatime = projectData.hackatime || '';
+                projectData.hackatimeName = projectData.hackatimeName || '';
+                projectData.hackatimeProjects = Array.isArray(projectData.hackatimeProjects) 
+                  ? projectData.hackatimeProjects 
+                  : projectData.hackatimeName ? [projectData.hackatimeName] : [];
                 projectData.codeUrl = projectData.codeUrl || '';
                 projectData.playableUrl = projectData.playableUrl || '';
                 projectData.screenshot = projectData.screenshot || '';
                 
-                if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
-                    projectData.hoursOverride = Number(projectData.hoursOverride);
-                }
             } catch (parseError) {
                 console.error('[POST-TRACE] 5.3 Error parsing JSON:', parseError);
                 metrics.increment("errors.parse_json", 1);
@@ -166,16 +211,6 @@ export async function POST(request: Request) {
         // SECURITY CHECK: Remove restricted fields for non-privileged users
         if (!hasPrivilegedAccess) {
             console.log('[POST-TRACE] 7.3 Non-privileged user detected. Restricting fields.');
-            
-            if ('hoursOverride' in projectData) {
-                console.warn(`[POST-TRACE] 7.3.1 Removing 'hoursOverride' set to ${projectData.hoursOverride} by non-privileged user ${user.id}`);
-                delete projectData.hoursOverride;
-            }
-            
-            if ('rawHours' in projectData && projectData.rawHours !== 0) {
-                console.warn(`[POST-TRACE] 7.3.2 Removing 'rawHours' set to ${projectData.rawHours} by non-privileged user ${user.id}`);
-                projectData.rawHours = 0;
-            }
             
             if ('shipped' in projectData && projectData.shipped === true) {
                 console.warn(`[POST-TRACE] 7.3.3 Removing 'shipped' flag set by non-privileged user ${user.id}`);
@@ -280,9 +315,7 @@ export async function POST(request: Request) {
                 // Create audit log for project creation
                 await logProjectEvent({
                     eventType: AuditLogEventType.ProjectCreated,
-                    description: createdProject.hackatime 
-                        ? `Project "${createdProject.name || 'Unnamed'}" was created (Hackatime: ${createdProject.hackatime})` 
-                        : `Project "${createdProject.name || 'Unnamed'}" was created`,
+                    description: `Project "${createdProject.name || 'Unnamed'}" was created`,
                     projectId: createdProject.projectID || 'unknown-id',
                     userId: user.id,
                     actorUserId: user.id,
@@ -291,7 +324,6 @@ export async function POST(request: Request) {
                             projectID: createdProject.projectID || 'unknown-id',
                             name: createdProject.name || 'Unnamed',
                             description: createdProject.description || '',
-                            hackatime: createdProject.hackatime || null,
                             codeUrl: createdProject.codeUrl || "",
                             playableUrl: createdProject.playableUrl || "",
                             screenshot: createdProject.screenshot || "",
@@ -391,7 +423,10 @@ export async function DELETE(request: Request) {
         // Fetch project details before deletion to use in audit log - as admin, we don't restrict by userId
         const projectToDelete = await prisma.project.findUnique({
             where: { projectID },
-            include: { user: true }
+            include: { 
+                user: true,
+                hackatimeLinks: true 
+            }
         });
         
         if (!projectToDelete) {
@@ -405,9 +440,7 @@ export async function DELETE(request: Request) {
         console.log(`[DELETE] Creating audit log for admin project deletion: ${projectID}`);
         const auditLogResult = await logProjectEvent({
             eventType: AuditLogEventType.ProjectDeleted,
-            description: projectToDelete.hackatime 
-                ? `Project "${projectToDelete.name}" was deleted by admin (Hackatime: ${projectToDelete.hackatime})` 
-                : `Project "${projectToDelete.name}" was deleted by admin`,
+            description: `Project "${projectToDelete.name}" was deleted by admin`,
             projectId: projectID,
             userId: projectToDelete.userId,
             actorUserId: user.id,
@@ -416,7 +449,6 @@ export async function DELETE(request: Request) {
                     projectID: projectToDelete.projectID,
                     name: projectToDelete.name,
                     description: projectToDelete.description,
-                    hackatime: projectToDelete.hackatime || null,
                     adminAction: true,
                     ownerEmail: projectToDelete.user?.email
                 }
@@ -474,20 +506,36 @@ export async function PUT(request: Request) {
                 shipped: formData.get('shipped') === 'true',
                 viral: formData.get('viral') === 'true',
                 in_review: formData.get('in_review') === 'true',
-                rawHours: parseFloat(formData.get('rawHours')?.toString() || '0'),
-                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined
+                hoursOverride: formData.get('hoursOverride') ? parseFloat(formData.get('hoursOverride')?.toString() || '0') : undefined,
+                // Collect individual hackatime link overrides
+                hackatimeLinkOverrides: {}
             };
+            
+            // Collect all the individual link overrides from form data (linkOverride-{id})
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('linkOverride-')) {
+                    const linkId = key.replace('linkOverride-', '');
+                    if (value && value.toString().trim() !== '') {
+                        try {
+                            const hours = parseFloat(value.toString());
+                            if (!isNaN(hours)) {
+                                projectData.hackatimeLinkOverrides[linkId] = hours;
+                            }
+                        } catch (error) {
+                            console.warn(`[PUT] Invalid hours value for link override: ${value}`);
+                        }
+                    }
+                }
+            }
+            
         } else {
             console.log('[PUT] Parsing JSON');
             projectData = await request.json();
             // Ensure rawHours is present and a number
-            projectData.rawHours = typeof projectData.rawHours === 'number' ? projectData.rawHours : 0;
-            if ('hoursOverride' in projectData && typeof projectData.hoursOverride !== 'undefined') {
-                projectData.hoursOverride = Number(projectData.hoursOverride);
-            }
+            projectData.hoursOverride = typeof projectData.hoursOverride === 'number' ? projectData.hoursOverride : undefined;
         }
 
-        let { projectID, ...updateFields } = projectData;
+        let { projectID, hackatimeLinkOverrides, ...updateFields } = projectData;
         if (!projectID) {
             return Response.json({ success: false, error: 'projectID is required' }, { status: 400 });
         }
@@ -506,13 +554,11 @@ export async function PUT(request: Request) {
             "shipped",
             "viral",
             "in_review",
-            "hoursOverride",
         ];
 
         // Define fields that should never be updated via the API
         const nonUpdateableFields = [
-            "hackatime",
-            "rawHours"
+            "hackatimeName"
         ];
 
         // Check if user is admin
@@ -532,10 +578,10 @@ export async function PUT(request: Request) {
         }
         
         // Explicit security check for rawHours - NEVER allow direct modification via API
-        if ('rawHours' in updateFields) {
-            console.warn(`[PUT] Security alert: Attempt to directly modify rawHours detected from user ${user.id}. Value: ${updateFields.rawHours}`);
-            metrics.increment("security.rawHours_modification_attempt", 1);
-            delete updateFields.rawHours;
+        if ('hoursOverride' in updateFields) {
+            console.warn(`[PUT] Security alert: Attempt to directly modify hoursOverride detected from user ${user.id}. Value: ${updateFields.hoursOverride}`);
+            metrics.increment("security.hoursOverride_modification_attempt", 1);
+            delete updateFields.hoursOverride;
         }
 
         // Filter fields based on user role
@@ -571,6 +617,7 @@ export async function PUT(request: Request) {
         }
         
         console.log(`[PUT] Updating project ${projectID} with fields:`, updateFields);
+        console.log(`[PUT] Hackatime link overrides:`, hackatimeLinkOverrides);
         
         // Verify the project exists before attempting to update
         let existingProject;
@@ -578,7 +625,10 @@ export async function PUT(request: Request) {
         // If user is admin, allow editing any project
         if (isAdmin) {
             existingProject = await prisma.project.findUnique({
-                where: { projectID }
+                where: { projectID },
+                include: {
+                    hackatimeLinks: true // Include Hackatime links for updating overrides
+                }
             });
         } else {
             // Regular users can only edit their own projects
@@ -601,6 +651,7 @@ export async function PUT(request: Request) {
         }
         
         try {
+            // First update the project fields
             const updatedProject = await prisma.project.update({
                 where: isAdmin 
                     ? { projectID } // Admins can update any project by ID
@@ -610,14 +661,111 @@ export async function PUT(request: Request) {
                             userId: user.id
                         }
                     },
-                data: updateFields
+                data: updateFields,
+                include: {
+                    hackatimeLinks: true // Return updated links with the response
+                }
             });
+            
+            // If admin is updating individual link hour overrides
+            if (isAdmin && hackatimeLinkOverrides && Object.keys(hackatimeLinkOverrides).length > 0) {
+                console.log(`[PUT] Processing ${Object.keys(hackatimeLinkOverrides).length} Hackatime link overrides`);
+                
+                // Update each link with its override if provided
+                for (const [linkId, hours] of Object.entries(hackatimeLinkOverrides)) {
+                    if (typeof hours === 'number' && !isNaN(hours)) {
+                        await prisma.hackatimeProjectLink.update({
+                            where: { id: linkId },
+                            data: { hoursOverride: hours }
+                        });
+                    } else if (hours === null || hours === undefined || hours === '') {
+                        // If the override is cleared, set it to null
+                        await prisma.hackatimeProjectLink.update({
+                            where: { id: linkId },
+                            data: { hoursOverride: null }
+                        });
+                    }
+                }
+                
+                // Re-fetch the project with updated links
+                const refreshedProject = await prisma.project.findUnique({
+                    where: { projectID },
+                    include: {
+                        hackatimeLinks: true
+                    }
+                });
+                
+                if (refreshedProject) {
+                    // Calculate total hours from all links with overrides applied
+                    const totalHours = refreshedProject.hackatimeLinks.reduce((sum, link) => {
+                        const effectiveHours = link.hoursOverride !== null && link.hoursOverride !== undefined
+                            ? link.hoursOverride
+                            : link.rawHours;
+                        return sum + effectiveHours;
+                    }, 0);
+                    
+                    console.log(`[PUT] Total calculated hours after override updates: ${totalHours}`);
+                }
+            }
 
             console.log(`[PUT] Successfully updated project ${projectID}`);
             metrics.increment("success.update_project", 1);
+            
+            // Add audit logging for admin project edits
+            if (isAdmin) {
+                try {
+                    // Gather summary of changes for the audit log
+                    const fieldsChanged = Object.keys(updateFields);
+                    const linksChanged = Object.keys(hackatimeLinkOverrides || {}).length;
+                    
+                    // Create descriptive text about the changes
+                    let changeDescription = `Admin edited project "${existingProject.name}"`;
+                    if (fieldsChanged.length > 0) {
+                        changeDescription += `. Updated fields: ${fieldsChanged.join(', ')}`;
+                    }
+                    if (linksChanged > 0) {
+                        changeDescription += `. Modified ${linksChanged} Hackatime link override${linksChanged !== 1 ? 's' : ''}`;
+                    }
+                    
+                    // Log the admin edit as an OtherEvent
+                    await logProjectEvent({
+                        eventType: AuditLogEventType.OtherEvent,
+                        description: changeDescription,
+                        projectId: projectID,
+                        userId: existingProject.userId,
+                        actorUserId: user.id,
+                        metadata: {
+                            action: "admin_project_edit",
+                            fieldsUpdated: updateFields,
+                            hackatimeLinkOverrides: hackatimeLinkOverrides || {},
+                            originalValues: {
+                                name: existingProject.name,
+                                description: existingProject.description,
+                                shipped: existingProject.shipped,
+                                viral: existingProject.viral,
+                                in_review: existingProject.in_review
+                            }
+                        }
+                    });
+                    
+                    console.log(`[PUT] Created audit log for admin project edit`);
+                } catch (auditError) {
+                    // Don't let audit logging failure break the main functionality
+                    console.error(`[PUT] Failed to create audit log for admin project edit:`, auditError);
+                }
+            }
+            
+            // Re-fetch the project with fresh data after all updates
+            const finalProject = await prisma.project.findUnique({
+                where: { projectID },
+                include: {
+                    hackatimeLinks: true
+                }
+            });
+            
             return Response.json({ 
                 success: true, 
-                data: updatedProject || { projectID }
+                data: finalProject || { projectID }
             });
         } catch (updateError) {
             console.error(`[PUT] Prisma error updating project ${projectID}:`, updateError);
