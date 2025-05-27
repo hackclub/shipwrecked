@@ -2,7 +2,7 @@
 import styles from './page.module.css';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
-import { useState, useEffect, useActionState, useContext, useMemo, ReactElement } from 'react';
+import { useState, useEffect, useActionState, useContext, useMemo, ReactElement, useRef } from 'react';
 import type { FormSave } from '@/components/form/FormInput';
 import { Project } from '@/components/common/Project';
 import FormSelect from '@/components/form/FormSelect';
@@ -1833,6 +1833,7 @@ type ProjectModalProps = Partial<ProjectType> & {
 function ProjectModal(props: ProjectModalProps): ReactElement {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
+  const [selectedHackatimeProjects, setSelectedHackatimeProjects] = useState<string[]>([]);
   
   // Filter out already added projects for create mode
   const availableHackatimeProjects = useMemo(() => {
@@ -1987,35 +1988,49 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
           )}
           
           <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-            <FormSelect 
-              fieldName='hackatime'
-              placeholder={
-                props.isLoadingHackatime 
-                  ? 'Loading projects...' 
-                  : Object.keys(props.hackatimeProjects).length === 0
-                    ? 'No Hackatime projects found'
-                    : 'Select a Hackatime Project'
-              }
-              required
-              values={availableHackatimeProjects}
-              {...(props.hackatime && { 
-                defaultValue: props.hackatime
-              })}
-              disabled={!isCreate || props.isLoadingHackatime || Object.keys(props.hackatimeProjects).length === 0}
-            >
-              Your Hackatime Project
-            </FormSelect>
+            {isCreate ? (
+              <HackatimeMultiSelect
+                availableProjects={availableHackatimeProjects}
+                selectedProjects={selectedHackatimeProjects}
+                onSelectionChange={setSelectedHackatimeProjects}
+                isLoading={props.isLoadingHackatime}
+                disabled={props.isLoadingHackatime || Object.keys(props.hackatimeProjects).length === 0}
+              />
+            ) : (
+              <FormSelect 
+                fieldName='hackatime'
+                placeholder={
+                  props.isLoadingHackatime 
+                    ? 'Loading projects...' 
+                    : Object.keys(props.hackatimeProjects).length === 0
+                      ? 'No Hackatime projects found'
+                      : 'Select a Hackatime Project'
+                }
+                required
+                values={availableHackatimeProjects}
+                {...(props.hackatime && { 
+                  defaultValue: props.hackatime
+                })}
+                disabled={true}
+              >
+                Your Hackatime Project
+              </FormSelect>
+            )}
           </div>
           
           {/* Fixed button at bottom of modal */}
           <div 
-            className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-10"
+            className="sticky bottom-0 left-0 right-0 p-4 mt-4 bg-white border-t border-gray-200 z-20"
             style={{ bottom: "-6%"}}
           >
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-              disabled={props.pending || props.isLoadingHackatime}
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={
+                props.pending || 
+                props.isLoadingHackatime || 
+                (isCreate && selectedHackatimeProjects.length === 0)
+              }
             >
               {isCreate ? "Create Project" : "Save Changes"}
             </button>
@@ -2056,5 +2071,169 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
         </div>
       </Modal>
     </>
+  );
+}
+
+// Custom Multi-Select Component for Hackatime Projects
+function HackatimeMultiSelect({
+  availableProjects,
+  selectedProjects,
+  onSelectionChange,
+  isLoading,
+  disabled
+}: {
+  availableProjects: Record<string, string>;
+  selectedProjects: string[];
+  onSelectionChange: (selected: string[]) => void;
+  isLoading: boolean;
+  disabled: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Determine dropdown direction based on available space
+  const handleToggleDropdown = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      // If there's less than 200px below but more than 200px above, open upward
+      if (spaceBelow < 200 && spaceAbove > 200) {
+        setDropdownDirection('up');
+      } else {
+        setDropdownDirection('down');
+      }
+    }
+    setIsOpen(!isOpen);
+  };
+
+  const handleToggleProject = (projectName: string) => {
+    if (selectedProjects.includes(projectName)) {
+      onSelectionChange(selectedProjects.filter(p => p !== projectName));
+    } else {
+      onSelectionChange([...selectedProjects, projectName]);
+    }
+  };
+
+  const handleRemoveProject = (projectName: string) => {
+    onSelectionChange(selectedProjects.filter(p => p !== projectName));
+  };
+
+  const availableEntries = Object.entries(availableProjects);
+  const unselectedProjects = availableEntries.filter(([_, projectName]) => 
+    !selectedProjects.includes(projectName)
+  );
+
+  return (
+    <div className="w-full mb-8">
+      <label className="text-lg font-semibold text-left">
+        Your Hackatime Projects
+        <p className="text-red-500 inline">*</p>
+      </label>
+      
+      {/* Selected Projects Display */}
+      {selectedProjects.length > 0 && (
+        <div className="mt-2 mb-3">
+          <div className="flex flex-wrap gap-2">
+            {selectedProjects.map(projectName => {
+              const displayLabel = availableEntries.find(([_, name]) => name === projectName)?.[0] || projectName;
+              return (
+                <div
+                  key={projectName}
+                  className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                >
+                  <span>{displayLabel}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProject(projectName)}
+                    className="text-blue-600 hover:text-blue-800 font-bold"
+                    disabled={disabled}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Dropdown for adding more projects */}
+      {unselectedProjects.length > 0 && (
+        <div className="relative" ref={dropdownRef}>
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={handleToggleDropdown}
+            disabled={disabled || isLoading}
+            className="w-full px-4 py-2 bg-gray-100 rounded outline-1 outline-gray-200 text-left flex justify-between items-center disabled:bg-gray-200"
+          >
+            <span className="text-gray-600">
+              {isLoading 
+                ? 'Loading projects...' 
+                : selectedProjects.length === 0 
+                  ? 'Select Hackatime Projects'
+                  : 'Add more projects...'
+              }
+            </span>
+            <span className="text-gray-400">▼</span>
+          </button>
+
+          {isOpen && !disabled && !isLoading && (
+            <div className={`absolute z-50 w-full bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto ${
+              dropdownDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}>
+              {unselectedProjects.map(([displayLabel, projectName]) => (
+                <button
+                  key={projectName}
+                  type="button"
+                  onClick={() => {
+                    handleToggleProject(projectName);
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                >
+                  {displayLabel}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Hidden inputs for form submission */}
+      {selectedProjects.map(projectName => (
+        <input
+          key={projectName}
+          type="hidden"
+          name="hackatimeProjects"
+          value={projectName}
+        />
+      ))}
+
+      {/* Validation message */}
+      {selectedProjects.length === 0 && (
+        <p className="text-sm text-gray-500 mt-1">
+          Please select at least one Hackatime project
+        </p>
+      )}
+    </div>
   );
 }
