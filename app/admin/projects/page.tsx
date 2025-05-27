@@ -466,7 +466,7 @@ function AdminProjectsContent() {
       // Filter out projects that are already linked
       const alreadyLinkedProjects = selectedProject?.hackatimeLinks.map(link => link.hackatimeName) || [];
       const availableProjects = data.projects.filter(
-        (project: string) => !alreadyLinkedProjects.includes(project)
+        (project: string) => !alreadyLinkedProjects.includes(project) && project !== '<<LAST_PROJECT>>'
       );
       
       setAvailableHackatimeProjects(availableProjects);

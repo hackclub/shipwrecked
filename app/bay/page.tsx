@@ -607,8 +607,8 @@ function BayWithReviewMode({ session, status, router }: {
         }
         resolve(data as FormSave);
         setIsProjectCreateModalOpen(false);
-        // Update projects list with new project
-        setProjects(prev => [...prev, data.data as ProjectType]);
+        // Refresh the entire projects list to ensure we get complete data including hackatimeLinks
+        getUserProjects();
         return "Created new project"
       }
     });
@@ -964,73 +964,6 @@ function BayWithReviewMode({ session, status, router }: {
             </p>
           </div>
           
-          {/* <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 className="font-medium mb-2">How We Calculate Your Progress:</h4>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>
-                We track the total development hours from all your Hackatime projects listed in The Bay
-              </li>
-              <li>
-                <strong>Each project is capped at 15 hours maximum</strong> contribution toward your total
-              </li>
-              <li>
-                <strong>Viral projects automatically count for the full 15 hours</strong>, regardless of actual tracked time
-              </li>
-              <li>
-                Projects that are not marked as "shipped" are capped at 14.75 hours
-              </li>
-              <li>
-                Only hours from projects you've added to The Bay count toward your progress
-              </li>
-            </ul>
-          </div>
-          
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 className="font-medium mb-2">Calculation Breakdown:</h4>
-            <ol className="list-decimal pl-5 space-y-3">
-              <li className="pb-1">
-                <span className="font-semibold block mb-1">Step 1: Calculate hours for each project</span>
-                <ul className="list-disc pl-5 text-sm space-y-1">
-                  <li><strong>If project is viral:</strong> Count as 15 hours</li>
-                  <li><strong>If not viral:</strong> Take tracked hours (capped at 15 hours)</li>
-                  <li><strong>If not shipped:</strong> Cap at 14.75 hours maximum</li>
-                </ul>
-              </li>
-              <li className="pb-1">
-                <span className="font-semibold block mb-1">Step 2: Calculate total hours</span>
-                <div className="text-sm">
-                  Add up the hours from all projects to get your total hours
-                </div>
-                <div className="font-mono bg-gray-100 p-2 my-1 rounded-md text-sm">
-                  Total Hours = Project1 Hours + Project2 Hours + ... + ProjectN Hours
-                </div>
-              </li>
-              <li className="pb-1">
-                <span className="font-semibold block mb-1">Step 3: Calculate percentage</span>
-                <div className="text-sm">
-                  Divide your total hours by 60 (the goal) and multiply by 100
-                </div>
-                <div className="font-mono bg-gray-100 p-2 my-1 rounded-md text-sm">
-                  Percentage = (Total Hours ÷ 60) × 100%
-                </div>
-                <div className="text-sm">
-                  The final percentage is capped at 100%
-                </div>
-              </li>
-            </ol>
-            <div className="mt-3 text-sm bg-blue-50 p-2 rounded-md">
-              <span className="font-semibold block">Example:</span>
-              <p>If you have 3 projects:</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Project 1: Viral (automatically 15 hours)</li>
-                <li>Project 2: 20 hours tracked but not viral (capped at 15 hours)</li>
-                <li>Project 3: 10 hours tracked, not shipped (10 hours)</li>
-              </ul>
-              <p className="mt-1">Total Hours = 15 + 15 + 10 = 40 hours</p>
-              <p>Percentage = (40 ÷ 60) × 100% = 66.7% (rounded to 67%)</p>
-            </div>
-          </div> */}
-          
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <h4 className="font-medium mb-2">Requirements for Shipwrecked:</h4>
             <ol className="list-decimal pl-5 space-y-2">
@@ -1253,27 +1186,6 @@ function BayWithReviewMode({ session, status, router }: {
                     </FormInput>
                   </div>
                   
-                  <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-                    <FormSelect 
-                      fieldName='hackatime'
-                      placeholder={
-                        isLoadingHackatime 
-                          ? 'Loading projects...' 
-                          : Object.keys(hackatimeProjects).length === 0
-                            ? 'No Hackatime projects found'
-                            : 'Select a Hackatime Project'
-                      }
-                      required
-                      values={hackatimeProjects}
-                      {...(initialEditState.hackatime && { 
-                        defaultValue: initialEditState.hackatime
-                      })}
-                      disabled={true}
-                    >
-                      Your Hackatime Project
-                    </FormSelect>
-                  </div>
-                  
                   <div className="mb-5 bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2">
                     <label className="flex items-center text-sm text-gray-600 mr-4 cursor-not-allowed">
                       <input type="checkbox" checked={!!initialEditState.shipped} readOnly disabled /> Shipped
@@ -1446,8 +1358,6 @@ function BayWithReviewMode({ session, status, router }: {
             
             const selectedProjectContribution = getSelectedProjectHours();
             const contributionPercentage = Math.round((selectedProjectContribution / 60) * 100);
-            
-            // console.log(`Modal rendering: ${selectedProject.name}, hours=${selectedProjectContribution}, hackatimeLinks=${selectedProject.hackatimeLinks?.length || 0}, viral=${selectedProject.viral}, shipped=${selectedProject.shipped}`);
             
             return (
               <div className="p-4">
@@ -1835,6 +1745,13 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [selectedHackatimeProjects, setSelectedHackatimeProjects] = useState<string[]>([]);
   
+  // Reset selected projects when modal opens for creation
+  useEffect(() => {
+    if (props.isOpen && isCreate) {
+      setSelectedHackatimeProjects([]);
+    }
+  }, [props.isOpen, isCreate]);
+  
   // Filter out already added projects for create mode
   const availableHackatimeProjects = useMemo(() => {
     if (!isCreate) {
@@ -1863,7 +1780,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
     
     // Add only unused projects to the filtered map
     Object.entries(props.hackatimeProjects).forEach(([label, projectName]) => {
-      if (!usedHackatimeProjects.includes(projectName)) {
+      if (!usedHackatimeProjects.includes(projectName) && projectName !== '<<LAST_PROJECT>>') {
         filtered[label] = projectName;
       }
     });
@@ -1967,28 +1884,11 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
                 </label>
               </div>
-              
-              {/* Delete Project Section - Disabled for all users in Bay */}
-              <div className="mb-5 bg-gray-50 p-4 rounded-lg border-l-4 border-red-500">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Danger Zone</h3>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded transition-colors focus:outline-none flex items-center gap-2"
-                    disabled={true}
-                  >
-                    <Icon glyph="delete" size={16} />
-                    <span>Delete Project</span>
-                  </button>
-                  
-                  <p className="text-xs text-gray-500 italic">Sorry, you cannot unlink your hackatime project from Shipwrecked.</p>
-                </div>
-              </div>
             </>
           )}
           
-          <div className="mb-5 bg-gray-50 p-4 rounded-lg">
-            {isCreate ? (
+          {isCreate ? (
+            <div className="mb-5 bg-gray-50 p-4 rounded-lg">
               <HackatimeMultiSelect
                 availableProjects={availableHackatimeProjects}
                 selectedProjects={selectedHackatimeProjects}
@@ -1996,27 +1896,8 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 isLoading={props.isLoadingHackatime}
                 disabled={props.isLoadingHackatime || Object.keys(props.hackatimeProjects).length === 0}
               />
-            ) : (
-              <FormSelect 
-                fieldName='hackatime'
-                placeholder={
-                  props.isLoadingHackatime 
-                    ? 'Loading projects...' 
-                    : Object.keys(props.hackatimeProjects).length === 0
-                      ? 'No Hackatime projects found'
-                      : 'Select a Hackatime Project'
-                }
-                required
-                values={availableHackatimeProjects}
-                {...(props.hackatime && { 
-                  defaultValue: props.hackatime
-                })}
-                disabled={true}
-              >
-                Your Hackatime Project
-              </FormSelect>
-            )}
-          </div>
+            </div>
+          ) : null}
           
           {/* Fixed button at bottom of modal */}
           <div 

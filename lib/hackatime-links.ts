@@ -10,6 +10,11 @@ export async function addHackatimeProjectLink(
   hackatimeName: string
 ) {
   try {
+    // Reject attempts to link <<LAST_PROJECT>>
+    if (hackatimeName === '<<LAST_PROJECT>>') {
+      throw new Error('The project "<<LAST_PROJECT>>" cannot be linked');
+    }
+    
     // Check if project exists
     const project = await prisma.project.findUnique({
       where: { projectID },

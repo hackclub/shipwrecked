@@ -35,6 +35,14 @@ export async function POST(
       );
     }
     
+    // Reject attempts to link <<LAST_PROJECT>>
+    if (hackatimeName === '<<LAST_PROJECT>>') {
+      return NextResponse.json(
+        { error: 'The project "<<LAST_PROJECT>>" cannot be linked' },
+        { status: 400 }
+      );
+    }
+    
     // Get the project to record owner details for the audit log
     const project = await prisma.project.findUnique({
       where: { projectID: projectId },

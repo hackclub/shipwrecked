@@ -208,22 +208,37 @@ export async function POST(request: Request) {
             throw new Error('Project description is required');
         }
         
+        // Validate Hackatime project names - reject <<LAST_PROJECT>>
+        console.log('[POST-TRACE] 7.3 Validating Hackatime project names');
+        if (projectData.hackatimeName === '<<LAST_PROJECT>>') {
+            console.error('[POST-TRACE] 7.3.1 Rejected attempt to link <<LAST_PROJECT>>');
+            throw new Error('The project "<<LAST_PROJECT>>" cannot be linked');
+        }
+        
+        if (projectData.hackatimeProjects && Array.isArray(projectData.hackatimeProjects)) {
+            const hasLastProject = projectData.hackatimeProjects.includes('<<LAST_PROJECT>>');
+            if (hasLastProject) {
+                console.error('[POST-TRACE] 7.3.2 Rejected attempt to link <<LAST_PROJECT>> in hackatimeProjects array');
+                throw new Error('The project "<<LAST_PROJECT>>" cannot be linked');
+            }
+        }
+        
         // SECURITY CHECK: Remove restricted fields for non-privileged users
         if (!hasPrivilegedAccess) {
-            console.log('[POST-TRACE] 7.3 Non-privileged user detected. Restricting fields.');
+            console.log('[POST-TRACE] 7.4 Non-privileged user detected. Restricting fields.');
             
             if ('shipped' in projectData && projectData.shipped === true) {
-                console.warn(`[POST-TRACE] 7.3.3 Removing 'shipped' flag set by non-privileged user ${user.id}`);
+                console.warn(`[POST-TRACE] 7.4.4 Removing 'shipped' flag set by non-privileged user ${user.id}`);
                 projectData.shipped = false;
             }
             
             if ('viral' in projectData && projectData.viral === true) {
-                console.warn(`[POST-TRACE] 7.3.4 Removing 'viral' flag set by non-privileged user ${user.id}`);
+                console.warn(`[POST-TRACE] 7.4.5 Removing 'viral' flag set by non-privileged user ${user.id}`);
                 projectData.viral = false;
             }
             
             if ('in_review' in projectData && projectData.in_review === true) {
-                console.warn(`[POST-TRACE] 7.3.5 Removing 'in_review' flag set by non-privileged user ${user.id}`);
+                console.warn(`[POST-TRACE] 7.4.6 Removing 'in_review' flag set by non-privileged user ${user.id}`);
                 projectData.in_review = false;
             }
         }
