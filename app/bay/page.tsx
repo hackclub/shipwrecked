@@ -332,6 +332,9 @@ function ProjectDetail({
           isInReview={projectFlags.in_review}
           isShipped={projectFlags.shipped}
           isViral={projectFlags.viral}
+          codeUrl={project.codeUrl}
+          playableUrl={project.playableUrl}
+          screenshot={project.screenshot}
           onRequestSubmitted={(updatedProject, review) => {
             // Update projectFlags with the updated data
             setProjectFlags(prev => ({
@@ -349,6 +352,13 @@ function ProjectDetail({
             // Force a refresh of reviews
             // This would normally be handled by the ReviewSection component itself
             // but we can notify it explicitly if needed
+          }}
+          onEditProject={() => {
+            // Use the onEdit callback to communicate with parent
+            onEdit({
+              ...project,
+              isEditing: true
+            });
           }}
         />
         
@@ -1259,7 +1269,7 @@ function BayWithReviewMode({ session, status, router }: {
                 return (
                   <ProjectDetail 
                     project={projectWithProps}
-                    onEdit={() => {
+                    onEdit={(project) => {
                       // Make sure to set initialEditState with the full project data
                       const projectWithDefaults = {
                         ...selectedProject,
@@ -1432,6 +1442,9 @@ function BayWithReviewMode({ session, status, router }: {
                     isInReview={selectedProject.in_review}
                     isShipped={selectedProject.shipped}
                     isViral={selectedProject.viral}
+                    codeUrl={selectedProject.codeUrl}
+                    playableUrl={selectedProject.playableUrl}
+                    screenshot={selectedProject.screenshot}
                     onRequestSubmitted={(updatedProject, review) => {
                       // Update the project in the projects array
                       setProjects(prevProjects => 
@@ -1445,6 +1458,30 @@ function BayWithReviewMode({ session, status, router }: {
                         setIsProjectDetailModalOpen(false);
                         toast.success("Project submitted for review!");
                       }, 500);
+                    }}
+                    onEditProject={() => {
+                      setIsProjectDetailModalOpen(false);
+                      
+                      // Make sure to set initialEditState with the full project data
+                      const projectWithDefaults = {
+                        ...selectedProject,
+                        codeUrl: selectedProject.codeUrl || "",
+                        playableUrl: selectedProject.playableUrl || "",
+                        screenshot: selectedProject.screenshot || "",
+                        viral: !!selectedProject.viral,
+                        shipped: !!selectedProject.shipped,
+                        in_review: !!selectedProject.in_review,
+                        rawHours: selectedProject.rawHours,
+                        hoursOverride: selectedProject.hoursOverride
+                      };
+                      
+                      // Update the form state
+                      setInitialEditState(projectWithDefaults);
+                      
+                      // Wait for state to be updated before showing the form
+                      setTimeout(() => {
+                        setIsProjectEditModalOpen(true);
+                      }, 100);
                     }}
                   />
                   

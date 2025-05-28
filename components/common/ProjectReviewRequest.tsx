@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
+import ProjectMetadataWarning from './ProjectMetadataWarning';
 
 // Define review request types
 export type ReviewRequestType = 'ShippedApproval' | 'ViralApproval' | 'HoursApproval' | 'Other';
@@ -12,7 +13,11 @@ interface ProjectReviewRequestProps {
   isInReview: boolean;
   isShipped?: boolean; // Add shipped status prop
   isViral?: boolean; // Add viral status prop
+  codeUrl?: string; // Add codeUrl prop
+  playableUrl?: string; // Add playableUrl prop
+  screenshot?: string; // Add screenshot prop
   onRequestSubmitted: (updatedProject: any, review: any) => void;
+  onEditProject: () => void; // Add callback to open project editor
 }
 
 export default function ProjectReviewRequest({
@@ -20,7 +25,11 @@ export default function ProjectReviewRequest({
   isInReview,
   isShipped = false, // Default to false if not provided
   isViral = false, // Default to false if not provided
-  onRequestSubmitted
+  codeUrl,
+  playableUrl,
+  screenshot,
+  onRequestSubmitted,
+  onEditProject
 }: ProjectReviewRequestProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
@@ -37,6 +46,26 @@ export default function ProjectReviewRequest({
   // Don't show this component in review mode or if project is already in review
   if (isReviewMode || isInReview) {
     return null;
+  }
+
+  // Check if all required metadata is present
+  const hasCodeUrl = codeUrl && codeUrl.trim() !== '';
+  const hasPlayableUrl = playableUrl && playableUrl.trim() !== '';
+  const hasScreenshot = screenshot && screenshot.trim() !== '';
+  const hasAllRequiredMetadata = hasCodeUrl && hasPlayableUrl && hasScreenshot;
+
+  // If metadata is missing, show the warning component instead
+  if (!hasAllRequiredMetadata) {
+    return (
+      <ProjectMetadataWarning
+        projectID={projectID}
+        isInReview={isInReview}
+        codeUrl={codeUrl}
+        playableUrl={playableUrl}
+        screenshot={screenshot}
+        onEditProject={onEditProject}
+      />
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
