@@ -97,6 +97,39 @@ const adapter = {
       data: user
     });
   },
+  // Add explicit verification token methods to fix the "in" operator error
+  createVerificationToken: async (verificationToken: { identifier: string; expires: Date; token: string }) => {
+    console.log('Creating verification token for:', verificationToken.identifier);
+    try {
+      const result = await prisma.verificationToken.create({
+        data: verificationToken,
+      });
+      console.log('Verification token created successfully');
+      return result;
+    } catch (error) {
+      console.error('Error creating verification token:', error);
+      throw error;
+    }
+  },
+  useVerificationToken: async ({ identifier, token }: { identifier: string; token: string }) => {
+    console.log('Using verification token for:', identifier, 'with token:', token?.substring(0, 10) + '...');
+    try {
+      const verificationToken = await prisma.verificationToken.delete({
+        where: {
+          identifier_token: {
+            identifier,
+            token,
+          },
+        },
+      });
+      console.log('Verification token used and deleted successfully');
+      return verificationToken;
+    } catch (error) {
+      console.error('Error using verification token:', error);
+      // Return null if token not found or expired, which is expected behavior
+      return null;
+    }
+  },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   linkAccount: async ({ ok, state, ...data }: any) => {
     console.log('Linking account:', { provider: data.provider, userId: data.userId });
