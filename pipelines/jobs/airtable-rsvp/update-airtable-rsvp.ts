@@ -156,7 +156,17 @@ type ProjectInfo = {
   name: string;
   shipped: boolean;
   in_review: boolean;
-  rawHours: number;
+  hackatimeLinks: {
+    id: string;
+    hackatimeName: string;
+    rawHours: number;
+    hoursOverride?: number | null;
+  }[];
+  reviews: {
+    id: string;
+    comment: string;
+    createdAt: Date;
+  }[];
   hoursOverride?: number | null;
 }
 
@@ -469,7 +479,12 @@ async function updateAirtableRSVPs(): Promise<void> {
         }
       },
       include: {
-        projects: true // Include all project fields
+        projects: {
+          include: {
+            hackatimeLinks: true,
+            reviews: true
+          }
+        }
       }
     }) as UserWithProjects[];
     console.log(`Found ${users.length} matching users in PostgreSQL.`);
@@ -651,7 +666,14 @@ async function updateAirtableRSVPs(): Promise<void> {
           where: { 
             email: { in: emails } 
           },
-            include: { projects: true }
+          include: { 
+            projects: {
+              include: {
+                hackatimeLinks: true,
+                reviews: true
+              }
+            }
+          }
         }) as UserWithProjects[];
       
         // Create new records for Airtable batch
@@ -726,21 +748,29 @@ async function updateAirtableRSVPs(): Promise<void> {
 
 // Calculate user metrics
 function calculateUserMetrics(user: UserWithProjects): UserMetrics {
-  // Extract real metrics from projects
+  // Extract real metrics from projects and their hackatime links
   const hasProjects = user.projects?.length > 0;
+  
+  // Calculate total hours from all hackatime links across all projects
   const totalHours = hasProjects 
-    ? user.projects.reduce((sum, project) => sum + (project.rawHours || 0), 0) 
+    ? user.projects.reduce((sum, project) => {
+        const projectHours = project.hackatimeLinks.reduce((linkSum, link) => linkSum + (link.rawHours || 0), 0);
+        return sum + projectHours;
+      }, 0)
     : 0;
   
-  // Calculate approved hours using ONLY hoursOverride
+  // Calculate approved hours using ONLY hoursOverride from hackatime links
   const approvedHours = hasProjects
     ? user.projects.reduce((sum, project) => {
-        // Only count hoursOverride as approved hours
-        if (project.hoursOverride !== undefined && project.hoursOverride !== null) {
-          return sum + project.hoursOverride;
-        }
-        // No hoursOverride means no approved hours for this project
-        return sum;
+        const projectApprovedHours = project.hackatimeLinks.reduce((linkSum, link) => {
+          // Only count hoursOverride as approved hours
+          if (link.hoursOverride !== undefined && link.hoursOverride !== null) {
+            return linkSum + link.hoursOverride;
+          }
+          // No hoursOverride means no approved hours for this link
+          return linkSum;
+        }, 0);
+        return sum + projectApprovedHours;
       }, 0)
     : 0;
   
@@ -754,7 +784,9 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
   
   if (hasProjects) {
     for (const project of user.projects) {
-      if (project.in_review) submittedProjects++;
+      // A project is "submitted" if it has at least one review comment
+      if (project.reviews && project.reviews.length > 0) submittedProjects++;
+      // A project is "approved" only if it's shipped
       if (project.shipped) approvedProjects++;
     }
   }
