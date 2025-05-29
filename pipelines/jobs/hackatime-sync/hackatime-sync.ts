@@ -5,7 +5,7 @@
  * This script:
  * 1. Fetches all users with hackatimeId
  * 2. For each user, fetches their Hackatime projects
- * 3. Updates all projects in the database with the latest rawHours
+ * 3. Updates HackatimeProjectLink records with the latest rawHours
  */
 
 import { PrismaClient } from '../../../app/generated/prisma/client';
@@ -14,7 +14,7 @@ import * as dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Initialize Prisma client with direct path
+// Initialize Prisma client
 const prisma = new PrismaClient({
   log: ['error']
 });
@@ -33,9 +33,9 @@ interface HackatimeProject {
   hours: number;
 }
 
-interface UpdatedProject {
-  name: string;
-  hackatime: string;
+interface UpdatedLink {
+  projectName: string;
+  hackatimeName: string;
   oldHours: number;
   newHours: number;
 }
@@ -43,7 +43,6 @@ interface UpdatedProject {
 async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProject[]> {
   try {
     const uri = `${HACKATIME_API_URL}/v1/users/${hackatimeId}/stats?features=projects&start_date=2025-04-22`;
-    console.log(`📡 Hackatime API Request: ${uri}`);
     
     const response = await fetch(uri, {
       headers: {
@@ -63,7 +62,6 @@ async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProje
       return [];
     }
     
-    console.log(`Found ${data.data.projects.length} Hackatime projects for user ${hackatimeId}`);
     return data.data.projects as HackatimeProject[];
   } catch (error) {
     console.error(`Failed to fetch Hackatime projects for user ${hackatimeId}:`, error);
@@ -94,6 +92,8 @@ async function main(): Promise<void> {
     
     console.log(`Found ${users.length} users with Hackatime IDs`);
     
+    let totalUpdatedLinks = 0;
+    
     // Process each user
     for (const user of users) {
       if (!user.hackatimeId) continue;
@@ -109,56 +109,72 @@ async function main(): Promise<void> {
           continue;
         }
         
-        // Get all projects for this user
+        // Get all projects for this user with their Hackatime links
         const userProjects = await prisma.project.findMany({
-          where: { userId: user.id }
+          where: { userId: user.id },
+          select: {
+            projectID: true,
+            name: true,
+            hackatimeLinks: {
+              select: {
+                id: true,
+                hackatimeName: true,
+                rawHours: true
+              }
+            }
+          }
         });
         
-        // Track which projects were updated
-        const updatedProjects: UpdatedProject[] = [];
+        // Track which links were updated
+        const updatedLinks: UpdatedLink[] = [];
         
-        // Update each project with matching hackatime name
+        // Update each HackatimeProjectLink with matching hackatime name
         for (const project of userProjects) {
-          if (!project.hackatime) continue;
-          
-          const hackatimeProject = hackatimeProjects.find(hp => hp.name === project.hackatime);
-          
-          if (hackatimeProject) {
-            // Get hours from the hackatime project
-            const hours = hackatimeProject.hours || 0;
+          for (const link of project.hackatimeLinks) {
+            const hackatimeProject = hackatimeProjects.find(hp => hp.name === link.hackatimeName);
             
-            // Only update if hours are different to avoid unnecessary database writes
-            if (project.rawHours !== hours) {
-              await prisma.project.update({
-                where: { projectID: project.projectID },
-                data: { rawHours: hours }
-              });
+            if (hackatimeProject) {
+              // Get hours from the hackatime project
+              const hours = hackatimeProject.hours || 0;
               
-              // Track the update
-              updatedProjects.push({
-                name: project.name,
-                hackatime: project.hackatime,
-                oldHours: project.rawHours,
-                newHours: hours
-              });
+              // Only update if hours are different to avoid unnecessary database writes
+              if (link.rawHours !== hours) {
+                try {
+                  await prisma.hackatimeProjectLink.update({
+                    where: { id: link.id },
+                    data: { rawHours: hours }
+                  });
+                  
+                  // Track the update
+                  updatedLinks.push({
+                    projectName: project.name,
+                    hackatimeName: link.hackatimeName,
+                    oldHours: link.rawHours,
+                    newHours: hours
+                  });
+                } catch (updateError) {
+                  console.error(`Failed to update link ${link.hackatimeName}:`, updateError);
+                }
+              }
             }
           }
         }
         
-        if (updatedProjects.length > 0) {
-          console.log(`Updated ${updatedProjects.length} projects for user ${user.id}:`);
-          for (const project of updatedProjects) {
-            console.log(`  - ${project.name}: ${project.oldHours} -> ${project.newHours} hours`);
+        if (updatedLinks.length > 0) {
+          console.log(`Updated ${updatedLinks.length} Hackatime links for user ${user.id}:`);
+          for (const link of updatedLinks) {
+            console.log(`  - ${link.projectName} -> ${link.hackatimeName}: ${link.oldHours} -> ${link.newHours} hours`);
           }
+          totalUpdatedLinks += updatedLinks.length;
         } else {
-          console.log(`No projects needed updating for user ${user.id}`);
+          console.log(`No Hackatime links needed updating for user ${user.id}`);
         }
       } catch (error) {
         console.error(`Error processing user ${user.id}:`, error);
       }
     }
     
-    console.log(`Synchronization completed successfully`);
+    console.log(`Synchronization completed successfully. Updated ${totalUpdatedLinks} total Hackatime links.`);
   } catch (error) {
     console.error(`Error during synchronization:`, error);
     process.exit(1);
