@@ -159,6 +159,87 @@ function getProjectHackatimeHours(project: ProjectType): number {
   return project?.rawHours || 0;
 }
 
+// Centralized function to calculate all progress metrics
+function calculateProgressMetrics(projects: ProjectType[]) {
+  if (!projects || !Array.isArray(projects)) {
+    return {
+      shippedHours: 0,
+      viralHours: 0,
+      otherHours: 0,
+      totalHours: 0,
+      totalPercentage: 0,
+      rawHours: 0,
+      piggyBucks: 0
+    };
+  }
+
+  let shippedHours = 0;
+  let viralHours = 0;
+  let otherHours = 0;
+  let rawHours = 0;
+  let piggyBucks = 0;
+
+  // Calculate piggy bucks from only the top 4 highest-hour shipped projects
+  const shippedProjects = projects
+    .filter(project => project?.shipped === true)
+    .map(project => ({
+      project,
+      hours: getProjectHackatimeHours(project)
+    }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 4); // Take only top 4
+
+  shippedProjects.forEach(({ hours }) => {
+    if (hours > 15) {
+      // Cap additional hours at 25 per project (max $125 per project)
+      const additionalHours = Math.min(hours - 15, 25);
+      piggyBucks += additionalHours * 5; // $5 per additional hour
+    }
+  });
+
+  projects.forEach(project => {
+    // Skip null or undefined projects
+    if (!project) return;
+    
+    // Get hours using our helper function
+    const hours = getProjectHackatimeHours(project);
+    rawHours += hours;
+    
+    // Cap hours per project at 15
+    let cappedHours = Math.min(hours, 15);
+    
+    // If the project is viral, it counts as 15 hours
+    if (project?.viral === true) {
+      viralHours += 15;
+    } 
+    // If it's shipped but not viral
+    else if (project?.shipped === true) {
+      shippedHours += cappedHours;
+    } 
+    // Not shipped and not viral
+    else {
+      // Cap non-shipped projects at 14.75 hours
+      otherHours += Math.min(cappedHours, 14.75);
+    }
+  });
+
+  // Calculate total hours (capped at 60 for percentages)
+  const totalHours = Math.min(shippedHours + viralHours + otherHours, 60);
+  
+  // Total progress percentage (capped at 100%)
+  const totalPercentage = Math.min((totalHours / 60) * 100, 100);
+
+  return {
+    shippedHours,
+    viralHours,
+    otherHours,
+    totalHours,
+    totalPercentage,
+    rawHours: Math.round(rawHours),
+    piggyBucks: Math.round(piggyBucks)
+  };
+}
+
 // Project Detail Component
 function ProjectDetail({ 
   project, 
@@ -512,6 +593,9 @@ function BayWithReviewMode({ session, status, router }: {
   // Check if user is admin
   const isAdmin = session?.user?.role === 'Admin' || session?.user?.isAdmin === true;
 
+  // Calculate all progress metrics using centralized function
+  const progressMetrics = calculateProgressMetrics(projects);
+
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
     const userId = session?.user?.id;
@@ -783,95 +867,61 @@ function BayWithReviewMode({ session, status, router }: {
 
   // Calculate total hours from shipped, viral, and other projects
   const calculateProgressSegments = (): ProgressSegment[] => {
-    // Calculate hours from each type of project
-    let shippedHours = 0;
-    let viralHours = 0;
-    let otherHours = 0;
-
+    // Use centralized metrics
+    const metrics = progressMetrics;
+    
     if (!projects || !Array.isArray(projects)) {
-      console.warn('Projects is null, undefined, or not an array:', projects);
       return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
     }
 
-    projects.forEach(project => {
-      // Skip null or undefined projects
-      if (!project) return;
-      
-      // Get hours using our helper function
-      const hours = getProjectHackatimeHours(project);
-      
-      // Cap hours per project
-      let cappedHours = Math.min(hours, 15);
-      
-      // If the project is viral, it counts as 15 hours
-      if (project?.viral === true) {
-        viralHours += 15;
-      } 
-      // If it's shipped but not viral
-      else if (project?.shipped === true) {
-        shippedHours += cappedHours;
-      } 
-      // Not shipped and not viral
-      else {
-        // Cap non-shipped projects at 14.75 hours
-        otherHours += Math.min(cappedHours, 14.75);
-      }
-    });
-
-    // Calculate total hours (capped at 60 for percentages)
-    const totalHours = Math.min(shippedHours + viralHours + otherHours, 60);
-    
     // Convert hours to percentages (based on 60-hour goal)
-    const shippedPercentage = (shippedHours / 60) * 100;
-    const viralPercentage = (viralHours / 60) * 100;
-    const otherPercentage = (otherHours / 60) * 100;
-    
-    // Total progress percentage (capped at 100%)
-    const totalPercentage = Math.min((totalHours / 60) * 100, 100);
+    const shippedPercentage = (metrics.shippedHours / 60) * 100;
+    const viralPercentage = (metrics.viralHours / 60) * 100;
+    const otherPercentage = (metrics.otherHours / 60) * 100;
     
     // Create segments array
     const segments: ProgressSegment[] = [];
     
     // Add shipped segment if there are hours
-    if (shippedHours > 0) {
+    if (metrics.shippedHours > 0) {
       segments.push({
         value: shippedPercentage,
         color: '#10b981', // Green
         label: 'Shipped',
-        tooltip: `${shippedHours.toFixed(1)} hours from shipped projects`,
+        tooltip: `${metrics.shippedHours.toFixed(1)} hours from shipped projects`,
         animated: false,
         status: 'completed'
       });
     }
     
     // Add viral segment if there are hours
-    if (viralHours > 0) {
+    if (metrics.viralHours > 0) {
       segments.push({
         value: viralPercentage,
         color: '#f59e0b', // Gold/Yellow
         label: 'Viral',
-        tooltip: `${viralHours.toFixed(1)} hours from viral projects`,
+        tooltip: `${metrics.viralHours.toFixed(1)} hours from viral projects`,
         animated: false,
         status: 'completed'
       });
     }
     
     // Add other segment if there are hours
-    if (otherHours > 0) {
+    if (metrics.otherHours > 0) {
       segments.push({
         value: otherPercentage,
         color: '#3b82f6', // Blue
         label: 'In Progress',
-        tooltip: `${otherHours.toFixed(1)} hours from in-progress projects`,
+        tooltip: `${metrics.otherHours.toFixed(1)} hours from in-progress projects`,
         animated: true,
         status: 'in-progress'
       });
     }
     
     // Add remaining segment if total < 100%
-    if (totalPercentage < 100) {
+    if (metrics.totalPercentage < 100) {
       segments.push({
-        value: 100 - totalPercentage,
+        value: 100 - metrics.totalPercentage,
         color: '#e5e7eb', // Light gray
         tooltip: 'Remaining progress needed',
         status: 'pending'
@@ -908,7 +958,7 @@ function BayWithReviewMode({ session, status, router }: {
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-4 sm:px-0">
               <div className="flex items-center justify-center gap-3">
-                <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${calculateTotalRawHours()} hour${calculateTotalRawHours() !== 1 ? 's' : ''} thus far`}>
+                <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}>
                   <img src="/ship.png" alt="Ship" className="h-16 flex items-center" />
                 </Tooltip>
                 <div 
@@ -936,7 +986,7 @@ function BayWithReviewMode({ session, status, router }: {
           <div className="flex items-center justify-center gap-6 mt-4">
             {/* Progress representation */}
             <div className="text-center w-32 bg-gray-100 rounded-lg p-4">
-              <div className="text-3xl text-gray-700">{totalHours}%</div>
+              <div className="text-3xl text-gray-700">{Math.round(progressMetrics.totalPercentage)}%</div>
               <div className="text-sm text-gray-500">Island Progress</div>
             </div>
             
@@ -954,7 +1004,7 @@ function BayWithReviewMode({ session, status, router }: {
                   />
                 </div>
                 <div className="absolute top-0 bottom-0 flex items-center justify-center pointer-events-none" style={{width: '89.6px', left: 'calc(50% - 3px)', top: '3px', transform: 'translateX(-50%)'}}>
-                  <span className="font-bold text-base text-center w-full" style={{color: '#ca8991'}}>$3000</span>
+                  <span className="font-bold text-base text-center w-full" style={{color: '#ca8991'}}>${progressMetrics.piggyBucks}</span>
                 </div>
               </div>
             </Tooltip>
@@ -1013,7 +1063,7 @@ function BayWithReviewMode({ session, status, router }: {
           </div>
           
           <p>
-            Your current progress: <span className="font-bold">{totalHours}%</span> toward the 60-hour requirement
+            Your current progress: <span className="font-bold">{Math.round(progressMetrics.totalPercentage)}%</span> toward the 60-hour requirement
           </p>
         </div>
       </Modal>
