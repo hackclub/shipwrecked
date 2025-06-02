@@ -903,35 +903,61 @@ function BayWithReviewMode({ session, status, router }: {
   return (
     <div className={styles.container}>
       <div className={styles.progressSection}>
-        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-1 md:py-2">
-          <div className="flex-grow px-4 sm:px-0">
-            <div className="flex items-center justify-center gap-3">
-              <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${calculateTotalRawHours()} hour${calculateTotalRawHours() !== 1 ? 's' : ''} thus far`}>
-                <span className="text-4xl md:text-6xl flex items-center">👤</span>
-              </Tooltip>
-              <div 
-                className="flex-grow cursor-pointer mt-5" 
-                onClick={() => setIsProgressModalOpen(true)}
-                title="When this progress bar reaches 100%, you're eligible for going to the island!"
-              >
-                <MultiPartProgressBar 
-                  segments={calculateProgressSegments()}
-                  max={100}
-                  height={10}
-                  rounded={true}
-                  showLabels={false}
-                  tooltipPosition="top"
-                />
-                <div className="text-center">
-                  <h3 className="font-medium text-base">
-                    {totalHours}%
-                  </h3>
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">Your Voyage</h2>
+        <div className="border border-gray-300 rounded-lg p-4 bg-white max-w-xl mx-auto">
+          <div className="flex items-center justify-between w-full py-1 md:py-2">
+            <div className="flex-grow px-4 sm:px-0">
+              <div className="flex items-center justify-center gap-3">
+                <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${calculateTotalRawHours()} hour${calculateTotalRawHours() !== 1 ? 's' : ''} thus far`}>
+                  <img src="/ship.png" alt="Ship" className="h-16 flex items-center" />
+                </Tooltip>
+                <div 
+                  className="flex-grow cursor-pointer" 
+                  onClick={() => setIsProgressModalOpen(true)}
+                  title="When this progress bar reaches 100%, you're eligible for going to the island!"
+                >
+                  <MultiPartProgressBar 
+                    segments={calculateProgressSegments()}
+                    max={100}
+                    height={10}
+                    rounded={true}
+                    showLabels={false}
+                    tooltipPosition="top"
+                  />
+                </div>
+                <Tooltip content="Your prize - a fantastic island adventure with friends">
+                  <img src="/island.png" alt="Island" className="w-16 h-16 flex items-center" />
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+          
+          {/* Progress + Piggy Bank Section */}
+          <div className="flex items-center justify-center gap-6 mt-4">
+            {/* Progress representation */}
+            <div className="text-center w-32 bg-gray-100 rounded-lg p-4">
+              <div className="text-3xl text-gray-700">{totalHours}%</div>
+              <div className="text-sm text-gray-500">Island Progress</div>
+            </div>
+            
+            {/* Plus sign */}
+            <div className="text-4xl font-bold text-gray-400">+</div>
+            
+            {/* Piggy Bank with Dollar Value */}
+            <Tooltip content="Approved & shipped hours that exceed 15h per project are converted into Piggy Bank bucks.  These funds can be applied to travel costs, and also potentially converted to grantable prizes!">
+              <div className="relative flex items-center justify-center bg-gray-100 rounded-lg p-4 w-32">
+                <div className="relative">
+                  <img 
+                    src="/piggy.png"
+                    alt="Piggy Bank"
+                    style={{width: '102.4px', height: 'auto'}}
+                  />
+                </div>
+                <div className="absolute top-0 bottom-0 flex items-center justify-center pointer-events-none" style={{width: '89.6px', left: 'calc(50% - 3px)', top: '3px', transform: 'translateX(-50%)'}}>
+                  <span className="font-bold text-base text-center w-full" style={{color: '#ca8991'}}>$3000</span>
                 </div>
               </div>
-              <Tooltip content="Your prize - a fantastic island adventure with friends">
-                <span className="text-4xl md:text-6xl flex items-center">🏝️</span>
-              </Tooltip>
-            </div>
+            </Tooltip>
           </div>
         </div>
       </div>

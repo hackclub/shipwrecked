@@ -84,7 +84,7 @@
 .progressSection {
   margin-bottom: 0.25rem;
   padding-top: 0.5rem;
-  padding-bottom: 0.25rem;
+  padding-bottom: 3rem;
   background-color: #f5f5f5;
 }
 
@@ -165,7 +165,7 @@
   .progressSection {
     margin-bottom: 0.25rem;
     padding-top: 0.5rem;
-    padding-bottom: 0.25rem;
+    padding-bottom: 3rem;
     background-color: #f5f5f5;
   }
 } 
