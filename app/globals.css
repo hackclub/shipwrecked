@@ -52,23 +52,23 @@ p {
 /* Clamshell glow and pulse animation */
 @keyframes clamshellPulse {
   0% {
-    transform: rotate(180deg) scale(1);
+    transform: scale(1.6) translateX(-2px) translateY(-2px);
     filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
   }
   25% {
-    transform: rotate(180deg) scale(1.05);
+    transform: scale(1.68) translateX(-2px) translateY(-2px);
     filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
   }
   50% {
-    transform: rotate(180deg) scale(1.1);
+    transform: scale(1.76) translateX(-2px) translateY(-2px);
     filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8));
   }
   75% {
-    transform: rotate(180deg) scale(1.05);
+    transform: scale(1.68) translateX(-2px) translateY(-2px);
     filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
   }
   100% {
-    transform: rotate(180deg) scale(1);
+    transform: scale(1.6) translateX(-2px) translateY(-2px);
     filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
   }
 }

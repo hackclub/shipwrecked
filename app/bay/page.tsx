@@ -1076,10 +1076,10 @@ function BayWithReviewMode({ session, status, router }: {
               <div className="relative flex items-center justify-center bg-gray-100 rounded-lg p-4 w-32" style={{height: '108px', overflow: 'hidden'}}>
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img 
-                    src="/clamshell.png"
+                    src="/shell_720.png"
                     alt="Clamshell"
                     className={`w-full h-full object-contain ${isGlowing ? 'clamshell-animated' : ''}`}
-                    style={{transform: 'rotate(180deg)'}}
+                    style={{transform: 'scale(1.6) translateX(-2px) translateY(-2px)'}}
                   />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="font-bold text-base text-center text-black" style={{marginTop: '-3px'}}>{animatedClamshells}</span>
