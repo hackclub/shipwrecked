@@ -48,3 +48,59 @@ p {
 .has-tooltip:hover .tooltip {
   @apply visible z-50
 }
+
+/* Clamshell glow and pulse animation */
+@keyframes clamshellPulse {
+  0% {
+    transform: rotate(180deg) scale(1);
+    filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
+  }
+  25% {
+    transform: rotate(180deg) scale(1.05);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+    filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8));
+  }
+  75% {
+    transform: rotate(180deg) scale(1.05);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+  }
+  100% {
+    transform: rotate(180deg) scale(1);
+    filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
+  }
+}
+
+.clamshell-animated {
+  animation: clamshellPulse 1.5s ease-in-out;
+}
+
+/* Percentage text glow and pulse animation */
+@keyframes percentagePulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 0px rgba(255, 215, 0, 0);
+  }
+  25% {
+    transform: scale(1.05);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+  }
+  50% {
+    transform: scale(1.1);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+  75% {
+    transform: scale(1.05);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0px rgba(255, 215, 0, 0);
+  }
+}
+
+.percentage-animated {
+  animation: percentagePulse 1.5s ease-in-out;
+}
