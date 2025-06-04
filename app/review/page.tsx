@@ -14,7 +14,7 @@ import { lazy, Suspense } from 'react';
 
 const MDXShippedApproval = lazy(() => import('./review-guidelines/shipped-approval.mdx'));
 const MDXViralApproval = lazy(() => import('./review-guidelines/viral-approval.mdx'));
-const MDXHoursApproval = lazy(() => import('./review-guidelines/ship-update-approval.mdx')); // you can rename this variable and file once HoursApproval is changed
+const MDXShipUpdateApproval = lazy(() => import('./review-guidelines/ship-update-approval.mdx')); // you can rename this variable and file once HoursApproval is changed
 const MDXOther = lazy(() => import('./review-guidelines/other.mdx'));
 
 function Loading() {
@@ -523,7 +523,7 @@ function ReviewPage() {
                       <Suspense fallback={<div>Loading guidelines...</div>}>
                         {selectedProject.latestReview?.reviewType == 'ShippedApproval' && <MDXShippedApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'ViralApproval' && <MDXViralApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXHoursApproval components={components} />}
+                        {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXShipUpdateApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'Other' && <MDXOther components={components} />}
                       </Suspense>
                     </div>
