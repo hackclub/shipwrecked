@@ -18,6 +18,7 @@ export type Project = {
     viral: boolean
     shipped: boolean
     in_review: boolean
+    chat_enabled: boolean
 }
 
 // Include backward compatibility fields
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
+                chat_enabled: formData.get('chat_enabled') === 'on',
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
@@ -517,6 +519,7 @@ export async function PUT(request: Request) {
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
+                chat_enabled: formData.get('chat_enabled') === 'on',
                 // These fields will be filtered out for non-admin users
                 shipped: formData.get('shipped') === 'true',
                 viral: formData.get('viral') === 'true',
@@ -562,6 +565,7 @@ export async function PUT(request: Request) {
             "codeUrl",
             "playableUrl",
             "screenshot",
+            "chat_enabled"
         ];
 
         // Define fields that only admins can update

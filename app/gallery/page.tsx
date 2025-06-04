@@ -5,6 +5,13 @@ import { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/common/Header';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
 import Icon from '@hackclub/icons';
+import dynamic from 'next/dynamic';
+import Toast from '@/components/common/Toast';
+
+// Dynamically import the chat modal to avoid SSR issues with socket.io
+const ProjectChatModal = dynamic(() => import('@/components/common/ProjectChatModal'), {
+  ssr: false
+});
 
 interface Project {
   projectID: string;
@@ -20,6 +27,7 @@ interface Project {
   hackatimeName: string;
   upvoteCount: number;
   userUpvoted: boolean;
+  chat_enabled: boolean;
   hackatimeLinks: {
     id: string;
     hackatimeName: string;
@@ -46,6 +54,16 @@ export default function Gallery() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Toast state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  
+  // Toast function
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+  };
+  
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [showViral, setShowViral] = useState(false);
@@ -54,6 +72,22 @@ export default function Gallery() {
 
   // Upvote loading state
   const [upvotingProjects, setUpvotingProjects] = useState<Set<string>>(new Set());
+
+  // Chat modal state
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [selectedProjectForChat, setSelectedProjectForChat] = useState<Project | null>(null);
+
+  // Handle opening chat modal
+  const handleOpenChat = (project: Project) => {
+    setSelectedProjectForChat(project);
+    setChatModalOpen(true);
+  };
+
+  // Handle closing chat modal
+  const handleCloseChat = () => {
+    setChatModalOpen(false);
+    setSelectedProjectForChat(null);
+  };
 
   useEffect(() => {
     async function fetchProjects() {
@@ -417,35 +451,43 @@ export default function Gallery() {
                   )}
 
                   {/* Project Links */}
-                  {(project.codeUrl || project.playableUrl) && (
-                    <div className="flex gap-2">
-                      {project.codeUrl && (
-                        <a 
-                          href={project.codeUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          <Icon glyph="github" size={14} />
-                          Code
-                        </a>
-                      )}
-                      {project.playableUrl && (
-                        <a 
-                          href={project.playableUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          <Icon glyph="link" size={14} />
-                          Demo
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {project.codeUrl && (
+                      <a 
+                        href={project.codeUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        <Icon glyph="github" size={14} />
+                        Code
+                      </a>
+                    )}
+                    {project.playableUrl && (
+                      <a 
+                        href={project.playableUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        <Icon glyph="link" size={14} />
+                        Demo
+                      </a>
+                    )}
+                    {/* Chat button - only show if chat is enabled */}
+                    {project.chat_enabled && (
+                      <button
+                        onClick={() => handleOpenChat(project)}
+                        className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                      >
+                        <span className="text-sm">💬</span>
+                        Discuss...
+                      </button>
+                    )}
+                  </div>
 
                   {/* Status Badges */}
-                  <div className="flex gap-1 mt-3">
+                  <div className="flex gap-1">
                     {project.viral && (
                       <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded-full">
                         Viral
@@ -461,6 +503,25 @@ export default function Gallery() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Chat Modal */}
+        {selectedProjectForChat && (
+          <ProjectChatModal
+            isOpen={chatModalOpen}
+            onClose={handleCloseChat}
+            project={selectedProjectForChat}
+            showToast={showToast}
+          />
+        )}
+        
+        {/* Toast notifications */}
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setToastMessage(null)}
+          />
         )}
       </main>
     </div>

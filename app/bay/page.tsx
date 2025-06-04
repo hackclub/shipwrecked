@@ -25,6 +25,8 @@ import { ReviewModeProvider, useReviewMode } from '@/app/contexts/ReviewModeCont
 import ProjectFlagsEditor, { ProjectFlags } from '@/components/common/ProjectFlagsEditor';
 import ProjectReviewRequest from '@/components/common/ProjectReviewRequest';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
+import CompleteReviewForm from '@/components/common/CompleteReviewForm';
+import ProjectMetadataWarning from '@/components/common/ProjectMetadataWarning';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -258,6 +260,7 @@ function ProjectDetail({
   setProjects: React.Dispatch<React.SetStateAction<ProjectType[]>>
 }): ReactElement {
   const { isReviewMode } = useReviewMode();
+  const { data: session } = useSession();
   const [projectFlags, setProjectFlags] = useState<ProjectFlags>({
     shipped: !!project.shipped,
     viral: !!project.viral,
@@ -267,6 +270,9 @@ function ProjectDetail({
   // Determine if editing is allowed based on review mode and project status
   const isEditingAllowed = isReviewMode || !projectFlags.in_review;
   
+  // Check if current user is the project owner
+  const isOwner = session?.user?.id === project.userId;
+  
   // Update projectFlags when project prop changes
   useEffect(() => {
     setProjectFlags({
@@ -275,7 +281,7 @@ function ProjectDetail({
       in_review: !!project.in_review
     });
   }, [project]);
-
+  
   // Calculate project's contribution percentage
   const getProjectHours = () => {
     // Safety check for null project
@@ -412,7 +418,6 @@ function ProjectDetail({
             </div>
           </div>
         </div>
-        
         {/* Project Review Request - only visible when NOT in review mode and not already in review */}
         <ProjectReviewRequest
           projectID={project.projectID}
@@ -598,6 +603,18 @@ function BayWithReviewMode({ session, status, router }: {
   
   // Check if user is admin
   const isAdmin = session?.user?.role === 'Admin' || session?.user?.isAdmin === true;
+
+  // Handle chat enabled change - shared function for both desktop and mobile contexts
+  const handleChatEnabledChange = (projectID: string, enabled: boolean) => {
+    // Update the project in the projects array
+    setProjects(prevProjects => 
+      prevProjects.map(p => 
+        p.projectID === projectID 
+          ? { ...p, chat_enabled: enabled } as ProjectType 
+          : p
+      )
+    );
+  };
 
   // Calculate all progress metrics using centralized function
   const progressMetrics = useMemo(() => {
@@ -1581,7 +1598,6 @@ function BayWithReviewMode({ session, status, router }: {
                       </div>
                     </div>
                   </div>
-                  
                   {/* Project Review Request for Mobile - only visible when NOT in review mode and not already in review */}
                   <ProjectReviewRequest
                     projectID={selectedProject.projectID}
@@ -2066,6 +2082,23 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!props.in_review} readOnly disabled /> In Review
                 </label>
+              </div>
+
+              {/* Chat Settings Section */}
+              <div className="mb-5 bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Discussion</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">Enable chat discussion</p>
+                    <p className="text-xs text-gray-500">Allow others to discuss this project</p>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    name="chat_enabled"
+                    defaultChecked={!!props.chat_enabled}
+                    className="ml-3 toggle-checkbox w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </>
           )}

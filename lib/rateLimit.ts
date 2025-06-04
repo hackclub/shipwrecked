@@ -7,7 +7,7 @@ export interface RateLimitConfig {
 }
 
 export async function checkRateLimit(config: RateLimitConfig): Promise<{ limited: boolean; remaining: number }> {
-  const key = `${config.keyPrefix || 'rate_limit'}:global`;
+  const key = config.keyPrefix || 'rate_limit:global';
   const current = await redis.incr(key);
   
   if (current === 1) {

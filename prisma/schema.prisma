@@ -94,6 +94,9 @@ model User {
   // Audit log relations
   targetAuditLogs AuditLog[] @relation("AuditLogTargetUser") // Logs where this user is the target
   actorAuditLogs  AuditLog[] @relation("AuditLogActorUser") // Logs where this user is the actor
+
+  // Chat messages sent by this user  
+  chatMessages ChatMessage[]
 }
 
 model Account {
@@ -164,6 +167,9 @@ model Project {
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
   in_review Boolean @default(false)
+  
+  // Chat feature flag
+  chat_enabled Boolean @default(false)
 
   // user relation
   userId String
@@ -180,6 +186,9 @@ model Project {
 
   // Hackatime project links
   hackatimeLinks HackatimeProjectLink[]
+  
+  // Chat rooms for this project
+  chatRooms ChatRoom[]
 
   @@id([projectID, userId])
 }
@@ -268,4 +277,40 @@ model Upvote {
   @@unique([userId, projectID])
   @@index([projectID])
   @@index([userId])
+}
+
+// Chat models for realtime discussion
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String   @default("General Discussion")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to project
+  projectID String
+  project   Project @relation(fields: [projectID], references: [projectID], onDelete: Cascade)
+
+  // Chat messages
+  messages ChatMessage[]
+
+  @@index([projectID])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to user who sent the message
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relation to chat room
+  roomId String
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+  @@index([createdAt])
 }
