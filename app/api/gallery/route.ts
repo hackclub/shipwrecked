@@ -11,9 +11,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = session.user.id;
+
     console.log('Fetching all projects for gallery...');
     
-    // Fetch all projects from all users with user info and hackatime links
+    // Fetch all projects from all users with user info, hackatime links, and upvote data
     const allProjects = await prisma.project.findMany({
       select: {
         projectID: true,
@@ -26,8 +28,29 @@ export async function GET(request: Request) {
         viral: true,
         userId: true,
         hackatimeLinks: true,
+        _count: {
+          select: {
+            upvotes: true,
+          },
+        },
       },
     });
+
+    // Get current user's upvotes in a separate query for privacy
+    const userUpvotes = await prisma.upvote.findMany({
+      where: {
+        userId: userId,
+        projectID: {
+          in: allProjects.map(p => p.projectID),
+        },
+      },
+      select: {
+        projectID: true,
+      },
+    });
+
+    // Create a Set for faster lookup
+    const userUpvotedProjectIds = new Set(userUpvotes.map(upvote => upvote.projectID));
 
     // Enhance the project data with computed properties (similar to regular projects API)
     const enhancedProjects = allProjects.map((project) => {
@@ -48,12 +71,19 @@ export async function GET(request: Request) {
         }, 
         0
       );
+
+      // Check if current user has upvoted this project
+      const userUpvoted = userUpvotedProjectIds.has(project.projectID);
       
       // Return the enhanced project with additional properties
       return {
         ...project,
         hackatimeName,
-        rawHours
+        rawHours,
+        upvoteCount: project._count.upvotes,
+        userUpvoted,
+        // Remove the _count object from the response
+        _count: undefined,
       };
     });
 

@@ -88,6 +88,9 @@ model User {
   projects Project[]
   reviews  Review[] // Relation to reviews created by this user
 
+  // Upvotes given by this user
+  upvotes Upvote[]
+
   // Audit log relations
   targetAuditLogs AuditLog[] @relation("AuditLogTargetUser") // Logs where this user is the target
   actorAuditLogs  AuditLog[] @relation("AuditLogActorUser") // Logs where this user is the actor
@@ -169,6 +172,9 @@ model Project {
   // Project reviews
   reviews Review[]
 
+  // Upvotes received by this project
+  upvotes Upvote[]
+
   // Audit logs related to this project
   auditLogs AuditLog[]
 
@@ -243,4 +249,23 @@ model HackatimeProjectLink {
 
   @@unique([projectID, hackatimeName])
   @@index([projectID])
+}
+
+// Upvote model to track user upvotes for projects
+model Upvote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relation to the user who upvoted
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relation to the project being upvoted
+  projectID String
+  project   Project @relation(fields: [projectID], references: [projectID], onDelete: Cascade)
+
+  // Ensure one upvote per user per project
+  @@unique([userId, projectID])
+  @@index([projectID])
+  @@index([userId])
 }

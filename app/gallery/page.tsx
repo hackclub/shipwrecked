@@ -18,6 +18,8 @@ interface Project {
   userId: string;
   rawHours: number;
   hackatimeName: string;
+  upvoteCount: number;
+  userUpvoted: boolean;
   hackatimeLinks: {
     id: string;
     hackatimeName: string;
@@ -26,7 +28,7 @@ interface Project {
   }[];
 }
 
-type SortOption = 'hasImage' | 'hours' | 'alphabetical';
+type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes';
 
 // Helper function to check if a URL is a valid image
 const isValidImageUrl = (url: string): boolean => {
@@ -48,7 +50,10 @@ export default function Gallery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showViral, setShowViral] = useState(false);
   const [showShipped, setShowShipped] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('hasImage');
+  const [sortBy, setSortBy] = useState<SortOption>('upvotes');
+
+  // Upvote loading state
+  const [upvotingProjects, setUpvotingProjects] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchProjects() {
@@ -121,6 +126,8 @@ export default function Gallery() {
           return b.rawHours - a.rawHours;
         case 'alphabetical':
           return a.name.localeCompare(b.name);
+        case 'upvotes':
+          return b.upvoteCount - a.upvoteCount;
         default:
           return 0;
       }
@@ -128,6 +135,46 @@ export default function Gallery() {
 
     return filtered;
   }, [projects, searchQuery, showViral, showShipped, sortBy]);
+
+  // Handle upvote/downvote
+  const handleUpvote = async (projectID: string) => {
+    if (upvotingProjects.has(projectID)) return; // Prevent double-clicking
+
+    setUpvotingProjects(prev => new Set(prev).add(projectID));
+
+    try {
+      const response = await fetch(`/api/projects/${projectID}/upvote`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Update the project in the state
+        setProjects(prevProjects => 
+          prevProjects.map(project => 
+            project.projectID === projectID
+              ? {
+                  ...project,
+                  upvoteCount: result.upvoteCount,
+                  userUpvoted: result.upvoted,
+                }
+              : project
+          )
+        );
+      } else {
+        console.error('Failed to upvote project');
+      }
+    } catch (error) {
+      console.error('Error upvoting project:', error);
+    } finally {
+      setUpvotingProjects(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(projectID);
+        return newSet;
+      });
+    }
+  };
 
   if (status === "loading") {
     return (
@@ -206,6 +253,23 @@ export default function Gallery() {
                 Sort by
               </label>
               <div className="flex gap-2">
+                <label className="flex-1">
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    value="upvotes"
+                    checked={sortBy === 'upvotes'}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="sr-only"
+                  />
+                  <div className={`cursor-pointer px-3 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                    sortBy === 'upvotes'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}>
+                    ★ Upvotes
+                  </div>
+                </label>
                 <label className="flex-1">
                   <input
                     type="radio"
@@ -312,11 +376,38 @@ export default function Gallery() {
                     <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 mr-2">
                       {project.name}
                     </h3>
-                    {project.rawHours > 0 && (
-                      <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full flex-shrink-0">
-                        {project.rawHours}h
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Upvote button */}
+                      <button
+                        onClick={() => handleUpvote(project.projectID)}
+                        disabled={upvotingProjects.has(project.projectID)}
+                        className={`flex items-center justify-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-all min-w-[60px] ${
+                          project.userUpvoted
+                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        } ${
+                          upvotingProjects.has(project.projectID)
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'cursor-pointer hover:scale-105'
+                        }`}
+                      >
+                        <span 
+                          className={`text-lg ${
+                            project.userUpvoted
+                              ? 'text-yellow-500'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          ★
+                        </span>
+                        <span className="tabular-nums">{project.upvoteCount}</span>
+                      </button>
+                      {project.rawHours > 0 && (
+                        <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                          {project.rawHours}h
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {project.description && (
