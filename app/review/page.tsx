@@ -14,7 +14,7 @@ import { lazy, Suspense } from 'react';
 
 const MDXShippedApproval = lazy(() => import('./review-guidelines/shipped-approval.mdx'));
 const MDXViralApproval = lazy(() => import('./review-guidelines/viral-approval.mdx'));
-const MDXShipUpdateApproval = lazy(() => import('./review-guidelines/ship-update-approval.mdx')); // you can rename this variable and file once HoursApproval is changed
+const MDXShipUpdateApproval = lazy(() => import('./review-guidelines/ship-update-approval.mdx'));
 const MDXOther = lazy(() => import('./review-guidelines/other.mdx'));
 
 function Loading() {
