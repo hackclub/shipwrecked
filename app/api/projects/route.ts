@@ -572,7 +572,12 @@ export async function PUT(request: Request) {
         const adminOnlyFields = [
             "shipped",
             "viral",
+        ];
+        
+        // Define fields that admins and reviewers can update
+        const reviewerUpdateableFields = [
             "in_review",
+            ...userUpdateableFields
         ];
 
         // Define fields that should never be updated via the API
@@ -612,18 +617,14 @@ export async function PUT(request: Request) {
                 )
             );
         } else if (isReviewer) {
-            // Reviewers can only update in_review flag 
-            updateFields = {
-                ...Object.fromEntries(
-                    Object.entries(updateFields).filter(([key, val]) => 
-                        userUpdateableFields.includes(key) && 
-                        !nonUpdateableFields.includes(key) && 
-                        val !== undefined
-                    )
-                ),
-                // Allow reviewers to set in_review status only
-                ...(updateFields.in_review !== undefined ? { in_review: updateFields.in_review } : {})
-            };
+            // Reviewers can update in_review flag and other reviewer-updateable fields
+            updateFields = Object.fromEntries(
+                Object.entries(updateFields).filter(([key, val]) => 
+                    reviewerUpdateableFields.includes(key) && 
+                    !nonUpdateableFields.includes(key) && 
+                    val !== undefined
+                )
+            );
         } else {
             // Regular users can only update basic fields
             updateFields = Object.fromEntries(
@@ -686,8 +687,8 @@ export async function PUT(request: Request) {
                 }
             });
             
-            // If admin is updating individual link hour overrides
-            if (isAdmin && hackatimeLinkOverrides && Object.keys(hackatimeLinkOverrides).length > 0) {
+            // If admin or reviewer is updating individual link hour overrides
+            if ((isAdmin || isReviewer) && hackatimeLinkOverrides && Object.keys(hackatimeLinkOverrides).length > 0) {
                 console.log(`[PUT] Processing ${Object.keys(hackatimeLinkOverrides).length} Hackatime link overrides`);
                 
                 // Update each link with its override if provided
@@ -730,15 +731,17 @@ export async function PUT(request: Request) {
             console.log(`[PUT] Successfully updated project ${projectID}`);
             metrics.increment("success.update_project", 1);
             
-            // Add audit logging for admin project edits
-            if (isAdmin) {
+            // Add audit logging for admin and reviewer project edits
+            if (isAdmin || isReviewer) {
                 try {
                     // Gather summary of changes for the audit log
                     const fieldsChanged = Object.keys(updateFields);
                     const linksChanged = Object.keys(hackatimeLinkOverrides || {}).length;
                     
                     // Create descriptive text about the changes
-                    let changeDescription = `Admin edited project "${existingProject.name}"`;
+                    let changeDescription = isAdmin 
+                        ? `Admin edited project "${existingProject.name}"`
+                        : `Reviewer edited project "${existingProject.name}"`;
                     if (fieldsChanged.length > 0) {
                         changeDescription += `. Updated fields: ${fieldsChanged.join(', ')}`;
                     }
