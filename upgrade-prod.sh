@@ -52,10 +52,32 @@ if ! git diff-index --quiet HEAD --; then
     exit 1
 fi
 
-# Continue with the rest of the upgrade process...
+# Fetch from upstream to ensure we have the latest refs
+echo "Fetching from upstream..."
 git fetch upstream main
+
+# Check if production branch exists on upstream
+if ! git ls-remote --exit-code upstream production > /dev/null 2>&1; then
+    echo "Error: Production branch does not exist on upstream remote."
+    echo "Please create the production branch on the upstream repository first."
+    exit 1
+fi
+
+# Fetch production branch from upstream
+git fetch upstream production
+
+# Continue with the rest of the upgrade process...
 git rebase upstream/main
-git checkout production
+
+# Check if production branch exists locally
+if git show-ref --verify --quiet refs/heads/production; then
+    echo "Local production branch exists, switching to it..."
+    git checkout production
+else
+    echo "Local production branch doesn't exist, creating it from upstream/production..."
+    git checkout -b production upstream/production
+fi
+
 git rebase main
 git push upstream production
 echo "SUCCESS!  Rebased main into production!"
