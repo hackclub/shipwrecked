@@ -61,21 +61,24 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
   useEffect(() => {
     if (!isOpen || !project.chat_enabled) return;
 
-    const loadMessages = async () => {
+    const fetchMessages = async () => {
       try {
-        const response = await fetch(`/api/projects/${project.projectID}/chat/messages`);
+        setIsLoading(true);
+        const response = await fetch(`/api/projects/project/${project.projectID}/chat/messages`);
         if (response.ok) {
-          const data = await response.json();
-          setMessages(data);
+          const messages = await response.json();
+          setMessages(messages);
+        } else {
+          console.error('Failed to fetch messages:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Error loading messages:', error);
+        console.error('Error fetching messages:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadMessages();
+    fetchMessages();
   }, [isOpen, project.projectID, project.chat_enabled]);
 
   // Scroll to bottom when new messages arrive (immediate, not animated)
@@ -134,7 +137,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
 
     try {
       // Send to server to save in database
-      const response = await fetch(`/api/projects/${project.projectID}/chat/messages`, {
+      const response = await fetch(`/api/projects/project/${project.projectID}/chat/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

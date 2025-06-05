@@ -177,7 +177,7 @@ export default function Gallery() {
     setUpvotingProjects(prev => new Set(prev).add(projectID));
 
     try {
-      const response = await fetch(`/api/projects/${projectID}/upvote`, {
+      const response = await fetch(`/api/projects/project/${projectID}/upvote`, {
         method: 'POST',
       });
 

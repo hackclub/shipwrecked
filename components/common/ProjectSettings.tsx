@@ -26,14 +26,12 @@ export default function ProjectSettings({
     const newValue = !chatEnabled;
     
     try {
-      const response = await fetch(`/api/projects/${projectID}/settings`, {
+      const response = await fetch(`/api/projects/project/${projectID}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chat_enabled: newValue
-        })
+        body: JSON.stringify({ chat_enabled: newValue }),
       });
 
       if (!response.ok) {
