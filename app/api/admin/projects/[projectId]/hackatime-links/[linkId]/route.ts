@@ -7,9 +7,9 @@ import { removeHackatimeProjectLink } from '@/lib/hackatime-links';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { projectId: string, linkId: string } }
+  { params }: { params: Promise<{ projectId: string, linkId: string }> }
 ) {
-  const { projectId, linkId } = params;
+  const { projectId, linkId } = await params;
   
   // Check authentication
   const session = await getServerSession(opts);

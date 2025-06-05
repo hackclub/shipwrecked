@@ -6,7 +6,7 @@ import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
 
 export async function GET(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   // Check authentication
   const session = await getServerSession(opts);
@@ -22,7 +22,7 @@ export async function GET(
 
   try {
     // Use destructuring to access params properly
-    const { projectId } = params;
+    const { projectId } = await params;
     
     // Fetch the specific project with user info, reviews, and hackatime links
     const project = await prisma.project.findUnique({
@@ -75,7 +75,7 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   // Check authentication
   const session = await getServerSession(opts);
@@ -91,7 +91,7 @@ export async function DELETE(
 
   try {
     // Use destructuring to access params properly
-    const { projectId } = params;
+    const { projectId } = await params;
     
     // Fetch project details before deletion to use in audit log
     const projectToDelete = await prisma.project.findUnique({
