@@ -6,7 +6,7 @@ import { opts } from '../../../auth/[...nextauth]/route';
 // PATCH - Update project settings
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(opts);
@@ -14,7 +14,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = params.projectId;
+    const { projectId } = await params;
     const body = await request.json();
 
     // Find the project and check ownership

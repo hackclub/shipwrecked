@@ -8,9 +8,9 @@ import { addHackatimeProjectLink, getHackatimeProjectLinks } from '@/lib/hackati
 // POST - Add a new Hackatime project link (admin only)
 export async function POST(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const { projectId } = params;
+  const { projectId } = await params;
   
   // Check authentication
   const session = await getServerSession(opts);
@@ -98,9 +98,9 @@ export async function POST(
 // GET - Retrieve all Hackatime project links for a project (admin only)
 export async function GET(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const { projectId } = params;
+  const { projectId } = await params;
   
   // Check authentication
   const session = await getServerSession(opts);

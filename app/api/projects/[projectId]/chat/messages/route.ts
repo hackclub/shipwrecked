@@ -7,7 +7,7 @@ import { withRateLimit } from '@/lib/rateLimit';
 // GET - Get chat messages for a project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(opts);
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = params.projectId;
+    const { projectId } = await params;
 
     // Check if the project exists and has chat enabled
     const project = await prisma.project.findUnique({
@@ -80,14 +80,14 @@ export async function GET(
 // POST - Send a new chat message
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   const session = await getServerSession(opts);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const projectId = params.projectId;
+  const { projectId } = await params;
   const userId = session.user.id;
 
   // Apply rate limiting: 1 message every 5 seconds per user per project

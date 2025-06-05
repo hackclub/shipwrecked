@@ -5,7 +5,7 @@ const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
-const port = 3000;
+const port = parseInt(process.env.PORT) || 3000; // Use PORT env var from Docker, fallback to 3000
 
 // Set up Next.js options
 const nextConfig = {
@@ -36,7 +36,7 @@ app.prepare().then(() => {
   const io = new Server(server, {
     cors: {
       origin: process.env.NODE_ENV === 'production' 
-        ? ["https://your-domain.com"] // Replace with your actual domain
+        ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
         : ["http://localhost:3000"],
       methods: ["GET", "POST"]
     }
