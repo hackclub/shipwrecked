@@ -42,6 +42,11 @@ app.prepare().then(() => {
     }
   });
 
+  console.log(`Socket.IO server initialized for environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`CORS origins:`, process.env.NODE_ENV === 'production' 
+    ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
+    : ["http://localhost:3000"]);
+
   // Socket.IO connection handling
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);

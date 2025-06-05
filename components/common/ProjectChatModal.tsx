@@ -40,7 +40,25 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
   useEffect(() => {
     if (!isOpen || !project.chat_enabled) return;
 
-    const socketInstance = io();
+    // More explicit Socket.IO connection with debugging
+    const socketInstance = io({
+      transports: ['websocket', 'polling'], // Try websocket first, then fall back to polling
+      timeout: 20000,
+      forceNew: true
+    });
+    
+    socketInstance.on('connect', () => {
+      console.log('Socket.IO connected:', socketInstance.id);
+    });
+    
+    socketInstance.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', error);
+    });
+    
+    socketInstance.on('disconnect', (reason) => {
+      console.log('Socket.IO disconnected:', reason);
+    });
+
     setSocket(socketInstance);
 
     // Join the project chat room
