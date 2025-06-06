@@ -31,11 +31,22 @@ app.prepare().then(() => {
   // Initialize Socket.IO BEFORE the Next.js handler
   const io = new Server(server, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' 
+      origin: (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
         ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
         : ["http://localhost:9991", "http://localhost:3000"],
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    // Add transports and additional config for production
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+    // Configure for production behind proxy/load balancer
+    ...((process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') ? {
+      pingTimeout: 60000,
+      pingInterval: 25000,
+      upgradeTimeout: 30000,
+      maxHttpBufferSize: 1e6
+    } : {})
   });
 
   // Custom API routes can go here (before the Next.js handler)
@@ -53,13 +64,13 @@ app.prepare().then(() => {
   });
 
   console.log(`Socket.IO server initialized for environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`CORS origins:`, process.env.NODE_ENV === 'production' 
+  console.log(`CORS origins:`, (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
     ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
     : ["http://localhost:9991", "http://localhost:3000"]);
 
   // Socket.IO connection handling
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('User connected:', socket.id, 'from:', socket.handshake.address);
 
     // Join a project chat room
     socket.on('join-project-chat', (projectId) => {
@@ -87,9 +98,19 @@ app.prepare().then(() => {
     });
 
     // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
+    socket.on('disconnect', (reason) => {
+      console.log('User disconnected:', socket.id, 'reason:', reason);
     });
+
+    // Handle connection errors
+    socket.on('connect_error', (error) => {
+      console.log('Socket connection error:', socket.id, error);
+    });
+  });
+
+  // Add Socket.IO server error handling
+  io.engine.on('connection_error', (err) => {
+    console.log('Socket.IO connection error:', err.req?.url, err.code, err.message);
   });
 
   // Set a short timeout to fail fast rather than waiting
