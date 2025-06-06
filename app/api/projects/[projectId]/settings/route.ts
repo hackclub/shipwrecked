@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { opts } from '../../../../auth/[...nextauth]/route';
+import { opts } from '../../../auth/[...nextauth]/route';
 
 // PATCH - Update project settings
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(opts);
@@ -14,13 +14,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { projectId } = await params;
     const body = await request.json();
 
     // Find the project and check ownership
     const project = await prisma.project.findUnique({
       where: {
-        projectID: id,
+        projectID: projectId,
       },
       select: {
         projectID: true,
@@ -49,7 +49,7 @@ export async function PATCH(
         // Enabling chat for the first time - create a default chat room
         await prisma.chatRoom.create({
           data: {
-            projectID: id,
+            projectID: projectId,
             name: 'General Discussion'
           }
         });
@@ -57,7 +57,7 @@ export async function PATCH(
         // Disabling chat - we'll keep the chat rooms and messages for now
         // but they won't be accessible from the UI. This preserves conversation history
         // in case the user re-enables chat later.
-        console.log(`Chat disabled for project ${id}. Chat rooms and messages preserved.`);
+        console.log(`Chat disabled for project ${projectId}. Chat rooms and messages preserved.`);
       }
     }
 
@@ -68,7 +68,7 @@ export async function PATCH(
     // Update the project
     const updatedProject = await prisma.project.update({
       where: {
-        projectID: id,
+        projectID: projectId,
       },
       data: updateData,
       select: {

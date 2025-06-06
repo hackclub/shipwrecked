@@ -6,9 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    labels:
-      - traefik.http.services.shipwrecked-app.loadbalancer.server.port=9991
-      - traefik.http.services.shipwrecked-app.loadbalancer.passhostheader=true
+    #labels:
     #  - "traefik.http.middlewares.shipwrecked-auth.basicauth.users=a:$2y$05$bcQ3LWVkYdUIMUA.O1MOe.MAGfeGnsCvAXb3jPPqPK23MpsSvixdy"
     #  - traefik.http.routers.https-0-gwkso00g48gwsk044owcs4gw-app.entryPoints=https, shipwrecked-auth
     environment:

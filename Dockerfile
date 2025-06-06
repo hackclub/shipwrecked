@@ -20,16 +20,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-# Overwrite the standalone server.js with our custom Socket.io server
-COPY --from=builder /app/server.js ./server.js
-
-# Install additional dependencies needed for our custom server using yarn
-# (Express and Socket.io are not included in Next.js standalone build)
-RUN yarn add express@^4.19.2 socket.io@^4.8.0 --ignore-engines
-
-# Ensure the nextjs user owns all files and has proper permissions
-RUN chown -R nextjs:nodejs /app
-RUN chmod -R 755 /app
 
 USER nextjs
 

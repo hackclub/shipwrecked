@@ -1,13 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { opts } from '../../../../../auth/[...nextauth]/route';
+import { opts } from '../../../../auth/[...nextauth]/route';
 import { withRateLimit } from '@/lib/rateLimit';
 
 // GET - Get chat messages for a project
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(opts);
@@ -15,12 +15,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { projectId } = await params;
 
     // Check if the project exists and has chat enabled
     const project = await prisma.project.findUnique({
       where: {
-        projectID: id,
+        projectID: projectId,
       },
       select: {
         chat_enabled: true,
@@ -38,7 +38,7 @@ export async function GET(
     // Get the chat room for this project
     const chatRoom = await prisma.chatRoom.findFirst({
       where: {
-        projectID: id,
+        projectID: projectId,
       },
     });
 
@@ -80,14 +80,14 @@ export async function GET(
 // POST - Send a new chat message
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   const session = await getServerSession(opts);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = await params;
+  const { projectId } = await params;
   const userId = session.user.id;
 
   // Apply rate limiting: 1 message every 5 seconds per user per project
@@ -95,7 +95,7 @@ export async function POST(
     {
       window: 5, // 5 seconds
       maxRequests: 1, // 1 message max
-      keyPrefix: `chat_message:${userId}:${id}` // Per user per project
+      keyPrefix: `chat_message:${userId}:${projectId}` // Per user per project
     },
     async () => {
       try {
@@ -113,7 +113,7 @@ export async function POST(
         // Check if the project exists and has chat enabled
         const project = await prisma.project.findUnique({
           where: {
-            projectID: id,
+            projectID: projectId,
           },
           select: {
             chat_enabled: true,
@@ -131,7 +131,7 @@ export async function POST(
         // Get or create the chat room for this project
         let chatRoom = await prisma.chatRoom.findFirst({
           where: {
-            projectID: id,
+            projectID: projectId,
           },
         });
 
@@ -139,7 +139,7 @@ export async function POST(
           // Create a chat room if it doesn't exist
           chatRoom = await prisma.chatRoom.create({
             data: {
-              projectID: id,
+              projectID: projectId,
               name: 'General Discussion',
             }
           });
