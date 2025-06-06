@@ -208,9 +208,8 @@ export function calculateProgressMetrics(projects: ProjectType[]): ProgressMetri
     // Cap hours per project at 15
     let cappedHours = Math.min(hours, 15);
     
-    // If the project is viral, it counts as 15 hours
     if (project?.viral === true) {
-      viralHours += 15;
+      viralHours += cappedHours;
     } 
     // If it's shipped but not viral
     else if (project?.shipped === true) {
@@ -297,17 +296,17 @@ function ProjectDetail({
   const getProjectHours = () => {
     // Safety check for null project
     if (!project) return 0;
-    
-    // If viral, it's 15 hours (25% toward the 60-hour goal)
-    if (projectFlags?.viral === true) {
-      return 15;
-    }
-    
+
     // Get hours from project properties using the helper function
     const rawHours = getProjectHackatimeHours(project);
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
+    
+    // If viral
+    if (projectFlags?.viral === true) {
+      return cappedHours;
+    }
     
     // If the project is not shipped, cap it at 14.75 hours
     if (projectFlags?.shipped !== true && cappedHours > 14.75) {
@@ -969,16 +968,16 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   // Update total hours whenever projects or projectHours changes
   useEffect(() => {
     const total = projects.reduce((sum, project) => {
-      // If project is viral, it automatically counts as 15 hours
-      if (project.viral) {
-        return sum + 15;
-      }
-      
       // Get hours using our helper function
       let hours = getProjectHackatimeHours(project);
       
       // Cap hours per project at 15
       let cappedHours = Math.min(hours, 15);
+      
+      // If project is viral, it automatically counts as 15 hours
+      if (project.viral) {
+        return sum + cappedHours;
+      }
       
       // If the project is not shipped, cap it at 14.75 hours
       if (!project.shipped && cappedHours > 14.75) {
@@ -1577,12 +1576,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
               if (!selectedProject) {
                 return 0;
               }
-              
-              // If viral, it's 15 hours
-              if (selectedProject?.viral === true) {
-                return 15;
-              }
-              
+
               // Use hoursOverride if available, otherwise use raw hours
               const hours = typeof selectedProject?.hoursOverride === 'number' && selectedProject.hoursOverride !== null
                 ? selectedProject.hoursOverride
@@ -1590,6 +1584,11 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
               
               // Cap hours per project at 15
               let cappedHours = Math.min(hours, 15);
+              
+              // If viral, it's 15 hours
+              if (selectedProject?.viral === true) {
+                return cappedHours;
+              }
               
               // If not shipped, cap at 14.75 hours
               if (selectedProject?.shipped !== true && cappedHours > 14.75) {
