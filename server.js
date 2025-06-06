@@ -1,3 +1,4 @@
+const express = require('express');
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
@@ -21,31 +22,40 @@ const app = next(nextConfig);
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
-  const server = createServer(async (req, res) => {
+  const expressApp = express();
+  const server = createServer(expressApp);
+
+  // Add any custom Express middleware here if needed
+  // For example: expressApp.use(express.json());
+
+  // Initialize Socket.IO BEFORE the Next.js handler
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.NODE_ENV === 'production' 
+        ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
+        : ["http://localhost:9991", "http://localhost:3000"],
+      methods: ["GET", "POST"]
+    }
+  });
+
+  // Custom API routes can go here (before the Next.js handler)
+  // For example: expressApp.get('/api/custom', (req, res) => { ... });
+
+  // Handle all requests with Next.js (this should be LAST)
+  expressApp.all('*', async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error('Error occurred handling', req.url, err);
-      res.statusCode = 500;
-      res.end('Internal Server Error');
-    }
-  });
-
-  // Initialize Socket.IO
-  const io = new Server(server, {
-    cors: {
-      origin: process.env.NODE_ENV === 'production' 
-        ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
-        : ["http://localhost:3000"],
-      methods: ["GET", "POST"]
+      res.status(500).end('Internal Server Error');
     }
   });
 
   console.log(`Socket.IO server initialized for environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`CORS origins:`, process.env.NODE_ENV === 'production' 
     ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
-    : ["http://localhost:3000"]);
+    : ["http://localhost:9991", "http://localhost:3000"]);
 
   // Socket.IO connection handling
   io.on('connection', (socket) => {
