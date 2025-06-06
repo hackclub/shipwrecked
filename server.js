@@ -4,17 +4,23 @@ const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
 
-const dev = process.env.NODE_ENV !== 'production';
+const dev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging';
 const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT) || 3000; // Use PORT env var from Docker, fallback to 3000
+
+console.log(`Starting server in ${dev ? 'development' : 'production'} mode`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`Working directory: ${__dirname}`);
 
 // Set up Next.js options
 const nextConfig = {
   dev,
   hostname,
   port,
-  // Enable turbopack in development mode
-  ...(dev ? { turbo: true } : {})
+  // Enable turbopack in development mode only
+  ...(dev ? { turbo: true } : {}),
+  // For production builds, use the current directory
+  ...(!dev ? { dir: __dirname } : {})
 };
 
 // Initialize Next.js
@@ -25,10 +31,7 @@ app.prepare().then(() => {
   const expressApp = express();
   const server = createServer(expressApp);
 
-  // Add any custom Express middleware here if needed
-  // For example: expressApp.use(express.json());
-
-  // Initialize Socket.IO BEFORE the Next.js handler
+  // Initialize Socket.IO first - it adds its own middleware to the server
   const io = new Server(server, {
     cors: {
       origin: (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
@@ -49,10 +52,8 @@ app.prepare().then(() => {
     } : {})
   });
 
-  // Custom API routes can go here (before the Next.js handler)
-  // For example: expressApp.get('/api/custom', (req, res) => { ... });
-
-  // Handle all requests with Next.js (this should be LAST)
+  // After Socket.IO is initialized, add Express middleware
+  // Handle all non-Socket.IO requests with Next.js
   expressApp.all('*', async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
