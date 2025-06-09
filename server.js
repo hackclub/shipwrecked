@@ -1,7 +1,6 @@
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
-const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
@@ -30,51 +29,6 @@ app.prepare().then(() => {
       res.statusCode = 500;
       res.end('Internal Server Error');
     }
-  });
-
-  // Initialize Socket.IO
-  const io = new Server(server, {
-    cors: {
-      origin: process.env.NODE_ENV === 'production' 
-        ? ["https://shipwrecked-staging.hackclub.com", "https://shipwrecked.hackclub.com"] 
-        : ["http://localhost:3000"],
-      methods: ["GET", "POST"]
-    }
-  });
-
-  // Socket.IO connection handling
-  io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-
-    // Join a project chat room
-    socket.on('join-project-chat', (projectId) => {
-      socket.join(`project-${projectId}`);
-      console.log(`Socket ${socket.id} joined project-${projectId}`);
-    });
-
-    // Leave a project chat room
-    socket.on('leave-project-chat', (projectId) => {
-      socket.leave(`project-${projectId}`);
-      console.log(`Socket ${socket.id} left project-${projectId}`);
-    });
-
-    // Handle new chat messages
-    socket.on('new-message', (data) => {
-      const { projectId, message, userId } = data;
-      
-      // Broadcast message to all users in the project room - only userId, no real user data
-      socket.to(`project-${projectId}`).emit('message-received', {
-        id: Date.now().toString(), // Temporary ID until database save
-        content: message,
-        userId: userId,
-        createdAt: new Date().toISOString()
-      });
-    });
-
-    // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
-    });
   });
 
   // Set a short timeout to fail fast rather than waiting

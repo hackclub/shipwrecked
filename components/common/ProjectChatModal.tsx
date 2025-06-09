@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Icon from '@hackclub/icons';
-import { io, Socket } from 'socket.io-client';
 
 interface ChatMessage {
   id: string;
@@ -32,50 +31,74 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMessageTimestampRef = useRef<string>('');
 
-  // Initialize socket connection
-  useEffect(() => {
-    if (!isOpen || !project.chat_enabled) return;
-
-    const socketInstance = io();
-    setSocket(socketInstance);
-
-    // Join the project chat room
-    socketInstance.emit('join-project-chat', project.projectID);
-
-    // Listen for new messages
-    socketInstance.on('message-received', (message: ChatMessage) => {
-      setMessages(prev => [...prev, message]);
-    });
-
-    return () => {
-      socketInstance.emit('leave-project-chat', project.projectID);
-      socketInstance.disconnect();
-    };
-  }, [isOpen, project.projectID, project.chat_enabled]);
-
-  // Load existing messages
-  useEffect(() => {
-    if (!isOpen || !project.chat_enabled) return;
-
-    const loadMessages = async () => {
-      try {
-        const response = await fetch(`/api/projects/${project.projectID}/chat/messages`);
-        if (response.ok) {
-          const data = await response.json();
-          setMessages(data);
-        }
-      } catch (error) {
-        console.error('Error loading messages:', error);
-      } finally {
-        setIsLoading(false);
+  // Polling function to fetch new messages
+  const pollMessages = async (isInitialLoad = false) => {
+    if (!project.chat_enabled) return;
+    
+    try {
+      // Build the URL with optional since parameter
+      let url = `/api/projects/${project.projectID}/chat/messages`;
+      if (!isInitialLoad && lastMessageTimestampRef.current) {
+        url += `?since=${encodeURIComponent(lastMessageTimestampRef.current)}`;
       }
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data: ChatMessage[] = await response.json();
+        
+        if (isInitialLoad) {
+          // Initial load - replace all messages
+          setMessages(data);
+          if (data.length > 0) {
+            lastMessageTimestampRef.current = data[data.length - 1]?.createdAt || '';
+          }
+        } else {
+          // Polling update - append new messages
+          if (data.length > 0) {
+            setMessages(prev => [...prev, ...data]);
+            lastMessageTimestampRef.current = data[data.length - 1]?.createdAt || '';
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error polling messages:', error);
+    }
+  };
+
+  // Initialize polling when modal opens
+  useEffect(() => {
+    if (!isOpen || !project.chat_enabled) {
+      // Clear polling when modal closes
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Initial load
+    const loadMessages = async () => {
+      setIsLoading(true);
+      await pollMessages(true); // Pass true for initial load
+      setIsLoading(false);
     };
 
     loadMessages();
+
+    // Start polling every 5 seconds
+    pollingIntervalRef.current = setInterval(() => pollMessages(false), 5000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
   }, [isOpen, project.projectID, project.chat_enabled]);
 
   // Scroll to bottom when new messages arrive (immediate, not animated)
@@ -147,29 +170,23 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
       if (response.ok) {
         const savedMessage = await response.json();
         
-        // Add to local state immediately
+        // Add to local state immediately for instant feedback
         setMessages(prev => [...prev, savedMessage]);
-
-        // Emit to socket for real-time updates to other users
-        if (socket) {
-          socket.emit('new-message', {
-            projectId: project.projectID,
-            message: messageContent,
-            userId: session.user.id // Only send userId, no real user data
-          });
-        }
+        lastMessageTimestampRef.current = savedMessage.createdAt;
 
         // Re-focus the input field for continued chatting
         setTimeout(() => {
           messageInputRef.current?.focus();
         }, 50);
+
+        // Trigger immediate poll to sync with server state
+        setTimeout(() => pollMessages(false), 100);
       } else if (response.status === 429) {
         // Rate limited - show friendly message
         const errorData = await response.json();
         console.log('Rate limited:', errorData);
         // Restore the message in the input and show a toast or inline message
         setNewMessage(messageContent);
-        // You could add a toast notification here if you have one available
         showToast && showToast('Please wait a moment before sending another message (max 1 message every 5 seconds)', 'info');
       } else {
         // Other error
