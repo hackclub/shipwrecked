@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             image: true,
+            hackatimeId: true,
           }
         },
         reviews: {
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
         userName: project.user?.name || null,
         userEmail: project.user?.email || null,
         userImage: project.user?.image || null,
+        userHackatimeId: project.user?.hackatimeId || null,
         latestReview,
         reviewCount: project.reviews?.length || 0,
         rawHours: rawHours,

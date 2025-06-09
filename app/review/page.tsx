@@ -111,6 +111,7 @@ interface Project {
   userName: string | null;
   userEmail: string | null;
   userImage: string | null;
+  userHackatimeId: string | null;
   latestReview: Review | null;
   reviewCount: number;
   rawHours: number;
@@ -263,7 +264,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
           </div>
         </div>
         
-        {(project.codeUrl || project.playableUrl) && (
+        {(project.codeUrl || project.playableUrl || project.userHackatimeId) && (
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Links</h3>
             <div className="flex flex-col gap-2">
@@ -288,6 +289,19 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   <Icon glyph="link" size={16} />
                   Try It Out
                 </a>
+              )}
+              {project.userHackatimeId && (
+                <button
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const hackatimeUrl = `https://hackatime.hackclub.com/admin/timeline?date=${today}&user_ids=${project.userHackatimeId}`;
+                    window.open(hackatimeUrl, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="text-purple-600 hover:underline flex items-center gap-2 text-left"
+                >
+                  <Icon glyph="analytics" size={16} />
+                  View Hackatime Timeline
+                </button>
               )}
             </div>
           </div>
