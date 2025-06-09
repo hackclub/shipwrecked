@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import ReviewLeaderboard from '@/components/admin/ReviewLeaderboard';
 
 // Stat card component with consistent sizing
 function StatCard({ title, value, icon, linkTo, description = '' }: { title: string, value: number | string, icon: string, linkTo?: string, description?: string }) {
@@ -404,6 +405,13 @@ export default function AdminDashboard() {
             title="Audit Log Events (Last 30 Days)" 
             data={stats.auditLogTimeSeries} 
           />
+        </div>
+      </div>
+
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Review Leaderboard</h2>
+        <div className="w-full">
+          <ReviewLeaderboard />
         </div>
       </div>
     </div>
