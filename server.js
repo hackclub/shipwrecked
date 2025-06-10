@@ -19,7 +19,18 @@ const nextConfig = {
 const app = next(nextConfig);
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+// Import histogram initialization (using dynamic import since this is CommonJS)
+const initializeHistogram = async () => {
+  try {
+    const { initializeProjectHistogramAnalysis } = await import('./lib/projectHistogram.js');
+    await initializeProjectHistogramAnalysis();
+  } catch (error) {
+    console.error('Failed to initialize project histogram analysis:', error);
+    // Don't exit the process - let the app continue without histogram analysis
+  }
+};
+
+app.prepare().then(async () => {
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
@@ -46,9 +57,13 @@ app.prepare().then(() => {
     }
   });
 
-  server.listen(port, hostname, (err) => {
+  server.listen(port, hostname, async (err) => {
     if (err) throw err;
     const address = server.address();
     console.log(`> Ready on http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${address.port}`);
+    
+    // Initialize histogram analysis after server is ready
+    console.log('🚀 Initializing project histogram analysis...');
+    await initializeHistogram();
   });
 }); 

@@ -28,6 +28,7 @@ import ImageWithFallback from '@/components/common/ImageWithFallback';
 import CompleteReviewForm from '@/components/common/CompleteReviewForm';
 import ProjectMetadataWarning from '@/components/common/ProjectMetadataWarning';
 
+
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
 

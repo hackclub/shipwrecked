@@ -9,6 +9,8 @@ import Icon from '@hackclub/icons';
 import { ReviewModeProvider, useReviewMode } from '../contexts/ReviewModeContext';
 import ProjectStatus from '../components/common/ProjectStatus';
 import ReviewSection from '@/components/common/ReviewSection';
+import ProjectClassificationBadge from '@/components/common/ProjectClassificationBadge';
+import ProjectHistogramChart from '@/components/common/ProjectHistogramChart';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
 
@@ -318,6 +320,35 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
           </div>
         )}
         
+        {/* Project Hours Section */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-sm text-gray-600">
+                  Raw Hours: <span className="font-semibold">{project.rawHours}h</span>
+                </div>
+                {project.hoursOverride !== undefined && project.hoursOverride !== null && (
+                  <div className="text-sm text-gray-600">
+                    Override: <span className="font-semibold text-blue-600">{project.hoursOverride}h</span>
+                  </div>
+                )}
+                {project.hackatimeLinks && project.hackatimeLinks.length > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Total from {project.hackatimeLinks.length} Hackatime link(s)
+                  </div>
+                )}
+              </div>
+              <ProjectClassificationBadge
+                hours={project.hoursOverride ?? project.rawHours}
+                showPercentile={true}
+                size="md"
+              />
+            </div>
+          </div>
+        </div>
+        
         {/* Project Reviews Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <ReviewSection 
@@ -433,6 +464,9 @@ function ReviewPage() {
             <p className="text-gray-600">Review and provide feedback on submitted projects</p>
           </div>
         </div>
+
+        {/* Project Hours Distribution Chart */}
+        <ProjectHistogramChart className="mb-8" />
         
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">

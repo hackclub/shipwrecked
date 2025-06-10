@@ -8,6 +8,7 @@ import ImageWithFallback from '@/components/common/ImageWithFallback';
 import Modal from '@/components/common/Modal';
 import FormInput from '@/components/form/FormInput';
 import { toast, Toaster } from 'sonner';
+import ProjectClassificationBadge from '@/components/common/ProjectClassificationBadge';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -696,30 +697,48 @@ function AdminProjectsContent() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-600 font-semibold">
-                          {(() => {
-                            try {
-                              // Calculate raw hours
-                              const rawHours = project.hackatimeLinks?.reduce(
-                                (sum, link) => sum + (typeof link?.rawHours === 'number' ? link.rawHours : 0),
-                                0
-                              ) || 0;
-                              
-                              // Calculate approved hours using our helper
-                              const approvedHours = project.hackatimeLinks ? 
-                                calculateApprovedHours(project.hackatimeLinks) : 0;
-                              
-                              // If there are both raw hours and different approved hours, show both
-                              if (approvedHours > 0 && Math.abs(rawHours - approvedHours) > 0.01) {
-                                return `${approvedHours.toFixed(1)}h (${rawHours.toFixed(1)}h raw)`;
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-600 font-semibold">
+                            {(() => {
+                              try {
+                                // Calculate raw hours
+                                const rawHours = project.hackatimeLinks?.reduce(
+                                  (sum, link) => sum + (typeof link?.rawHours === 'number' ? link.rawHours : 0),
+                                  0
+                                ) || 0;
+                                
+                                // Calculate approved hours using our helper
+                                const approvedHours = project.hackatimeLinks ? 
+                                  calculateApprovedHours(project.hackatimeLinks) : 0;
+                                
+                                // If there are both raw hours and different approved hours, show both
+                                if (approvedHours > 0 && Math.abs(rawHours - approvedHours) > 0.01) {
+                                  return `${approvedHours.toFixed(1)}h (${rawHours.toFixed(1)}h raw)`;
+                                }
+                                // Otherwise just show the raw hours
+                                return `${rawHours.toFixed(1)}h`;
+                              } catch (e) {
+                                // Fallback in case of any error
+                                return `0.0h`;
                               }
-                              // Otherwise just show the raw hours
-                              return `${rawHours.toFixed(1)}h`;
-                            } catch (e) {
-                              // Fallback in case of any error
-                              return `0.0h`;
-                            }
-                          })()}
+                            })()}
+                          </div>
+                          <ProjectClassificationBadge
+                            hours={(() => {
+                              try {
+                                const rawHours = project.hackatimeLinks?.reduce(
+                                  (sum, link) => sum + (typeof link?.rawHours === 'number' ? link.rawHours : 0),
+                                  0
+                                ) || 0;
+                                const approvedHours = project.hackatimeLinks ? 
+                                  calculateApprovedHours(project.hackatimeLinks) : 0;
+                                return approvedHours > 0 ? approvedHours : rawHours;
+                              } catch (e) {
+                                return 0;
+                              }
+                            })()}
+                            size="sm"
+                          />
                         </div>
                       </div>
                     </div>
