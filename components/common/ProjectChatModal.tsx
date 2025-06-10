@@ -9,6 +9,7 @@ interface ChatMessage {
   content: string;
   userId: string;
   createdAt: string;
+  isAuthor?: boolean; // Flag to indicate if this message is from the project author
 }
 
 interface Project {
@@ -319,6 +320,11 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
                   >
                     {obfuscateUsername(message.userId)}
                   </span>
+                  {message.isAuthor && (
+                    <span className="text-yellow-500 ml-1" title="Project Author">
+                      ⭐
+                    </span>
+                  )}
                   <span className="text-gray-900">: {message.content}</span>
                   <span className="text-xs text-gray-400 ml-2">
                     {formatTime(message.createdAt)}

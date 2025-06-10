@@ -29,6 +29,7 @@ export async function GET(
       },
       select: {
         chat_enabled: true,
+        userId: true, // Include userId to determine author
       }
     });
 
@@ -76,12 +77,13 @@ export async function GET(
     // If no since timestamp, reverse to get chronological order (oldest to newest) for display
     const chronologicalMessages = sinceTimestamp ? messages : messages.reverse();
 
-    // Format messages for the client - only include userId, no real user data
+    // Format messages for the client - include isAuthor flag
     const formattedMessages = chronologicalMessages.map(message => ({
       id: message.id,
       content: message.content,
       userId: message.userId,
       createdAt: message.createdAt.toISOString(),
+      isAuthor: message.userId === project.userId, // Flag to indicate if message is from project author
     }));
 
     return NextResponse.json(formattedMessages);
@@ -132,6 +134,7 @@ export async function POST(
           },
           select: {
             chat_enabled: true,
+            userId: true, // Include userId to determine author
           }
         });
 
@@ -175,6 +178,7 @@ export async function POST(
           content: message.content,
           userId: message.userId,
           createdAt: message.createdAt.toISOString(),
+          isAuthor: message.userId === project.userId, // Flag to indicate if message is from project author
         };
 
         return NextResponse.json(formattedMessage);
