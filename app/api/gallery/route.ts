@@ -54,6 +54,15 @@ export async function GET(request: Request) {
               select: {
                 messages: true
               }
+            },
+            messages: {
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1,
+              select: {
+                createdAt: true
+              }
             }
           }
         },
@@ -102,6 +111,17 @@ export async function GET(request: Request) {
       // Calculate total chat message count across all chat rooms for this project
       const chatCount = project.chatRooms.reduce((total, room) => total + room._count.messages, 0);
       
+      // Find the most recent chat message timestamp across all rooms
+      let lastChatActivity: Date | null = null;
+      for (const room of project.chatRooms) {
+        if (room.messages.length > 0) {
+          const roomLastMessage = room.messages[0].createdAt;
+          if (!lastChatActivity || roomLastMessage > lastChatActivity) {
+            lastChatActivity = roomLastMessage;
+          }
+        }
+      }
+      
       // Return the enhanced project with additional properties
       return {
         ...project,
@@ -110,6 +130,7 @@ export async function GET(request: Request) {
         upvoteCount: project._count.upvotes,
         userUpvoted,
         chatCount,
+        lastChatActivity: lastChatActivity?.toISOString() || null,
         // Remove the _count and chatRooms objects from the response
         _count: undefined,
         chatRooms: undefined,

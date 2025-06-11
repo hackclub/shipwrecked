@@ -32,6 +32,7 @@ interface Project {
   userUpvoted: boolean;
   chat_enabled: boolean;
   chatCount: number;
+  lastChatActivity: string | null;
   user: {
     name: string | null;
     slack: string | null;
@@ -45,7 +46,7 @@ interface Project {
   }[];
 }
 
-type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions';
+type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions' | 'recentChat';
 
 // Helper function to check if a URL is a valid image
 const isValidImageUrl = (url: string): boolean => {
@@ -173,6 +174,12 @@ export default function Gallery() {
           return b.upvoteCount - a.upvoteCount;
         case 'discussions':
           return b.chatCount - a.chatCount;
+        case 'recentChat':
+          // Sort by most recent chat activity first, then by project name for consistency
+          if (!a.lastChatActivity && !b.lastChatActivity) return a.name.localeCompare(b.name);
+          if (!a.lastChatActivity) return 1; // Projects without chat go to the end
+          if (!b.lastChatActivity) return -1; // Projects with chat come first
+          return new Date(b.lastChatActivity).getTime() - new Date(a.lastChatActivity).getTime();
         default:
           return 0;
       }
@@ -243,9 +250,9 @@ export default function Gallery() {
       <main className="container mx-auto px-4 py-8">
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Search */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search Projects
               </label>
@@ -293,12 +300,12 @@ export default function Gallery() {
             </div>
 
             {/* Sort Options */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Sort by
               </label>
-              <div className="flex gap-2">
-                <label className="w-16">
+              <div className="flex flex-wrap gap-2">
+                <label className="w-18">
                   <input
                     type="radio"
                     name="sortBy"
@@ -307,15 +314,15 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
                     sortBy === 'upvotes'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
+                  }`} style={{ fontSize: '11px' }}>
                     Upvotes
                   </div>
                 </label>
-                <label className="w-16">
+                <label className="w-18">
                   <input
                     type="radio"
                     name="sortBy"
@@ -324,15 +331,15 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
                     sortBy === 'hasImage'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
+                  }`} style={{ fontSize: '11px' }}>
                     Images
                   </div>
                 </label>
-                <label className="w-16">
+                <label className="w-18">
                   <input
                     type="radio"
                     name="sortBy"
@@ -341,15 +348,15 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
                     sortBy === 'hours'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
+                  }`} style={{ fontSize: '11px' }}>
                     Hours
                   </div>
                 </label>
-                <label className="w-16">
+                <label className="w-18">
                   <input
                     type="radio"
                     name="sortBy"
@@ -358,15 +365,15 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
                     sortBy === 'alphabetical'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
+                  }`} style={{ fontSize: '11px' }}>
                     A-Z
                   </div>
                 </label>
-                <label className="w-16">
+                <label className="w-18">
                   <input
                     type="radio"
                     name="sortBy"
@@ -375,12 +382,29 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
                     sortBy === 'discussions'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
+                  }`} style={{ fontSize: '11px' }}>
                     Chats
+                  </div>
+                </label>
+                <label className="w-18">
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    value="recentChat"
+                    checked={sortBy === 'recentChat'}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="sr-only"
+                  />
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                    sortBy === 'recentChat'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`} style={{ fontSize: '11px' }}>
+                    New Chats
                   </div>
                 </label>
               </div>
