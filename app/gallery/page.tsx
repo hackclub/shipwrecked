@@ -31,6 +31,7 @@ interface Project {
   upvoteCount: number;
   userUpvoted: boolean;
   chat_enabled: boolean;
+  chatCount: number;
   user: {
     name: string | null;
     slack: string | null;
@@ -44,7 +45,7 @@ interface Project {
   }[];
 }
 
-type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes';
+type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions';
 
 // Helper function to check if a URL is a valid image
 const isValidImageUrl = (url: string): boolean => {
@@ -170,6 +171,8 @@ export default function Gallery() {
           return a.name.localeCompare(b.name);
         case 'upvotes':
           return b.upvoteCount - a.upvoteCount;
+        case 'discussions':
+          return b.chatCount - a.chatCount;
         default:
           return 0;
       }
@@ -295,7 +298,7 @@ export default function Gallery() {
                 Sort by
               </label>
               <div className="flex gap-2">
-                <label className="flex-1">
+                <label className="w-16">
                   <input
                     type="radio"
                     name="sortBy"
@@ -304,7 +307,7 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-3 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
                     sortBy === 'upvotes'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -312,7 +315,7 @@ export default function Gallery() {
                     Upvotes
                   </div>
                 </label>
-                <label className="flex-1">
+                <label className="w-16">
                   <input
                     type="radio"
                     name="sortBy"
@@ -321,7 +324,7 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-3 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
                     sortBy === 'hasImage'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -329,7 +332,7 @@ export default function Gallery() {
                     Images
                   </div>
                 </label>
-                <label className="flex-1">
+                <label className="w-16">
                   <input
                     type="radio"
                     name="sortBy"
@@ -338,7 +341,7 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-3 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
                     sortBy === 'hours'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -346,7 +349,7 @@ export default function Gallery() {
                     Hours
                   </div>
                 </label>
-                <label className="flex-1">
+                <label className="w-16">
                   <input
                     type="radio"
                     name="sortBy"
@@ -355,12 +358,29 @@ export default function Gallery() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-3 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
                     sortBy === 'alphabetical'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}>
                     A-Z
+                  </div>
+                </label>
+                <label className="w-16">
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    value="discussions"
+                    checked={sortBy === 'discussions'}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="sr-only"
+                  />
+                  <div className={`cursor-pointer px-1 py-2 text-sm font-medium rounded-lg text-center transition-colors ${
+                    sortBy === 'discussions'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}>
+                    Chats
                   </div>
                 </label>
               </div>
@@ -517,7 +537,11 @@ export default function Gallery() {
                         className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
                       >
                         <span className="text-sm">💬</span>
-                        Discuss...
+                        {project.chatCount > 0 ? (
+                          <>Discuss ({project.chatCount > 99 ? '99+' : project.chatCount})</>
+                        ) : (
+                          <>Discuss...</>
+                        )}
                       </button>
                     )}
                   </div>

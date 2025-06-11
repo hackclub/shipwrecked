@@ -39,7 +39,23 @@ export async function GET(request: Request) {
         _count: {
           select: {
             upvotes: true,
+            chatRooms: {
+              where: {
+                messages: {
+                  some: {}
+                }
+              }
+            }
           },
+        },
+        chatRooms: {
+          select: {
+            _count: {
+              select: {
+                messages: true
+              }
+            }
+          }
         },
       },
     });
@@ -83,6 +99,9 @@ export async function GET(request: Request) {
       // Check if current user has upvoted this project
       const userUpvoted = userUpvotedProjectIds.has(project.projectID);
       
+      // Calculate total chat message count across all chat rooms for this project
+      const chatCount = project.chatRooms.reduce((total, room) => total + room._count.messages, 0);
+      
       // Return the enhanced project with additional properties
       return {
         ...project,
@@ -90,8 +109,10 @@ export async function GET(request: Request) {
         rawHours,
         upvoteCount: project._count.upvotes,
         userUpvoted,
-        // Remove the _count object from the response
+        chatCount,
+        // Remove the _count and chatRooms objects from the response
         _count: undefined,
+        chatRooms: undefined,
       };
     });
 
