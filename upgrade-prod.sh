@@ -26,7 +26,7 @@ fi
 
 # Check upstream remote configuration
 upstream_url=$(git remote get-url upstream 2>/dev/null || echo "")
-if [ "$upstream_url" != "git@github.com:hackclub/shipwrecked.git" ]; then
+if [ "$upstream_url" != "git@github.com:hackclub/shipwrecked.git" ] && [ "$upstream_url" != "https://github.com/hackclub/shipwrecked.git" ]; then
     echo "Error: Upstream remote is not configured correctly."
     echo "Expected: git@github.com:hackclub/shipwrecked.git"
     echo "Found: $upstream_url"
