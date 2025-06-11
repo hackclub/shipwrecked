@@ -7,10 +7,12 @@ import { toast, Toaster } from 'sonner';
 import Link from 'next/link';
 import Icon from '@hackclub/icons';
 import { ReviewModeProvider, useReviewMode } from '../contexts/ReviewModeContext';
-import ProjectStatus from '../components/common/ProjectStatus';
+import ProjectStatus from '@/components/common/ProjectStatus';
 import ReviewSection from '@/components/common/ReviewSection';
 import ProjectClassificationBadge from '@/components/common/ProjectClassificationBadge';
 import ProjectHistogramChart from '@/components/common/ProjectHistogramChart';
+import UserClusterChart from '@/components/common/UserClusterChart';
+import UserCategoryBadge from '@/components/common/UserCategoryBadge';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
 
@@ -238,21 +240,24 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
         
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Created By</h3>
-          <div className="flex items-center">
-            {project.userImage ? (
-              <img 
-                src={project.userImage} 
-                alt={project.userName || ''} 
-                className="w-8 h-8 rounded-full mr-2"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-300 mr-2 flex items-center justify-center">
-                <span className="text-sm text-gray-600">
-                  {project.userName?.charAt(0) || '?'}
-                </span>
-              </div>
-            )}
-            <span className="text-sm">{project.userName}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {project.userImage ? (
+                <img 
+                  src={project.userImage} 
+                  alt={project.userName || ''} 
+                  className="w-8 h-8 rounded-full mr-2"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-300 mr-2 flex items-center justify-center">
+                  <span className="text-sm text-gray-600">
+                    {project.userName?.charAt(0) || '?'}
+                  </span>
+                </div>
+              )}
+              <span className="text-sm">{project.userName}</span>
+            </div>
+            <UserCategoryBadge userId={project.userId} size="small" showMetrics={true} />
           </div>
         </div>
         
@@ -465,8 +470,11 @@ function ReviewPage() {
           </div>
         </div>
 
-        {/* Project Hours Distribution Chart */}
-        <ProjectHistogramChart className="mb-8" />
+        {/* Analytics Charts */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+          <ProjectHistogramChart />
+          <UserClusterChart />
+        </div>
         
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">

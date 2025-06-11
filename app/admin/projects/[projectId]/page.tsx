@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/lib/hooks';
 import Link from 'next/link';
 import { ReviewModeProvider } from '@/app/contexts/ReviewModeContext';
-import ProjectStatus from '@/app/components/common/ProjectStatus';
+import ProjectStatus from '@/components/common/ProjectStatus';
 import ReviewSection from '@/components/common/ReviewSection';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
 import { ProjectFlags } from '@/components/common/ProjectFlagsEditor';

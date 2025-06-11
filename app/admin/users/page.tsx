@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
+import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,10 @@ interface User {
   role: string;
   status: UserStatus;
   hackatimeId?: string;
+  category?: {
+    category: 'whale' | 'shipper' | 'newbie';
+    description: string;
+  } | null;
 }
 
 // Create a wrapper component that uses Suspense
@@ -180,32 +185,36 @@ function AdminUsersContent() {
       ) : (
         <>
           {/* Desktop Table View */}
-          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
                     User
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-48">
                     Email
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
                     Joined
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Role
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email Verified?
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
+                    Category
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                    Verified
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Hackatime
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Actions
                   </th>
                 </tr>
@@ -213,46 +222,48 @@ function AdminUsersContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={9} className="px-3 py-4 text-center text-gray-500">
                       No users found
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
-                            <img className="h-10 w-10 rounded-full mr-3" src={user.image} alt={user.name || 'User'} />
+                            <img className="h-8 w-8 rounded-full mr-2" src={user.image} alt={user.name || 'User'} />
                           ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                              <span className="text-gray-600 font-bold">{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">
+                              <span className="text-gray-600 font-bold text-xs">{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
                             </div>
                           )}
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-gray-900 truncate">
                               {user.name || 'Unknown'}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.email}</div>
+                      <td className="px-3 py-3">
+                        <div className="text-sm text-gray-900 truncate max-w-48" title={user.email || ''}>
+                          {user.email}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-xs text-gray-500">
                           {new Date(user.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
                             month: 'short',
-                            day: 'numeric'
+                            day: 'numeric',
+                            year: '2-digit'
                           })}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         {getUserStatusBadge(user.status)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
                           user.role === 'Admin' 
                             ? 'bg-purple-100 text-purple-800' 
                             : user.role === 'Reviewer'
@@ -262,45 +273,53 @@ function AdminUsersContent() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <UserCategoryDisplay category={user.category} size="small" />
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
                           user.emailVerified 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {user.emailVerified ? 'Verified' : 'No'}
+                          {user.emailVerified ? '✓' : '✗'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         {user.hackatimeId ? (
-                          <div className="text-sm text-gray-600">{user.hackatimeId}</div>
+                          <div className="text-xs text-gray-600 truncate max-w-16" title={user.hackatimeId}>
+                            {user.hackatimeId}
+                          </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">Not connected</span>
+                          <span className="text-gray-400 text-xs">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/admin/users/${user.id}`}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          className="text-red-600 hover:text-red-900"
-                          onClick={() => openDeleteModal(user)}
-                        >
-                          Delete
-                        </button>
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs">
+                        <div className="flex gap-2 justify-end">
+                          <Link
+                            href={`/admin/users/${user.id}`}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            className="text-red-600 hover:text-red-900"
+                            onClick={() => openDeleteModal(user)}
+                          >
+                            Del
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Mobile Card View */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <p className="text-gray-500">No users found</p>
@@ -347,6 +366,10 @@ function AdminUsersContent() {
                           }`}>
                             {user.role}
                           </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Category</span>
+                          <UserCategoryDisplay category={user.category} size="small" />
                         </div>
                         <div>
                           <span className="text-gray-500 block">Joined</span>

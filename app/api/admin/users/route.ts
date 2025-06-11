@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { getUserClusterAnalysis } from '@/lib/userClustering';
 
 export async function GET() {
   // Check authentication
@@ -36,7 +37,33 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(users);
+    // Get user cluster analysis to determine user categories
+    let userCategories: Record<string, any> = {};
+    try {
+      const clusterAnalysis = await getUserClusterAnalysis();
+      
+      // Create a map of user ID to category
+      clusterAnalysis.clusters.whales.users.forEach(userId => {
+        userCategories[userId] = { category: 'whale', description: 'High-impact creator' };
+      });
+      clusterAnalysis.clusters.shippers.users.forEach(userId => {
+        userCategories[userId] = { category: 'shipper', description: 'Active contributor' };
+      });
+      clusterAnalysis.clusters.newbies.users.forEach(userId => {
+        userCategories[userId] = { category: 'newbie', description: 'Getting started' };
+      });
+    } catch (clusterError) {
+      console.warn('Failed to fetch user cluster analysis:', clusterError);
+      // Continue without categories if clustering fails
+    }
+
+    // Add category information to users
+    const usersWithCategories = users.map(user => ({
+      ...user,
+      category: userCategories[user.id] || null
+    }));
+
+    return NextResponse.json(usersWithCategories);
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json(
