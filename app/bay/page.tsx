@@ -1058,15 +1058,15 @@ function BayWithReviewMode({ session, status, router }: {
     <div className={styles.container}>
       <div className={styles.progressSection}>
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">Your Voyage</h2>
-        <div className="border border-gray-300 rounded-lg p-4 bg-white max-w-xl mx-auto">
+        <div className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto">
           <div className="flex items-center justify-between w-full py-1 md:py-2">
-            <div className="flex-grow px-4 sm:px-0">
-              <div className="flex items-center justify-center gap-3">
+            <div className="flex-grow px-2 sm:px-4 md:px-0">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 min-w-0">
                 <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}>
-                  <img src="/ship.png" alt="Ship" className="h-16 flex items-center" />
+                  <img src="/ship.png" alt="Ship" className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center" />
                 </Tooltip>
                 <div 
-                  className="flex-grow cursor-pointer" 
+                  className="flex-grow cursor-pointer min-w-0" 
                   onClick={() => setIsProgressModalOpen(true)}
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
                 >
@@ -1080,37 +1080,36 @@ function BayWithReviewMode({ session, status, router }: {
                   />
                 </div>
                 <Tooltip content="Your prize - a fantastic island adventure with friends">
-                  <img src="/island.png" alt="Island" className="w-16 h-16 flex items-center" />
+                  <img src="/island.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />
                 </Tooltip>
               </div>
             </div>
           </div>
           
           {/* Progress + Clamshells Section */}
-          <div className="flex items-center justify-center gap-6 mt-4">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6 mt-4">
             {/* Progress representation */}
             <Tooltip content={`Believe it or not, you are ${Math.round(progressMetrics.totalPercentage)}% of the way to the Island!!!`}>
-              <div className="flex flex-col items-center justify-center w-32 bg-gray-100 rounded-lg p-4" style={{height: '108px'}}>
-                <div className={`text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>{animatedPercentage}%</div>
-                <div className={`text-xs text-gray-500 ${isGlowing ? 'percentage-animated' : ''}`}>Island Progress</div>
+              <div className="flex flex-col items-center justify-center w-24 sm:w-28 md:w-32 bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 h-[90px] sm:h-[100px] md:h-[108px]">
+                <div className={`text-xl sm:text-2xl md:text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>{animatedPercentage}%</div>
+                <div className={`text-[10px] sm:text-xs text-gray-500 text-center ${isGlowing ? 'percentage-animated' : ''}`}>Island Progress</div>
               </div>
             </Tooltip>
             
             {/* Plus sign */}
-            <div className={`text-4xl font-bold text-gray-400 ${isGlowing ? 'percentage-animated' : ''}`}>+</div>
+            <div className={`text-2xl sm:text-3xl md:text-4xl font-bold text-gray-400 ${isGlowing ? 'percentage-animated' : ''}`}>+</div>
             
             {/* Clamshells */}
             <Tooltip content="Approved & shipped hours that exceed 15h per project are converted into Clamshells.  These funds can be applied to travel costs, and also potentially converted to grantable prizes!">
-              <div className="relative flex items-center justify-center bg-gray-100 rounded-lg p-4 w-32" style={{height: '108px', overflow: 'hidden'}}>
+              <div className="relative flex items-center justify-center bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 w-24 sm:w-28 md:w-32 h-[90px] sm:h-[100px] md:h-[108px]" style={{overflow: 'hidden'}}>
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <img 
-                    src="/shell_720.png"
-                    alt="Clamshell"
-                    className={`w-full h-full object-contain ${isGlowing ? 'clamshell-animated' : ''}`}
-                    style={{transform: 'scale(1.6) translateX(-2px) translateY(-2px)'}}
-                  />
+                                      <img 
+                      src="/shell_720.png"
+                      alt="Clamshell"
+                      className={`w-full h-full object-contain ${isGlowing ? 'clamshell-animated' : ''} scale-[1.2] sm:scale-[1.4] md:scale-[1.6] translate-x-[-1px] sm:translate-x-[-1.5px] md:translate-x-[-2px] translate-y-[-1px] sm:translate-y-[-1.5px] md:translate-y-[-2px]`}
+                    />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="font-bold text-base text-center text-black" style={{marginTop: '-3px'}}>{animatedClamshells}</span>
+                    <span className="font-bold text-sm sm:text-base text-center text-black" style={{marginTop: '-2px'}}>{animatedClamshells}</span>
                   </div>
                 </div>
               </div>

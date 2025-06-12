@@ -53,8 +53,8 @@ export default function Header({ session, status }: HeaderProps) {
     };
 
     return (
-        <nav className="w-full px-6 py-4 bg-[#47D1F6] flex items-center justify-between shadow-md">
-            <div className="flex items-center relative" ref={mobileMenuRef}>
+        <nav className="w-full px-4 sm:px-6 py-4 bg-[#47D1F6] flex items-center justify-between shadow-md">
+            <div className="flex items-center relative min-w-0" ref={mobileMenuRef}>
                 {/* Mobile menu button */}
                 <button 
                     className="md:hidden text-white mr-4 focus:outline-none"
@@ -66,7 +66,7 @@ export default function Header({ session, status }: HeaderProps) {
                 </button>
                 
                 {/* Desktop menu */}
-                <div className="hidden md:flex space-x-6 text-white">
+                <div className="hidden md:flex space-x-3 lg:space-x-4 xl:space-x-6 text-white">
                     <Link 
                         href="/bay" 
                         className={`transition-colors ${isActive('/bay') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
@@ -279,7 +279,7 @@ export default function Header({ session, status }: HeaderProps) {
                 )}
             </div>
             
-            <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 relative flex-shrink-0" ref={dropdownRef}>
                 {status === "authenticated" && (
                     <>
                         <img
@@ -288,10 +288,10 @@ export default function Header({ session, status }: HeaderProps) {
                             className="w-10 h-10 rounded-full border-2 border-white shadow"
                         />
  
-                        <span className="text-white font-semibold hidden sm:inline">{session?.user.name ? session?.user?.name : session?.user.email?.slice(0, 13) + "..."}</span>
+                        <span className="text-white font-semibold hidden lg:inline text-sm xl:text-base">{session?.user.name ? session?.user?.name : session?.user.email?.slice(0, 13) + "..."}</span>
                         <button
                             onClick={() => setDropdownOpen((prev) => !prev)}
-                            className="bg-white text-[#47D1F6] font-bold px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition"
+                            className="bg-white text-[#47D1F6] font-bold px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition text-sm whitespace-nowrap"
                         >
                             Log out
                         </button>
