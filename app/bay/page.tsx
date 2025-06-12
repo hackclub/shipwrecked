@@ -1106,7 +1106,8 @@ function BayWithReviewMode({ session, status, router }: {
                                       <img 
                       src="/shell_720.png"
                       alt="Clamshell"
-                      className={`w-full h-full object-contain ${isGlowing ? 'clamshell-animated' : ''} scale-[1.2] sm:scale-[1.4] md:scale-[1.6] translate-x-[-1px] sm:translate-x-[-1.5px] md:translate-x-[-2px] translate-y-[-1px] sm:translate-y-[-1.5px] md:translate-y-[-2px]`}
+                      className={`w-full h-full object-contain ${isGlowing ? 'clamshell-animated' : ''}`}
+                      style={{transform: 'scale(1.6) translateX(-2px) translateY(-2px)'}}
                     />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="font-bold text-sm sm:text-base text-center text-black" style={{marginTop: '-2px'}}>{animatedClamshells}</span>
