@@ -1063,7 +1063,7 @@ function BayWithReviewMode({ session, status, router }: {
             <div className="flex-grow px-2 sm:px-4 md:px-0">
               <div className="flex items-center justify-center gap-2 sm:gap-3 min-w-0">
                 <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}>
-                  <img src="/ship.png" alt="Ship" className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center" />
+                  <img src="/ship2.png" alt="Ship" className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center" />
                 </Tooltip>
                 <div 
                   className="flex-grow cursor-pointer min-w-0" 
@@ -1080,7 +1080,7 @@ function BayWithReviewMode({ session, status, router }: {
                   />
                 </div>
                 <Tooltip content="Your prize - a fantastic island adventure with friends">
-                  <img src="/island.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />
+                  <img src="/island2.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />
                 </Tooltip>
               </div>
             </div>
