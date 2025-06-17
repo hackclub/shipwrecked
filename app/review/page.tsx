@@ -310,6 +310,18 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   View Hackatime Timeline
                 </button>
               )}
+              {project.userHackatimeId && (
+                <button
+                  onClick={() => {
+                    const impersonateButton = `https://hackatime.hackclub.com/impersonate/${project.userHackatimeId}`;
+                    window.open(impersonateButton, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="text-purple-600 hover:underline flex items-center gap-2 text-left"
+                >
+                  <Icon glyph="view" size={16} />
+                  Impersonate User
+                </button>
+              )}
             </div>
           </div>
         )}
