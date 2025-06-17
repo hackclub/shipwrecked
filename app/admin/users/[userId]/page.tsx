@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
+import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours } from '@/app/bay/page';
+import { ProjectType } from '@/app/api/projects/route';
 
 enum UserStatus {
   Unknown = "Unknown",
@@ -19,6 +21,18 @@ enum UserRole {
   Admin = "Admin"
 }
 
+interface AdminProjectType extends ProjectType {
+  rawHours: number;
+  reviewCount: number;
+  hackatimeName?: string;
+  hackatimeLinks?: {
+    id: string;
+    hackatimeName: string;
+    rawHours: number;
+    hoursOverride?: number;
+  }[];
+}
+
 interface User {
   id: string;
   name: string | null;
@@ -30,7 +44,10 @@ interface User {
   createdAt: Date;
   hackatimeId: string | null;
   slack: string | null;
+  projects?: AdminProjectType[];
 }
+
+
 
 export default function UserDetail({ params }: { params: { userId: string } }) {
   const { data: session, status } = useSession();
@@ -102,6 +119,17 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  // Calculate progress metrics
+  const progressMetrics: ProgressMetrics = user?.projects ? calculateProgressMetrics(user.projects) : {
+    shippedHours: 0,
+    viralHours: 0,
+    otherHours: 0,
+    totalHours: 0,
+    totalPercentage: 0,
+    rawHours: 0,
+    currency: 0
   };
 
   if (status !== 'authenticated') {
@@ -222,8 +250,35 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
                 </div>
               </div>
             </div>
+            
             <div>
-              <h3 className="text-lg font-medium mb-2">Additional Information</h3>
+              <h3 className="text-lg font-medium mb-2">Island Progress</h3>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 rounded-lg border border-blue-200">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    {Math.round(progressMetrics.totalPercentage)}%
+                  </div>
+                  <div className="text-sm text-blue-800 mb-2">Progress to Island</div>
+                  <div className="text-xs text-gray-600">
+                    {progressMetrics.totalHours.toFixed(1)} / 60 hours • {user.projects?.length || 0} projects
+                  </div>
+                </div>
+                <div className="mt-3 bg-white rounded-full p-1">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(progressMetrics.totalPercentage, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="mt-2 flex justify-between text-xs text-gray-600">
+                  <span>Shipped: {progressMetrics.shippedHours.toFixed(1)}h</span>
+                  <span>Viral: {progressMetrics.viralHours.toFixed(1)}h</span>
+                  <span>Other: {progressMetrics.otherHours.toFixed(1)}h</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium mb-2">Connection Information</h3>
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Hackatime ID</p>
@@ -234,84 +289,174 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Slack</p>
                   <p className="text-gray-700">
-                    {user.slack ? (
-                      <a 
-                        href={`https://hackclub.slack.com/app_redirect?channel=${user.slack}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        Direct message...
-                      </a>
-                    ) : (
-                      'Unknown'
-                    )}
+                    {user.slack || 'Not connected'}
                   </p>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="mt-8 border-t pt-6">
-            <h3 className="text-lg font-medium mb-4">Permissions</h3>
-            
-            <div className="mb-4">
-              <label htmlFor="userRole" className="block text-sm font-medium text-gray-700 mb-1">
-                User Role
-              </label>
-              <select
-                id="userRole"
-                value={userRole}
-                onChange={(e) => setUserRole(e.target.value)}
-                className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
-              >
-                <option value={UserRole.User}>User</option>
-                <option value={UserRole.Reviewer}>Reviewer</option>
-                <option value={UserRole.Admin}>Admin</option>
-              </select>
-              <p className="mt-1 text-sm text-gray-500">
-                This defines the user's access level. Reviewers can access the review page. Admins have full access to all platform features.
-              </p>
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="userStatus" className="block text-sm font-medium text-gray-700 mb-1">
-                User Status
-              </label>
-              <select
-                id="userStatus"
-                value={userStatus}
-                onChange={(e) => setUserStatus(e.target.value as UserStatus)}
-                className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
-              >
-                <option value={UserStatus.Unknown}>Unknown</option>
-                <option value={UserStatus.L1}>L1</option>
-                <option value={UserStatus.L2}>L2</option>
-                <option value={UserStatus.FraudSuspect}>Fraud Suspect</option>
-              </select>
-              <p className="mt-1 text-sm text-gray-500">
-                This defines the user's grantability status.
-              </p>
-            </div>
-            
-            <p className="text-sm text-gray-500 mb-4">
-              User roles determine access to different parts of the platform:
-              <br />• <strong>User:</strong> Basic access to the platform
-              <br />• <strong>Reviewer:</strong> Can access the review dashboard to evaluate projects
-              <br />• <strong>Admin:</strong> Full access to all features, including user management
-            </p>
-            
-            <button
-              type="button"
-              onClick={updateUser}
-              disabled={isUpdating}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors focus:outline-none disabled:bg-blue-300"
-            >
-              {isUpdating ? 'Updating...' : 'Save Changes'}
-            </button>
-          </div>
         </div>
       </div>
+
+      {/* Projects Section */}
+      {user.projects && user.projects.length > 0 && (
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+          <div className="p-6">
+            <h3 className="text-lg font-medium mb-4">Projects ({user.projects.length})</h3>
+            <div className="space-y-4">
+              {user.projects.map((project) => {
+                const rawHours = getProjectHackatimeHours(project);
+                
+                // Calculate approved hours using the same logic as calculateProgressMetrics
+                let approvedHours = 0;
+                if (project?.viral === true) {
+                  approvedHours = 15;
+                } else if (project?.shipped === true) {
+                  approvedHours = Math.min(rawHours, 15);
+                } else {
+                  approvedHours = Math.min(rawHours, 14.75);
+                }
+                
+                return (
+                  <div key={project.projectID} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Link
+                            href={`/admin/projects?projectId=${project.projectID}`}
+                            className="text-lg font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {project.name}
+                          </Link>
+                          <div className="flex gap-1">
+                            {project.viral && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Viral
+                              </span>
+                            )}
+                            {project.shipped && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Shipped
+                              </span>
+                            )}
+                            {project.in_review && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                In Review
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">
+                          {project.description || 'No description provided'}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span>
+                            <span className="font-medium text-blue-600">{approvedHours.toFixed(1)}h approved</span>
+                            {Math.abs(rawHours - approvedHours) > 0.01 && (
+                              <span className="text-gray-400"> ({rawHours.toFixed(1)}h raw)</span>
+                            )}
+                          </span>
+                          {project.reviewCount > 0 && (
+                            <span>{project.reviewCount} review{project.reviewCount !== 1 ? 's' : ''}</span>
+                          )}
+                          {project.hackatimeName && (
+                            <span>Hackatime: {project.hackatimeName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        {project.codeUrl && (
+                          <a
+                            href={project.codeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            Code
+                          </a>
+                        )}
+                        {project.playableUrl && (
+                          <a
+                            href={project.playableUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-800 text-sm"
+                          >
+                            Demo
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Section */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-6">
+          <h3 className="text-lg font-medium mb-4">Permissions</h3>
+          
+          <div className="mb-4">
+            <label htmlFor="userRole" className="block text-sm font-medium text-gray-700 mb-1">
+              User Role
+            </label>
+            <select
+              id="userRole"
+              value={userRole}
+              onChange={(e) => setUserRole(e.target.value)}
+              className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
+            >
+              <option value={UserRole.User}>User</option>
+              <option value={UserRole.Reviewer}>Reviewer</option>
+              <option value={UserRole.Admin}>Admin</option>
+            </select>
+            <p className="mt-1 text-sm text-gray-500">
+              This defines the user's access level. Reviewers can access the review page. Admins have full access to all platform features.
+            </p>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="userStatus" className="block text-sm font-medium text-gray-700 mb-1">
+              User Status
+            </label>
+            <select
+              id="userStatus"
+              value={userStatus}
+              onChange={(e) => setUserStatus(e.target.value as UserStatus)}
+              className="mt-1 pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md w-50"
+            >
+              <option value={UserStatus.Unknown}>Unknown</option>
+              <option value={UserStatus.L1}>L1</option>
+              <option value={UserStatus.L2}>L2</option>
+              <option value={UserStatus.FraudSuspect}>Fraud Suspect</option>
+            </select>
+            <p className="mt-1 text-sm text-gray-500">
+              This defines the user's grantability status.
+            </p>
+          </div>
+          
+          <p className="text-sm text-gray-500 mb-4">
+            User roles determine access to different parts of the platform:
+            <br />• <strong>User:</strong> Basic access to the platform
+            <br />• <strong>Reviewer:</strong> Can access the review dashboard to evaluate projects
+            <br />• <strong>Admin:</strong> Full access to all features, including user management
+          </p>
+          
+          <button
+            type="button"
+            onClick={updateUser}
+            disabled={isUpdating}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors focus:outline-none disabled:bg-blue-300"
+          >
+            {isUpdating ? 'Updating...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+      
       <Toaster richColors />
     </div>
   );

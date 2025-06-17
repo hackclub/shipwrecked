@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -8,7 +8,10 @@ import ImageWithFallback from '@/components/common/ImageWithFallback';
 import Modal from '@/components/common/Modal';
 import FormInput from '@/components/form/FormInput';
 import { toast, Toaster } from 'sonner';
-import ProjectClassificationBadge from '@/components/common/ProjectClassificationBadge';
+import { Icon } from '@hack-club/icons';
+import AddLinkModal from '@/components/admin/AddLinkModal';
+import UnlinkModal from '@/components/admin/UnlinkModal';
+import DeleteModal from '@/components/admin/DeleteModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -723,22 +726,6 @@ function AdminProjectsContent() {
                               }
                             })()}
                           </div>
-                          <ProjectClassificationBadge
-                            hours={(() => {
-                              try {
-                                const rawHours = project.hackatimeLinks?.reduce(
-                                  (sum, link) => sum + (typeof link?.rawHours === 'number' ? link.rawHours : 0),
-                                  0
-                                ) || 0;
-                                const approvedHours = project.hackatimeLinks ? 
-                                  calculateApprovedHours(project.hackatimeLinks) : 0;
-                                return approvedHours > 0 ? approvedHours : rawHours;
-                              } catch (e) {
-                                return 0;
-                              }
-                            })()}
-                            size="sm"
-                          />
                         </div>
                       </div>
                     </div>
