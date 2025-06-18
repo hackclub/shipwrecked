@@ -32,7 +32,7 @@ interface User {
   category?: {
     category: 'whale' | 'shipper' | 'newbie';
     description: string;
-  } |7 null;
+  } | null;
   projects: ProjectType[],
 }
 
