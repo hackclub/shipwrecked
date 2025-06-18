@@ -588,10 +588,20 @@ export default function Bay() {
   );
 }
 
-function BayWithReviewMode({ session, status, router }: { 
+export function BayWithReviewMode({ session, status, router, impersonationData }: { 
   session: any; 
   status: string;
   router: any;
+  impersonationData?: {
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      image: string | null;
+    };
+    projects: ProjectType[];
+  };
 }) {
   // Track if we've loaded projects for this user
   const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
@@ -733,6 +743,12 @@ function BayWithReviewMode({ session, status, router }: {
 
   // Load Hackatime projects once when component mounts or user changes
   useEffect(() => {
+    // Skip Hackatime loading when in impersonation mode
+    if (impersonationData) {
+      setIsLoadingHackatime(false);
+      return;
+    }
+    
     const userId = session?.user?.id;
     const hackatimeId = session?.user?.hackatimeId;
 
@@ -875,6 +891,12 @@ function BayWithReviewMode({ session, status, router }: {
   });
 
   async function getUserProjects() {
+    if (impersonationData) {
+      // Use provided impersonation data
+      setProjects(impersonationData.projects);
+      return;
+    }
+    
     const response = await fetch("/api/projects");
     const data = await response.json();
     setProjects(data);
@@ -882,7 +904,7 @@ function BayWithReviewMode({ session, status, router }: {
 
   useEffect(() => {
     getUserProjects();
-  }, []);
+  }, [impersonationData]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -1056,8 +1078,36 @@ function BayWithReviewMode({ session, status, router }: {
 
   return (
     <div className={styles.container}>
+      {/* Impersonation Banner */}
+      {impersonationData && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>Admin Mode:</strong> You are viewing {impersonationData.user.name || impersonationData.user.email || 'Unknown User'}'s bay page
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/admin/users')}
+              className="text-yellow-700 hover:text-yellow-900 text-sm underline"
+            >
+              Back to Admin
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className={styles.progressSection}>
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">Your Voyage</h2>
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
+          {impersonationData ? `${impersonationData.user.name ? `${impersonationData.user.name}'s Voyage` : 'User Voyage'}` : 'Your Voyage'}
+        </h2>
         <div className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto">
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-2 sm:px-4 md:px-0">
@@ -1179,17 +1229,19 @@ function BayWithReviewMode({ session, status, router }: {
         <div className={styles.projectList}>
           <div className="mt-2 md:mt-6 w-full">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Your Projects</h2>
-              <div className="flex items-center gap-2">
-                <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
-                  <button 
-                    className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
-                    onClick={() => setIsProjectCreateModalOpen(true)}
-                  >
-                    <Icon glyph="plus" size={24} />
-                  </button>
-                </Tooltip>
-              </div>
+              <h2 className="text-2xl font-bold">{impersonationData ? `${impersonationData.user.name || 'User'}'s Projects` : 'Your Projects'}</h2>
+              {!impersonationData && (
+                <div className="flex items-center gap-2">
+                  <Tooltip content="Link projects from hackatime.hackclub.com to track your journey">
+                    <button 
+                      className="p-2 bg-gray-900 rounded-full text-white hover:bg-gray-700 transition-colors"
+                      onClick={() => setIsProjectCreateModalOpen(true)}
+                    >
+                      <Icon glyph="plus" size={24} />
+                    </button>
+                  </Tooltip>
+                </div>
+              )}
             </div>
             
             {/* Review Mode Banner */}
@@ -1237,6 +1289,11 @@ function BayWithReviewMode({ session, status, router }: {
                     editHandler={(project) => {
                       // Check if the edit request is coming from the edit button
                       const isEditRequest = 'isEditing' in project;
+                      
+                      // In impersonation mode, only allow selection (not editing)
+                      if (impersonationData && isEditRequest) {
+                        return; // Prevent actual editing in impersonation mode
+                      }
                       
                       // Only process edits from explicit button clicks (isEditing flag),
                       // No longer supporting row clicks or keyboard shortcuts for editing
@@ -1445,7 +1502,9 @@ function BayWithReviewMode({ session, status, router }: {
                 return (
                   <ProjectDetail 
                     project={projectWithProps}
-                    onEdit={(project) => {
+                    onEdit={impersonationData ? () => {
+                      toast.error("Cannot edit projects while impersonating users");
+                    } : (project) => {
                       // Make sure to set initialEditState with the full project data
                       const projectWithDefaults = {
                         ...selectedProject,
@@ -1618,7 +1677,9 @@ function BayWithReviewMode({ session, status, router }: {
                     codeUrl={selectedProject.codeUrl}
                     playableUrl={selectedProject.playableUrl}
                     screenshot={selectedProject.screenshot}
-                    onRequestSubmitted={(updatedProject, review) => {
+                    onRequestSubmitted={impersonationData ? () => {
+                      toast.error("Cannot submit projects for review while impersonating users");
+                    } : (updatedProject, review) => {
                       // Update the project in the projects array
                       setProjects(prevProjects => 
                         prevProjects.map(p => 
@@ -1632,7 +1693,9 @@ function BayWithReviewMode({ session, status, router }: {
                         toast.success("Project submitted for review!");
                       }, 500);
                     }}
-                    onEditProject={() => {
+                    onEditProject={impersonationData ? () => {
+                      toast.error("Cannot edit projects while impersonating users");
+                    } : () => {
                       setIsProjectDetailModalOpen(false);
                       
                       // Make sure to set initialEditState with the full project data
@@ -1658,13 +1721,15 @@ function BayWithReviewMode({ session, status, router }: {
                     }}
                   />
                   
-                  {/* Project Flags Editor for Mobile - only visible in review mode */}
+                                    {/* Project Flags Editor for Mobile - only visible in review mode */}
                   <ProjectFlagsEditor
                     projectID={selectedProject.projectID}
                     initialShipped={!!selectedProject.shipped}
                     initialViral={!!selectedProject.viral}
                     initialInReview={!!selectedProject.in_review}
-                    onChange={(flags: ProjectFlags) => {
+                    onChange={impersonationData ? () => {
+                      toast.error("Cannot modify project flags while impersonating users");
+                    } : (flags: ProjectFlags) => {
                       // Create a new object with the updated flags
                       const updatedSelectedProject = {
                         ...selectedProject,
@@ -1806,7 +1871,9 @@ function BayWithReviewMode({ session, status, router }: {
                       <button
                         type="button"
                         className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors focus:outline-none flex items-center justify-center gap-2"
-                        onClick={() => {
+                        onClick={impersonationData ? () => {
+                          toast.error("Cannot edit projects while impersonating users");
+                        } : () => {
                           setIsProjectDetailModalOpen(false);
                           
                           // Make sure to set initialEditState with the full project data

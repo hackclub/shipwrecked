@@ -403,7 +403,7 @@ export default function AuditLogsPage() {
                           {log.project && (
                             <div className="text-xs text-gray-500">
                               {log.eventType !== AuditLogEventType.ProjectCreated && (
-                                <div>Project: <Link href={`/admin/projects/${log.project.projectID}`} className="text-blue-600 hover:underline">{log.project.name}</Link></div>
+                                <div>Project: <Link href={`/admin/projects?projectId=${log.project.projectID}`} className="text-blue-600 hover:underline">{log.project.name}</Link></div>
                               )}
                               
                               {/* Show additional project details for ProjectCreated event */}
