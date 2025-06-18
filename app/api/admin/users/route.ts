@@ -64,44 +64,58 @@ export async function GET() {
     }));
 
 	const usersWithProjects = await Promise.all(usersWithCategories.map(async user => {
-		const projects = await prisma.project.findMany({
-            where: {
-                userId: user.id
-            },
-            include: {
-                hackatimeLinks: true
-            }
-        });
-        
-        // Enhance the project data with computed properties
-        const enhancedProjects = projects.map((project) => {
-            // Get the main Hackatime name (for backwards compatibility)
-            const hackatimeName = project.hackatimeLinks.length > 0 
-                ? project.hackatimeLinks[0].hackatimeName 
-                : '';
+        try {
+            const projects = await prisma.project.findMany({
+                where: {
+                    userId: user.id
+                },
+                include: {
+                    hackatimeLinks: true
+                }
+            });
             
-            // Calculate total raw hours from all links, applying individual overrides when available
-            const rawHours = project.hackatimeLinks.reduce(
-                (sum, link) => {
-                    // Use the link's hoursOverride if it exists, otherwise use rawHours
-                    const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
-                        ? link.hoursOverride
-                        : (typeof link.rawHours === 'number' ? link.rawHours : 0);
+            // Enhance the project data with computed properties
+            const enhancedProjects = (projects || []).map((project) => {
+                try {
+                    // Get the main Hackatime name (for backwards compatibility)
+                    const hackatimeName = (project.hackatimeLinks && project.hackatimeLinks.length > 0) 
+                        ? project.hackatimeLinks[0].hackatimeName 
+                        : '';
                     
-                    return sum + effectiveHours;
-                }, 
-                0
-            );
-            
-            // Return the enhanced project with additional properties
-            return {
-                ...project,
-                hackatimeName,
-                rawHours
-            };
-        });
+                    // Calculate total raw hours from all links, applying individual overrides when available
+                    const rawHours = (project.hackatimeLinks || []).reduce(
+                        (sum, link) => {
+                            // Use the link's hoursOverride if it exists, otherwise use rawHours
+                            const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
+                                ? link.hoursOverride
+                                : (typeof link.rawHours === 'number' ? link.rawHours : 0);
+                            
+                            return sum + effectiveHours;
+                        }, 
+                        0
+                    );
+                    
+                    // Return the enhanced project with additional properties
+                    return {
+                        ...project,
+                        hackatimeName,
+                        rawHours
+                    };
+                } catch (projectError) {
+                    console.error('Error processing project:', project.projectID, projectError);
+                    return {
+                        ...project,
+                        hackatimeName: '',
+                        rawHours: 0
+                    };
+                }
+            });
 
-		return { ...user, projects: enhancedProjects };
+            return { ...user, projects: enhancedProjects };
+        } catch (userError) {
+            console.error('Error processing user:', user.id, userError);
+            return { ...user, projects: [] };
+        }
 	}));
 
     return NextResponse.json(usersWithProjects);

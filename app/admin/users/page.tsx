@@ -32,9 +32,13 @@ interface User {
   category?: {
     category: 'whale' | 'shipper' | 'newbie';
     description: string;
-  } | null;
+  } |7 null;
   projects: ProjectType[],
 }
+
+// Sorting types
+type SortField = 'progress' | 'role' | 'name' | 'default';
+type SortOrder = 'asc' | 'desc';
 
 // Create a wrapper component that uses Suspense
 function AdminUsersContent() {
@@ -46,6 +50,8 @@ function AdminUsersContent() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmUserEmail, setConfirmUserEmail] = useState('');
+  const [sortField, setSortField] = useState<SortField>('default');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   useEffect(() => {
     async function fetchUsers() {
@@ -54,6 +60,8 @@ function AdminUsersContent() {
         if (response.ok) {
           const data = await response.json();
           setUsers(data);
+        } else {
+          console.error('Failed to fetch users:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -67,13 +75,80 @@ function AdminUsersContent() {
     }
   }, [status]);
 
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle sort order if same field is clicked
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to appropriate order
+      setSortField(field);
+      setSortOrder(field === 'progress' ? 'desc' : 'asc');
+    }
+  };
+
+  // Get sort icon
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return '↕️';
+    return sortOrder === 'asc' ? '↑' : '↓';
+  };
+
   const filteredUsers = users.filter(user => 
     (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
     (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  ).map(user => ({ ...user, stats: calculateProgressMetrics(user.projects) })).sort((a, b) => {
-	  let percent = b.stats.totalPercentage - a.stats.totalPercentage;
-	  let viral = +!!b.projects.find(x=>x.viral) - +!!a.projects.find(x=>x.viral);
-	  return percent === 0 ? viral : percent;
+  ).map(user => {
+    try {
+      return { ...user, stats: calculateProgressMetrics(user.projects || []) };
+    } catch (error) {
+      console.error('Error calculating progress metrics for user:', user.id, error);
+      return { 
+        ...user, 
+        stats: {
+          shippedHours: 0,
+          viralHours: 0,
+          otherHours: 0,
+          totalHours: 0,
+          totalPercentage: 0,
+          rawHours: 0,
+          currency: 0
+        }
+      };
+    }
+  }).sort((a, b) => {
+    let result = 0;
+    
+    try {
+      switch (sortField) {
+        case 'progress':
+          result = b.stats.totalPercentage - a.stats.totalPercentage;
+          if (result === 0) {
+            // Secondary sort by viral status
+            result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
+          }
+          break;
+        case 'role':
+          const roleOrder = { 'Admin': 3, 'Reviewer': 2, 'User': 1 };
+          result = (roleOrder[a.role as keyof typeof roleOrder] || 0) - (roleOrder[b.role as keyof typeof roleOrder] || 0);
+          break;
+        case 'name':
+          const nameA = (a.name || a.email || '').toLowerCase();
+          const nameB = (b.name || b.email || '').toLowerCase();
+          result = nameA.localeCompare(nameB);
+          break;
+        default:
+          // Default sorting (original logic)
+          result = b.stats.totalPercentage - a.stats.totalPercentage;
+          if (result === 0) {
+            result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
+          }
+          break;
+      }
+      
+      return sortOrder === 'asc' ? result : -result;
+    } catch (error) {
+      console.error('Error in sorting:', error);
+      return 0;
+    }
   });
 
   // Function to render status badge
@@ -187,6 +262,12 @@ function AdminUsersContent() {
     );
   }
 
+  // Debug logging can be removed in production
+  // console.log('Users array length:', users.length);
+  // console.log('Filtered users length:', filteredUsers.length);
+  // console.log('Sort field:', sortField, 'Sort order:', sortOrder);
+  // console.log('Search term:', searchTerm);
+
   return (
     <div>
       <div className="mb-6">
@@ -220,8 +301,15 @@ function AdminUsersContent() {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
-                    User
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      User
+                      <span className="text-xs">{getSortIcon('name')}</span>
+                    </div>
                   </th>
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-48">
                     Email
@@ -232,11 +320,25 @@ function AdminUsersContent() {
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Status
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
-                    Progress
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('progress')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Progress
+                      <span className="text-xs">{getSortIcon('progress')}</span>
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
-                    Role
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('role')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Role
+                      <span className="text-xs">{getSortIcon('role')}</span>
+                    </div>
                   </th>
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
                     Category
@@ -356,6 +458,53 @@ function AdminUsersContent() {
 
           {/* Mobile Card View */}
           <div className="lg:hidden">
+            {/* Mobile Sort Controls */}
+            <div className="mb-4 bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-700 mb-2">Sort by:</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleSort('name')}
+                  className={`px-3 py-1 text-xs rounded-full border ${
+                    sortField === 'name' 
+                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Name {sortField === 'name' && getSortIcon('name')}
+                </button>
+                <button
+                  onClick={() => handleSort('progress')}
+                  className={`px-3 py-1 text-xs rounded-full border ${
+                    sortField === 'progress' 
+                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Progress {sortField === 'progress' && getSortIcon('progress')}
+                </button>
+                <button
+                  onClick={() => handleSort('role')}
+                  className={`px-3 py-1 text-xs rounded-full border ${
+                    sortField === 'role' 
+                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Role {sortField === 'role' && getSortIcon('role')}
+                </button>
+                <button
+                  onClick={() => handleSort('default')}
+                  className={`px-3 py-1 text-xs rounded-full border ${
+                    sortField === 'default' 
+                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Default {sortField === 'default' && getSortIcon('default')}
+                </button>
+              </div>
+            </div>
+            
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <p className="text-gray-500">No users found</p>
