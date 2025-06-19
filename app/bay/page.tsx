@@ -262,10 +262,12 @@ export function calculateProgressMetrics(projects: ProjectType[]): ProgressMetri
 // Project Detail Component
 function ProjectDetail({ 
   project, 
+  projects,
   onEdit,
   setProjects
 }: { 
   project: ProjectType, 
+  projects: ProjectType[],
   onEdit: (project?: any) => void,
   setProjects: React.Dispatch<React.SetStateAction<ProjectType[]>>
 }): ReactElement {
@@ -297,13 +299,25 @@ function ProjectDetail({
     // Safety check for null project
     if (!project) return 0;
 
+  const allProjectsWithHours = projects
+    .map(project => ({
+      project,
+      hours: getProjectHackatimeHours(project)
+    }))
+    .sort((a, b) => b.hours - a.hours);
+
+  // Get top 4 projects for island percentage calculation
+  const top4Projects = allProjectsWithHours.slice(0, 4);
+
+  if (!top4Projects.find(x=>x.project.projectID === project.projectID))
+	  return 0;
+
     // Get hours from project properties using the helper function
     const rawHours = getProjectHackatimeHours(project);
     
     // Cap hours per project at 15
     let cappedHours = Math.min(rawHours, 15);
     
-    // If viral
     if (projectFlags?.viral === true) {
       return cappedHours;
     }
@@ -1501,6 +1515,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 return (
                   <ProjectDetail 
                     project={projectWithProps}
+					projects={projects}
                     onEdit={impersonationData ? () => {
                       toast.error("Cannot edit projects while impersonating users");
                     } : (project) => {
@@ -1577,6 +1592,19 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 return 0;
               }
 
+  const allProjectsWithHours = projects
+    .map(project => ({
+      project,
+      hours: getProjectHackatimeHours(project)
+    }))
+    .sort((a, b) => b.hours - a.hours);
+
+  // Get top 4 projects for island percentage calculation
+  const top4Projects = allProjectsWithHours.slice(0, 4);
+
+  if (!top4Projects.find(x=>x.project.projectID === selectedProject.projectID))
+	  return 0;
+
               // Use hoursOverride if available, otherwise use raw hours
               const hours = typeof selectedProject?.hoursOverride === 'number' && selectedProject.hoursOverride !== null
                 ? selectedProject.hoursOverride
@@ -1585,7 +1613,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
               // Cap hours per project at 15
               let cappedHours = Math.min(hours, 15);
               
-              // If viral, it's 15 hours
               if (selectedProject?.viral === true) {
                 return cappedHours;
               }
