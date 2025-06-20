@@ -420,7 +420,10 @@ function ReviewPage() {
   useEffect(() => {
     if (activeFilter === "FraudSuspect") {
       setFilteredProjects(projects.filter(project => 
-        project.user.status === UserStatus.FraudSuspect
+        project.user.status === UserStatus.FraudSuspect &&
+        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
       return;
     }
@@ -432,17 +435,15 @@ function ReviewPage() {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
+      
     } else {
       setFilteredProjects(projects.filter(project => 
         project.user.status !== UserStatus.FraudSuspect &&
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
     }
-    setFilteredProjects(projects.filter(project =>
-      project.user.status !== UserStatus.FraudSuspect
-    ));
   }, [projects, activeFilter, searchTerm]);
 
   // Close modal when escape key is pressed
@@ -584,7 +585,7 @@ function ReviewPage() {
               <button
                 onClick={() => setActiveFilter('FraudSuspect')}
                 className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                  activeFilter === 'Other'
+                  activeFilter === 'FraudSuspect'
                     ? 'bg-red-600 text-white'
                     : 'bg-red-100 text-red-700 hover:bg-red-200'
                 }`}
