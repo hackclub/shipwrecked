@@ -227,10 +227,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
     }
   };
 
-  console.log("status:")
-  console.log(project.user.status)
-  console.log(project.user)
-
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
@@ -249,8 +245,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
           <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
           <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
         </div>
-
-        <p>Status: {project.user.status}</p>
         
         <div className="bg-gray-50 p-4 rounded-lg">
           
