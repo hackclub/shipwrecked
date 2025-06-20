@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
             email: true,
             image: true,
             hackatimeId: true,
+            status: true,
           }
         },
         reviews: {

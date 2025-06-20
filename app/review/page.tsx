@@ -79,11 +79,19 @@ function AccessDeniedHaiku() {
 }
 
 // Type definitions for review page
+enum UserStatus {
+  Unknown = "Unknown",
+  L1 = "L1", 
+  L2 = "L2",
+  FraudSuspect = "FraudSuspect"
+}
+
 interface User {
   id: string;
   name: string | null;
   email: string | null;
   image: string | null;
+  status: UserStatus;
 }
 
 interface Review {
@@ -219,6 +227,10 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
     }
   };
 
+  console.log("status:")
+  console.log(project.user.status)
+  console.log(project.user)
+
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
@@ -237,8 +249,11 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
           <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
           <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
         </div>
+
+        <p>Status: {project.user.status}</p>
         
         <div className="bg-gray-50 p-4 rounded-lg">
+          
           <h3 className="text-sm font-medium text-gray-700 mb-2">Created By</h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -410,20 +425,31 @@ function ReviewPage() {
   
   // Apply filter when projects or filter changes
   useEffect(() => {
+    if (activeFilter === "FraudSuspect") {
+      setFilteredProjects(projects.filter(project => 
+        project.user.status === UserStatus.FraudSuspect
+      ));
+      return;
+    }
     if (activeFilter) {
       setFilteredProjects(projects.filter(project => 
         project.latestReview?.reviewType === activeFilter &&
+        project.user.status !== UserStatus.FraudSuspect &&
         (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
     } else {
       setFilteredProjects(projects.filter(project => 
+        project.user.status !== UserStatus.FraudSuspect &&
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       ));
     }
+    setFilteredProjects(projects.filter(project =>
+      project.user.status !== UserStatus.FraudSuspect
+    ));
   }, [projects, activeFilter, searchTerm]);
 
   // Close modal when escape key is pressed
@@ -561,6 +587,16 @@ function ReviewPage() {
                 }`}
               >
                 Other Requests
+              </button>
+              <button
+                onClick={() => setActiveFilter('FraudSuspect')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'Other'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
+              >
+                Banned Users
               </button>
             </div>
           </div>
