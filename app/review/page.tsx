@@ -247,7 +247,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
         </div>
         
         <div className="bg-gray-50 p-4 rounded-lg">
-          
           <h3 className="text-sm font-medium text-gray-700 mb-2">Created By</h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
