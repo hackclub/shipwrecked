@@ -51,7 +51,7 @@ function AdminUsersContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmUserEmail, setConfirmUserEmail] = useState('');
   const [sortField, setSortField] = useState<SortField>('default');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
   useEffect(() => {
     async function fetchUsers() {
@@ -89,7 +89,7 @@ function AdminUsersContent() {
 
   // Get sort icon
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️';
+    if (sortField !== field) return '↕';
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
@@ -185,7 +185,7 @@ function AdminUsersContent() {
     let textColor = 'text-gray-800';
 	let label = "";
 
-	if (user.projects.filter(project => getProjectHackatimeHours(project) >= 15).length >= 4) {
+	if (user.projects.filter(project => getProjectHackatimeHours(project) >= 15 && project.shipped).length >= 4) {
 		if (!!user.projects.find(project => project.viral)) {
 			bgColor = "bg-yellow-100";
 			textColor = "text-yellow-800";
