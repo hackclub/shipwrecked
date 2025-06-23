@@ -15,6 +15,7 @@ import UserClusterChart from '@/components/common/UserClusterChart';
 import UserCategoryBadge from '@/components/common/UserCategoryBadge';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
+import { ensureHttps } from '@/lib/utils';
 
 const MDXShippedApproval = lazy(() => import('./review-guidelines/shipped-approval.mdx'));
 const MDXViralApproval = lazy(() => import('./review-guidelines/viral-approval.mdx'));
@@ -285,7 +286,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             <div className="flex flex-col gap-2">
               {project.codeUrl && (
                 <a 
-                  href={project.codeUrl} 
+                  href={ensureHttps(project.codeUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
@@ -296,7 +297,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               )}
               {project.playableUrl && (
                 <a 
-                  href={project.playableUrl} 
+                  href={ensureHttps(project.playableUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
