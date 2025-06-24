@@ -8,5 +8,6 @@ export async function GET() {
     scope: "basic_info address",
   };
     const queryString = new URLSearchParams(params).toString();
+    console.log(`${process.env.IDENTITY_URL}/oauth/authorize?${queryString}`)
     return NextResponse.json({ url: `${process.env.IDENTITY_URL}/oauth/authorize?${queryString}` });
 }
