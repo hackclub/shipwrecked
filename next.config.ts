@@ -41,6 +41,15 @@ const nextConfig: NextConfig = {
       }
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/info/travel-stipends',
+        destination: '/info/travel',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 const withMDX = createMDX({
