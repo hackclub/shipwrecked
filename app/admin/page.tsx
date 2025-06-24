@@ -58,7 +58,7 @@ function ProjectsPerUserCard({ mean, median }: { mean: number, median: number })
 const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042'];
 
 // Generic pie chart component with consistent sizing
-function StatPieChart({ data, title }: { data: { name: string; value: number }[], title: string }) {
+function StatPieChart({ data, title, unit }: { data: { name: string; value: number }[], title: string, unit?: string }) {
   return (
     <div className="bg-white rounded-lg shadow p-6 h-[400px] flex flex-col">
       <h3 className="text-lg font-medium mb-2">{title}</h3>
@@ -79,7 +79,7 @@ function StatPieChart({ data, title }: { data: { name: string; value: number }[]
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => [`${value} projects`, 'Count']} />
+            <Tooltip formatter={(value) => [`${value} ${unit || ''}`, 'Count']} />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
           </PieChart>
         </ResponsiveContainer>
@@ -88,8 +88,19 @@ function StatPieChart({ data, title }: { data: { name: string; value: number }[]
   );
 }
 
+// Define type for audit log time series data
+interface AuditLogDay {
+  date: string;
+  [eventType: string]: number | string;
+}
+
+// Define type for legend props (compatible with recharts)
+interface CustomLegendProps {
+  payload?: { color?: string; value?: string }[];
+}
+
 // Audit log line chart component
-function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }) {
+function AuditLogTimeSeriesChart({ data, title }: { data: AuditLogDay[], title: string }) {
   const [dayRange, setDayRange] = useState<number>(7); // Default to 7 days
   
   // Use all event types
@@ -121,21 +132,20 @@ function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }
   };
 
   // Custom legend formatter to make text smaller and more compact
-  const renderLegend = (props: any) => {
-    const { payload } = props;
-    
+  const renderLegend = (props: CustomLegendProps) => {
+    const payload = props.payload || [];
     return (
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 px-2" style={{ fontSize: '10px' }}>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <div key={`legend-item-${index}`} className="flex items-center">
             <div style={{ 
               width: '10px', 
               height: '10px', 
-              backgroundColor: entry.color, 
+              backgroundColor: entry.color || '', 
               marginRight: '4px',
               display: 'inline-block' 
             }} />
-            <span>{entry.value}</span>
+            <span>{entry.value || ''}</span>
           </div>
         ))}
       </div>
@@ -222,7 +232,7 @@ function AuditLogTimeSeriesChart({ data, title }: { data: any[], title: string }
 }
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProjects: 0,
@@ -254,7 +264,12 @@ export default function AdminDashboard() {
       mean: 0,
       median: 0
     },
-    auditLogTimeSeries: [] // New state for audit log time series data
+    auditLogTimeSeries: [],
+    identityTokenStats: {
+      withIdentityToken: 0,
+      withoutIdentityToken: 0,
+      pieData: [] as { name: string; value: number }[]
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -376,14 +391,17 @@ export default function AdminDashboard() {
           <StatPieChart 
             title="Shipped Projects" 
             data={stats.projectStats.shippedPieData} 
+            unit="projects"
           />
           <StatPieChart 
             title="Viral Projects" 
             data={stats.projectStats.viralPieData} 
+            unit="projects"
           />
           <StatPieChart 
             title="Projects In Review" 
             data={stats.projectStats.reviewPieData} 
+            unit="projects"
           />
         </div>
       </div>
@@ -394,6 +412,19 @@ export default function AdminDashboard() {
           <StatPieChart 
             title="Hackatime Installation" 
             data={stats.hackatimeStats.pieData} 
+            unit="users"
+          />
+        </div>
+      </div>
+
+      {/* New section: Identity Token Pie Chart */}
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Identity Verification</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+          <StatPieChart 
+            title="Users attempting to verify their identity" 
+            data={stats.identityTokenStats?.pieData || []} 
+            unit="users"
           />
         </div>
       </div>
