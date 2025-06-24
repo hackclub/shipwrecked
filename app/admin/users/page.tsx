@@ -7,6 +7,7 @@ import { toast, Toaster } from 'sonner';
 import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
 import { ProjectType } from '@/app/api/projects/route';
+import { Tooltip } from 'recharts';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ interface User {
     description: string;
   } | null;
   projects: ProjectType[],
+  identityToken?: string;
 }
 
 // Sorting types
@@ -347,6 +349,9 @@ function AdminUsersContent() {
                     Verified
                   </th>
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                    Identity
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Hackatime
                   </th>
                   <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
@@ -421,6 +426,15 @@ function AdminUsersContent() {
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {user.emailVerified ? '✓' : '✗'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                          user.identityToken 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {user.identityToken ? '✓' : '✗'}
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
@@ -578,6 +592,16 @@ function AdminUsersContent() {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {user.emailVerified ? 'Verified' : 'No'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Identity Verified?</span>
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.identityToken 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.identityToken ? 'Verified' : 'No'}
                           </span>
                         </div>
                         <div>

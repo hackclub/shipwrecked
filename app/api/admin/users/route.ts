@@ -31,6 +31,7 @@ export async function GET() {
         role: true,
         status: true,
         hackatimeId: true,
+        identityToken: true,
       },
       orderBy: {
         createdAt: 'desc',
