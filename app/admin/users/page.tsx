@@ -187,17 +187,34 @@ function AdminUsersContent() {
     let textColor = 'text-gray-800';
 	let label = "";
 
-	if (user.projects.filter(project => getProjectHackatimeHours(project) >= 15 && project.shipped).length >= 4) {
-		if (!!user.projects.find(project => project.viral)) {
-			bgColor = "bg-yellow-100";
-			textColor = "text-yellow-800";
-			label = "Invitation";
-		} else {
-			bgColor = 'bg-green-100';
-			textColor = 'text-green-800';
-			label = "Waitlist";
-		}
-	}
+	  
+  let meetsRequirements = false;
+
+  let top4Projects = []
+  for (const project of user.projects) {
+    if (project.shipped && getProjectHackatimeHours(project) >= 10) {
+      top4Projects.push(getProjectHackatimeHours(project));
+    }
+  }
+  if (top4Projects.length >= 4) {
+    top4Projects.sort((a, b) => b - a);
+    top4Projects = top4Projects.slice(0, 4);
+    if (top4Projects.reduce((acc, current) => acc + current, 0) >= 60) {
+      meetsRequirements = true;
+    }
+  }
+
+  if (meetsRequirements) {
+    if (!!user.projects.find(project => project.viral)) {
+      bgColor = "bg-yellow-100";
+      textColor = "text-yellow-800";
+      label = "Invitation";
+    } else {
+      bgColor = 'bg-green-100';
+      textColor = 'text-green-800';
+      label = "Waitlist";
+    }
+  }
     
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
