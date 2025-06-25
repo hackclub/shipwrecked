@@ -1,6 +1,7 @@
 import Airtable, { FieldSet } from "airtable";
 import { prisma } from "../../pipeline-prisma";
 import * as dotenv from 'dotenv';
+import { exponentialFetchRetry } from "../exponentialRetry/exponentialRetry";
 
 export async function syncAirtable() {
   dotenv.config();
@@ -40,7 +41,7 @@ export async function syncAirtable() {
           id: project.userId,
         },
       });
-      const response = await fetch(
+      const response = await exponentialFetchRetry(
         `${process.env.IDENTITY_URL}/api/v1/me`,
         {
           method: "GET",
