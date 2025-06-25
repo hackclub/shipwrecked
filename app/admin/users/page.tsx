@@ -303,9 +303,12 @@ function AdminUsersContent() {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
+                    #
+                  </th>
                   <th 
                     scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -329,6 +332,36 @@ function AdminUsersContent() {
                   >
                     <div className="flex items-center gap-1">
                       Progress
+                      <span className="text-xs">{getSortIcon('progress')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('progress')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # Shipped
+                      <span className="text-xs">{getSortIcon('progress')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('progress')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # Pending
+                      <span className="text-xs">{getSortIcon('progress')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('progress')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Total Hours
                       <span className="text-xs">{getSortIcon('progress')}</span>
                     </div>
                   </th>
@@ -367,8 +400,13 @@ function AdminUsersContent() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((user, index) => (
                     <tr key={user.id}>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </div>
+                      </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
@@ -525,13 +563,16 @@ function AdminUsersContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, index) => (
                   <div 
                     key={user.id}
                     className="block bg-white rounded-lg shadow-md overflow-hidden"
                   >
                     <div className="p-4">
                       <div className="flex items-center mb-3">
+                        <div className="text-lg font-medium text-gray-500 mr-3">
+                          #{index + 1}
+                        </div>
                         {user.image ? (
                           <img className="h-12 w-12 rounded-full mr-3" src={user.image} alt={user.name || 'User'} />
                         ) : (
@@ -714,4 +755,4 @@ export default function AdminUsers() {
       <AdminUsersContent />
     </Suspense>
   );
-} 
+}
