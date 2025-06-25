@@ -22,7 +22,7 @@ const prisma = new PrismaClient({
 
 // Hackatime API base URL and token
 const HACKATIME_API_URL = process.env.HACKATIME_API_URL || 'https://hackatime.hackclub.com/api';
-const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN || 'ODRgbgxPjRBbivBStig1Dg==';
+const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
 
 if (!HACKATIME_API_TOKEN) {
   console.error('HACKATIME_API_TOKEN environment variable must be set');
