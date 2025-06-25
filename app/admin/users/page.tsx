@@ -204,17 +204,17 @@ function AdminUsersContent() {
     }
   }
 
-	if (meetsRequirements) {
-		if (!!user.projects.find(project => project.viral)) {
-			bgColor = "bg-yellow-100";
-			textColor = "text-yellow-800";
-			label = "Invitation";
-		} else {
-			bgColor = 'bg-green-100';
-			textColor = 'text-green-800';
-			label = "Waitlist";
-		}
-	}
+  if (meetsRequirements) {
+    if (!!user.projects.find(project => project.viral)) {
+      bgColor = "bg-yellow-100";
+      textColor = "text-yellow-800";
+      label = "Invitation";
+    } else {
+      bgColor = 'bg-green-100';
+      textColor = 'text-green-800';
+      label = "Waitlist";
+    }
+  }
     
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
