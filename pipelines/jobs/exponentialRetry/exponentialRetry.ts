@@ -9,7 +9,7 @@ export async function exponentialFetchRetry(
   async function fetchWithRetry(url: string, options: RequestInit, retries: number, delay: number): Promise<Response> {
     try {
       const response = await fetch(url, options);
-      if (response.status.toString().startsWith('5')) {
+      if (!response.status.toString().startsWith('5') && !response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return response;
