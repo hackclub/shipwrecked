@@ -1,0 +1,1 @@
+-- Drift fix: columns already exist in the database, no changes needed.

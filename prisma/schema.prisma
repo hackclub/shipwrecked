@@ -164,6 +164,7 @@ model Project {
   playableUrl String
   screenshot  String
   submitted   Boolean @default(false)
+  airtableId  String?
 
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
