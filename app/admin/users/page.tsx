@@ -39,7 +39,7 @@ interface User {
 }
 
 // Sorting types
-type SortField = 'progress' | 'role' | 'name' | 'default';
+type SortField = 'progress' | 'role' | 'name' | 'shipped' | 'pending' | 'default';
 type SortOrder = 'asc' | 'desc';
 
 // Create a wrapper component that uses Suspense
@@ -136,6 +136,12 @@ function AdminUsersContent() {
           const nameA = (a.name || a.email || '').toLowerCase();
           const nameB = (b.name || b.email || '').toLowerCase();
           result = nameA.localeCompare(nameB);
+          break;
+        case 'shipped':
+          result = (b.projects.filter(project => project.shipped).length || 0) - (a.projects.filter(project => project.shipped).length || 0);
+          break;
+        case 'pending':
+          result = (b.projects.filter(project => project.in_review).length || 0) - (a.projects.filter(project => project.in_review).length || 0);
           break;
         default:
           // Default sorting (original logic)
@@ -320,9 +326,12 @@ function AdminUsersContent() {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
+                    #
+                  </th>
                   <th 
                     scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -347,6 +356,26 @@ function AdminUsersContent() {
                     <div className="flex items-center gap-1">
                       Progress
                       <span className="text-xs">{getSortIcon('progress')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('shipped')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # Shipped
+                      <span className="text-xs">{getSortIcon('shipped')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('pending')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # Pending
+                      <span className="text-xs">{getSortIcon('pending')}</span>
                     </div>
                   </th>
                   <th 
@@ -384,8 +413,13 @@ function AdminUsersContent() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((user, index) => (
                     <tr key={user.id}>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </div>
+                      </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
@@ -421,6 +455,16 @@ function AdminUsersContent() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         {getProgressBadge(user)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.projects.filter(project => project.shipped).length}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.projects.filter(project => !project.shipped).length}
+                        </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
@@ -542,13 +586,16 @@ function AdminUsersContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, index) => (
                   <div 
                     key={user.id}
                     className="block bg-white rounded-lg shadow-md overflow-hidden"
                   >
                     <div className="p-4">
                       <div className="flex items-center mb-3">
+                        <div className="text-lg font-medium text-gray-500 mr-3">
+                          #{index + 1}
+                        </div>
                         {user.image ? (
                           <img className="h-12 w-12 rounded-full mr-3" src={user.image} alt={user.name || 'User'} />
                         ) : (
@@ -574,6 +621,18 @@ function AdminUsersContent() {
                         <div>
                           <span className="text-gray-500 block">Progress</span>
                           {getProgressBadge(user)}
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block"># Shipped</span>
+                          <span className="text-gray-800">
+                            {user.projects.filter(project => project.shipped).length}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block"># Pending</span>
+                          <span className="text-gray-800">
+                            {user.projects.filter(project => !project.shipped).length}
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-500 block">Role</span>
@@ -731,4 +790,4 @@ export default function AdminUsers() {
       <AdminUsersContent />
     </Suspense>
   );
-} 
+}
