@@ -332,8 +332,8 @@ export default function ReviewSection({
     }
     
     // Validate that rejections have a comment
-    if (reviewResult === 'reject' && !newComment.trim()) {
-      toast.error('Please provide a comment explaining the rejection reason');
+    if ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim()) {
+      toast.error('Please provide a comment');
       return;
     }
     
@@ -567,11 +567,14 @@ export default function ReviewSection({
             {reviewResult === 'reject' && (
               <p className="mt-1 text-xs text-red-600">A comment explaining the rejection reason is required.</p>
             )}
+            {reviewResult === 'comment' && (
+              <p className="mt-1 text-xs text-gray-600">A comment is required.</p>
+            )}
           </div>
 
           <div className="mb-3">
             <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
-              {reviewResult === 'reject' ? 'Comment* (required)' : 'Comment (optional)'}
+              {(reviewResult === 'reject' || reviewResult === 'comment') ? 'Comment (required)' : 'Comment (optional)'}
             </label>
             <textarea
               id="comment"
@@ -585,13 +588,16 @@ export default function ReviewSection({
               }`}
               placeholder={reviewResult === 'reject' 
                 ? "Please explain why this project is being rejected and what changes are needed"
-                : "Add any comments about your approval (optional)"}
+                : (reviewResult === 'approve'
+                  ? "Add any comments about your approval (optional)"
+                  : "Add your comment here..."
+                )}
               disabled={isLoading}
             />
           </div>
           <button
             type="submit"
-            disabled={isLoading || !reviewResult || (reviewResult === 'reject' && !newComment.trim())}
+            disabled={isLoading || !reviewResult || ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim())}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Submitting...' : (flagsChanged ? 'Submit Review with Flag Changes' : 'Submit Review')}
