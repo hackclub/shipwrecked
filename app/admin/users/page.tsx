@@ -463,7 +463,7 @@ function AdminUsersContent() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => !project.in_review).length}
+                          {user.projects.filter(project => project.in_review).length}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
