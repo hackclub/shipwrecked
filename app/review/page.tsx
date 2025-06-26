@@ -265,7 +265,12 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               )}
               <span className="text-sm">{project.userName}</span>
             </div>
-            <UserCategoryBadge userId={project.userId} size="small" showMetrics={true} />
+            <UserCategoryBadge 
+              userId={project.userId} 
+              hackatimeId={project.userHackatimeId} 
+              size="small" 
+              showMetrics={true} 
+            />
           </div>
         </div>
         
@@ -686,4 +691,4 @@ export default function ReviewPageWithProvider() {
       <ReviewPage />
     </ReviewModeProvider>
   );
-} 
+}

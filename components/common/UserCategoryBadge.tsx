@@ -4,6 +4,7 @@ import { useUserClassification, getUserCategoryStyle } from '@/hooks/useUserClus
 
 interface UserCategoryBadgeProps {
   userId: string;
+  hackatimeId?: string;
   size?: 'small' | 'medium' | 'large';
   showMetrics?: boolean;
   className?: string;
@@ -11,6 +12,7 @@ interface UserCategoryBadgeProps {
 
 export default function UserCategoryBadge({
   userId,
+  hackatimeId,
   size = 'medium',
   showMetrics = false,
   className = ''
@@ -53,6 +55,8 @@ export default function UserCategoryBadge({
       
       {showMetrics && (
         <div className="text-xs text-gray-500 space-x-2">
+          <span className="font-mono">Hackatime ID: {hackatimeId || userId}</span>
+          <span>•</span>
           <span>{classification.metrics.totalHours.toFixed(1)}h</span>
           <span>•</span>
           <span>{classification.metrics.projectCount} projects</span>
@@ -62,4 +66,4 @@ export default function UserCategoryBadge({
       )}
     </div>
   );
-} 
+}
