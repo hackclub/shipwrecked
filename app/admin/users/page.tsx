@@ -39,7 +39,7 @@ interface User {
 }
 
 // Sorting types
-type SortField = 'progress' | 'role' | 'name' | 'shipped' | 'pending' | 'default';
+type SortField = 'progress' | 'role' | 'name' | 'shipped' | 'in_review' | 'default';
 type SortOrder = 'asc' | 'desc';
 
 // Create a wrapper component that uses Suspense
@@ -140,7 +140,7 @@ function AdminUsersContent() {
         case 'shipped':
           result = (b.projects.filter(project => project.shipped).length || 0) - (a.projects.filter(project => project.shipped).length || 0);
           break;
-        case 'pending':
+        case 'in_review':
           result = (b.projects.filter(project => project.in_review).length || 0) - (a.projects.filter(project => project.in_review).length || 0);
           break;
         default:
@@ -371,11 +371,11 @@ function AdminUsersContent() {
                   <th 
                     scope="col" 
                     className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('pending')}
+                    onClick={() => handleSort('in_review')}
                   >
                     <div className="flex items-center gap-1">
-                      # Pending
-                      <span className="text-xs">{getSortIcon('pending')}</span>
+                      # In Review
+                      <span className="text-xs">{getSortIcon('in_review')}</span>
                     </div>
                   </th>
                   <th 
@@ -463,7 +463,7 @@ function AdminUsersContent() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => !project.shipped).length}
+                          {user.projects.filter(project => !project.in_review).length}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
@@ -629,9 +629,9 @@ function AdminUsersContent() {
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-500 block"># Pending</span>
+                          <span className="text-gray-500 block"># In Review</span>
                           <span className="text-gray-800">
-                            {user.projects.filter(project => !project.shipped).length}
+                            {user.projects.filter(project => project.in_review).length}
                           </span>
                         </div>
                         <div>
