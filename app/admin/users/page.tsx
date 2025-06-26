@@ -8,6 +8,7 @@ import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
 import { ProjectType } from '@/app/api/projects/route';
 import { Tooltip } from 'recharts';
+import SendModal from '@/app/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -396,9 +397,11 @@ function AdminUsersContent() {
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm font-medium text-gray-900 ">
                               {user.name || 'Unknown'}
+                              <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} />
                             </div>
+
                           </div>
                         </div>
                       </td>

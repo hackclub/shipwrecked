@@ -65,7 +65,7 @@ export default function HackatimeSetup() {
             clearInterval(interval);
             mounted = false;
         };
-    }, [router, status, session]);
+    }, [router, session]);
 
     // Return different UI based on checking status
     return (
