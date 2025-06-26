@@ -30,9 +30,9 @@ export async function syncAirtable() {
   });
 
   const airtable = new Airtable({
-    apiKey: process.env.AIRTABLE_API_KEY,
+    apiKey: process.env.UNIFIED_AIRTABLE_API_KEY,
   });
-  const base = airtable.base(process.env.AIRTABLE_BASE_ID || "");
+  const base = airtable.base(process.env.UNIFIED_AIRTABLE_BASE_ID || "");
   const table = base("Approved Projects");
   for (const project of projects) {
     try {
@@ -41,6 +41,9 @@ export async function syncAirtable() {
           id: project.userId,
         },
       });
+      if (!user?.identityToken) {
+        continue;
+      }
       const response = await exponentialFetchRetry(
         `${process.env.IDENTITY_URL}/api/v1/me`,
         {
