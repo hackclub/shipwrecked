@@ -332,8 +332,8 @@ export default function ReviewSection({
     }
     
     // Validate that rejections have a comment
-    if (reviewResult === 'reject' && !newComment.trim()) {
-      toast.error('Please provide a comment explaining the rejection reason');
+    if ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim()) {
+      toast.error('Please provide a comment');
       return;
     }
     
@@ -585,7 +585,10 @@ export default function ReviewSection({
               }`}
               placeholder={reviewResult === 'reject' 
                 ? "Please explain why this project is being rejected and what changes are needed"
-                : "Add any comments about your approval (optional)"}
+                : (reviewResult === 'approve'
+                  ? "Add any comments about your approval (optional)"
+                  : "Add your comment here..."
+                )}
               disabled={isLoading}
             />
           </div>
