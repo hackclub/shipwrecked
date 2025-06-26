@@ -29,7 +29,6 @@ interface ReviewSectionProps {
   initialFlags?: ProjectFlags;
   onFlagsUpdated?: (updatedProject: any) => void;
   rawHours?: number;
-  reviewType?: string;
   hackatimeLinks?: Array<{
     id: string;
     hackatimeName: string;
@@ -43,14 +42,13 @@ export default function ReviewSection({
   initialFlags,
   onFlagsUpdated,
   rawHours,
-  reviewType,
-  hackatimeLinks = [],
+  hackatimeLinks = []
 }: ReviewSectionProps) {
   const { data: session } = useSession();
   const { isReviewMode } = useReviewMode();
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [reviewResult, setReviewResult] = useState<'approve' | 'reject' | 'comment' | null>(null);
+  const [reviewResult, setReviewResult] = useState<'approve' | 'reject' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [isDeletingReview, setIsDeletingReview] = useState<string | null>(null);
@@ -343,10 +341,10 @@ export default function ReviewSection({
       // Store whether the project was in review before changes
       const wasInReview = originalFlags.in_review;
       
-      // Set in_review to false when submitting a review if approved or rejected
+      // Always set in_review to false when submitting a review
       const updatedFlags = {
         ...currentFlags,
-        in_review: reviewResult === 'comment',
+        in_review: false
       };
       
       // Check if flags are different after setting in_review to false
@@ -414,7 +412,7 @@ export default function ReviewSection({
       }
       
       // Then submit the review with result and flag changes noted in the comment
-      const resultPrefix = reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : '💬 Commented');
+      const resultPrefix = reviewResult === 'approve' ? '✅ Approved' : '❌ Rejected';
       const commentContent = newComment.trim() ? `\n${newComment.trim()}` : '';
       const flagChanges = getFlagChangesDescription();
       const reviewCompleted = !flagChanges && wasInReview ? '\n\n[✓ Review completed]' : '';
@@ -430,7 +428,6 @@ export default function ReviewSection({
           projectID,
           comment: finalComment,
           result: reviewResult, // Include for email notifications
-          reviewType: reviewResult === 'comment' ? reviewType : null,
         }),
       });
       
@@ -439,8 +436,6 @@ export default function ReviewSection({
       }
       
       const newReview = await reviewResponse.json();
-
-      console.log(reviews)
       
       // Add the new review to the top of the list
       setReviews([newReview, ...reviews]);
@@ -551,18 +546,6 @@ export default function ReviewSection({
                 <Icon glyph="important" size={16} className={reviewResult === 'reject' ? 'text-red-600' : 'text-gray-500'} />
                 <span>Reject</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setReviewResult('comment')}
-                className={`flex-1 px-4 py-2 rounded-md border transition-colors flex items-center justify-center gap-2 ${
-                  reviewResult === 'comment'
-                    ? 'bg-gray-50 border-gray-500 text-gray-700'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <Icon glyph="message" size={16} className={reviewResult === 'reject' ? 'text-gray-600' : 'text-gray-500'} />
-                <span>Comment</span>
-              </button>
             </div>
             {reviewResult === 'reject' && (
               <p className="mt-1 text-xs text-red-600">A comment explaining the rejection reason is required.</p>
@@ -601,7 +584,7 @@ export default function ReviewSection({
           <div className="mt-2 text-xs text-blue-600">
             <p>Preview:</p>
             <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">
-              {reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : (reviewResult === 'comment' ? '💬 Commented' : ''))}
+              {reviewResult === 'approve' ? '✅ Approved' : reviewResult === 'reject' ? '❌ Rejected' : ''}
               {newComment.trim() ? '\n' + newComment.trim() : ''}
               
               {/* Direct simple comparison of flags */}

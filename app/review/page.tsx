@@ -381,7 +381,6 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
             rawHours={project.rawHours}
-            reviewType={project.latestReview?.reviewType || 'Other'}
             hackatimeLinks={project.hackatimeLinks}
           />
         </div>
