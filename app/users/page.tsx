@@ -616,7 +616,7 @@ function AdminUsersContent() {
 }
 
 // Main component that wraps the content with Suspense
-export default function AdminUsers() {
+export default function Users() {
   return (
     <SessionProvider>
       <SessionWrapper>
