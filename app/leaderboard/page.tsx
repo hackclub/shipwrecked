@@ -73,6 +73,18 @@ function LeaderboardContent() {
     fetchUsers();
   }, []);
 
+  /*
+          //filter users by most overrided hours
+        const usersWithMetrics = users.map(user => {
+            const metrics = calculateProgressMetrics(user.projects);
+            return {
+                ...user,
+                metrics,
+            };
+        });
+        //sort users by most overrided hours
+        const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.metrics.viralHours) - (a.metrics.shippedHours + a.metrics.viralHours));
+  */
   // Handle sorting
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -90,8 +102,15 @@ function LeaderboardContent() {
     if (sortField !== field) return '↕';
     return sortOrder === 'asc' ? '↑' : '↓';
   };
-
-  const filteredUsers = users.filter(user => 
+const usersWithMetrics = users.map(user => {
+  const metrics = calculateProgressMetrics(user.projects);
+  return {
+    ...user,
+    metrics,
+  };
+});
+const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.metrics.viralHours) - (a.metrics.shippedHours + a.metrics.viralHours));
+  const filteredUsers = sortedUsers.filter(user => 
     (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
     (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   ).map(user => {
@@ -124,10 +143,6 @@ function LeaderboardContent() {
             result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
           }
           break;
-        case 'role':
-          const roleOrder = { 'Admin': 3, 'Reviewer': 2, 'User': 1 };
-          result = (roleOrder[a.role as keyof typeof roleOrder] || 0) - (roleOrder[b.role as keyof typeof roleOrder] || 0);
-          break;
         case 'name':
           const nameA = (a.name || a.email || '').toLowerCase();
           const nameB = (b.name || b.email || '').toLowerCase();
@@ -140,11 +155,8 @@ function LeaderboardContent() {
           result = (b.projects.filter(project => project.in_review).length || 0) - (a.projects.filter(project => project.in_review).length || 0);
           break;
         default:
-          // Default sorting (original logic)
-          result = b.stats.totalPercentage - a.stats.totalPercentage;
-          if (result === 0) {
-            result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
-          }
+          // sort by most overrided hours
+          result = (b.metrics.shippedHours + b.metrics.viralHours) - (a.metrics.shippedHours + a.metrics.viralHours);
           break;
       }
       
@@ -451,26 +463,7 @@ function LeaderboardContent() {
                 >
                   Progress {sortField === 'progress' && getSortIcon('progress')}
                 </button>
-                <button
-                  onClick={() => handleSort('role')}
-                  className={`px-3 py-1 text-xs rounded-full border ${
-                    sortField === 'role' 
-                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                      : 'bg-gray-100 border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Role {sortField === 'role' && getSortIcon('role')}
-                </button>
-                <button
-                  onClick={() => handleSort('default')}
-                  className={`px-3 py-1 text-xs rounded-full border ${
-                    sortField === 'default' 
-                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                      : 'bg-gray-100 border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Default {sortField === 'default' && getSortIcon('default')}
-                </button>
+                
               </div>
             </div>
             
@@ -507,7 +500,7 @@ function LeaderboardContent() {
                       <div className="grid grid-cols-2 gap-x-2 gap-y-3 mt-3 text-sm">
                         <div>
                           <span className="text-gray-500 block">Progress</span>
-                          {getProgressBadge(user)}
+                          {getProgressBadge(user, user.projects)}
                         </div>
                         <div>
                           <span className="text-gray-500 block"># Shipped</span>
@@ -520,22 +513,6 @@ function LeaderboardContent() {
                           <span className="text-gray-800">
                             {user.projects.filter(project => project.in_review).length}
                           </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 block">Role</span>
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.role === 'Admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : user.role === 'Reviewer'
-                                ? 'bg-indigo-100 text-indigo-800'
-                                : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 block">Category</span>
-                          <UserCategoryDisplay category={user.category} size="small" />
                         </div>
                         <div>
                           <span className="text-gray-500 block">Joined</span>
