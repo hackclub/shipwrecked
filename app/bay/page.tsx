@@ -143,7 +143,7 @@ async function getHackatimeProjects() {
 }
 
 // Import shared calculation functions from lib
-import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/lib/project';
+import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/lib/project-client';
 
 // Re-export for backward compatibility
 export { calculateProgressMetrics, getProjectHackatimeHours };

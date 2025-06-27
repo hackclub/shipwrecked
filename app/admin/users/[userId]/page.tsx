@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
-import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours } from '@/lib/project';
+import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
 
 enum UserStatus {
