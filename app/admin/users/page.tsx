@@ -7,7 +7,7 @@ import { toast, Toaster } from 'sonner';
 import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
 import { ProjectType } from '@/app/api/projects/route';
-import { Tooltip } from 'recharts';
+import SendModal from '@/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -432,6 +432,7 @@ function AdminUsersContent() {
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 truncate">
                               {user.name || 'Unknown'}
+                              <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} userId={user.id} />
                             </div>
                           </div>
                         </div>
@@ -606,6 +607,7 @@ function AdminUsersContent() {
                         <div>
                           <div className="text-base font-medium text-gray-900">
                             {user.name || 'Unknown'}
+                            <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} userId={user.id} />
                           </div>
                           <div className="text-sm text-gray-600">
                             {user.email}
