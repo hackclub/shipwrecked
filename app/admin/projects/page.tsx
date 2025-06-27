@@ -742,10 +742,12 @@ function AdminProjectsContent() {
       </div>
       
       {/* Project Edit Panel - Desktop */}
-      <div className="hidden md:block md:w-1/2 lg:w-2/5 bg-white rounded-lg shadow-lg p-4 h-fit sticky top-4">
+      <div className="hidden md:block md:w-1/2 lg:w-2/5 bg-white rounded-lg shadow-lg px-4 max-h-[calc(100vh-2rem)] sticky top-4 overflow-y-auto">
         {selectedProject ? (
           <form onSubmit={handleFormSubmit} key={selectedProject.projectID}>
-            <h2 className="text-xl font-bold mb-4">Edit {selectedProject.name}</h2>
+            <div className="sticky top-0 bg-white z-10 pt-4 pb-1">
+              <h2 className="text-xl font-bold mb-4">Edit {selectedProject.name}</h2>
+            </div>
             <input type="hidden" name="projectID" value={selectedProject.projectID} />
             
             {/* Project Owner Information */}
