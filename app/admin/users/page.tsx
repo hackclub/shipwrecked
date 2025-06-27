@@ -7,7 +7,7 @@ import { toast, Toaster } from 'sonner';
 import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
 import { ProjectType } from '@/app/api/projects/route';
-import SendModal from '@/components/communication/sendModal';
+import SendModal from '@/app/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';

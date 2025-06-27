@@ -1,5 +1,5 @@
 import Modal from "@/components/common/Modal";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from 'next-auth/react';
 
 interface Message {
