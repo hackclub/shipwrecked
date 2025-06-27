@@ -43,6 +43,15 @@ COPY pipelines /app/pipelines
 # Copy app directory to ensure proper imports
 COPY app /app/app
 
+# Copy lib directory for shared utilities
+COPY lib /app/lib
+
+# Copy tsconfig.json for path mapping
+COPY tsconfig.json /app/tsconfig.json
+
+# Copy metrics.ts for prisma extension
+COPY metrics.ts /app/metrics.ts
+
 # Copy the crontab and entrypoint files
 COPY pipelines/crontab /etc/crontabs/root
 COPY pipelines/entrypoint.sh /entrypoint.sh
