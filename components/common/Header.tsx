@@ -80,6 +80,12 @@ export default function Header({ session, status }: HeaderProps) {
                         Gallery
                     </Link>
                     <Link 
+                        href="/users" 
+                        className={`transition-colors ${isActive('/users') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                    >
+                        Users
+                    </Link>
+                    <Link 
                         href="/faq" 
                         className={`transition-colors ${isActive('/faq') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
                     >
