@@ -399,7 +399,7 @@ function AdminUsersContent() {
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 ">
                               {user.name || 'Unknown'}
-                              <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} />
+                              <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} userId={user.id} />
                             </div>
 
                           </div>
