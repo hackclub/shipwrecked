@@ -276,6 +276,27 @@ export function getProjectHackatimeHours(project: any): number {
   return project?.rawHours || 0;
 }
 
+// Helper to get ONLY approved hours (for clamshell calculation)
+export function getProjectApprovedHours(project: any): number {
+  // Safety check for null/undefined project
+  if (!project) return 0;
+  
+  // If project has hackatimeLinks, calculate total from ONLY approved hours
+  if (project.hackatimeLinks && project.hackatimeLinks.length > 0) {
+    return project.hackatimeLinks.reduce((sum: number, link: any) => {
+      // Only count hoursOverride as approved hours
+      if (link.hoursOverride !== undefined && link.hoursOverride !== null) {
+        return sum + link.hoursOverride;
+      }
+      // No hoursOverride means no approved hours for this link
+      return sum;
+    }, 0);
+  }
+  
+  // Fallback for backward compatibility - use project-level hoursOverride
+  return project?.hoursOverride || 0;
+}
+
 // Centralized function to calculate all progress metrics
 export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
   if (!projects || !Array.isArray(projects)) {
@@ -315,33 +336,39 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
     if (project?.viral === true) {
       viralHours += cappedHours;
     } 
-    // If it's shipped but not viral
-    else if (project?.shipped === true) {
+    // If it's shipped but not viral - only count if it has approved hours
+    else if (project?.shipped === true && getProjectApprovedHours(project) > 0) {
       shippedHours += cappedHours;
     } 
-    // Not shipped and not viral
+    // Not shipped, not viral, or shipped with no approved hours
     else {
       // Cap non-shipped projects at 14.75 hours
       otherHours += Math.min(cappedHours, 14.75);
     }
   });
 
-  // Calculate clamshells from all projects
+  // Calculate clamshells from all projects using ONLY approved hours
   const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
   const top4ProjectIds = new Set(top4Projects.map(({ project }) => project.projectID));
   
   allProjectsWithHours.forEach(({ project, hours }) => {
     rawHours += hours;
     
+    // Only generate clamshells for shipped projects using APPROVED hours only
     if (project?.shipped === true) {
-      if (top4ProjectIds.has(project.projectID)) {
-        // Top 4 projects: clamshells for hours beyond 15 (no cap)
-        if (hours > 15) {
-          currency += (hours - 15) * (phi * 10);
+      const approvedHours = getProjectApprovedHours(project);
+      
+      // Only generate clamshells if there are actually approved hours
+      if (approvedHours > 0) {
+        if (top4ProjectIds.has(project.projectID)) {
+          // Top 4 projects: clamshells for approved hours beyond 15 (no cap)
+          if (approvedHours > 15) {
+            currency += (approvedHours - 15) * (phi * 10);
+          }
+        } else {
+          // All other shipped projects: clamshells for ALL approved hours
+          currency += approvedHours * (phi * 10);
         }
-      } else {
-        // All other shipped projects: clamshells for ALL hours
-        currency += hours * (phi * 10);
       }
     }
   });
