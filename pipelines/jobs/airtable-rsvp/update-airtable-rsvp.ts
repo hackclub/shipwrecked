@@ -5,6 +5,8 @@ import Airtable from 'airtable';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+// Import calculation functions
+import { calculateProgressMetrics, getProjectHackatimeHours } from '@/lib/project';
 
 // Load environment variables
 dotenv.config();
@@ -82,6 +84,35 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
     options: {
       precision: 1 // 1 decimal place
     }
+  },
+  // New progress metric fields
+  { 
+    name: 'hoursToIslandViral', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    }
+  },
+  { 
+    name: 'hoursToIslandShipped', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    }
+  },
+  { 
+    name: 'hoursToIslandUnapproved', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    }
+  },
+  { 
+    name: 'shellHours', 
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place for hours
+    }
   }
 ];
 
@@ -106,7 +137,12 @@ const FIELD_MAPPING: Record<string, string> = {
   fourthProjectApproved: 'fourthProjectApproved',
   userExistsInBay: 'userExistsInBay',
   totalRawHackatimeHours: 'totalRawHackatimeHours',
-  totalApprovedHackatimeHours: 'totalApprovedHackatimeHours'
+  totalApprovedHackatimeHours: 'totalApprovedHackatimeHours',
+  // New progress metric fields
+  hoursToIslandViral: 'hoursToIslandViral',
+  hoursToIslandShipped: 'hoursToIslandShipped',
+  hoursToIslandUnapproved: 'hoursToIslandUnapproved',
+  shellHours: 'shellHours'
 };
 
 // Interface for our metrics data
@@ -131,6 +167,11 @@ interface UserMetrics {
   userExistsInBay: boolean;
   totalRawHackatimeHours: number;
   totalApprovedHackatimeHours: number;
+  // New progress metric fields
+  hoursToIslandViral: number;
+  hoursToIslandShipped: number;
+  hoursToIslandUnapproved: number;
+  shellHours: number;
 }
 
 // Type for Airtable record
@@ -156,6 +197,12 @@ type ProjectInfo = {
   name: string;
   shipped: boolean;
   in_review: boolean;
+  viral?: boolean;
+  description?: string;
+  codeUrl?: string;
+  playableUrl?: string;
+  screenshot?: string;
+  userId?: string;
   hackatimeLinks: {
     id: string;
     hackatimeName: string;
@@ -794,6 +841,46 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
   // Set hasHackatimeAt based on whether user has a hackatimeId
   const hasHackatimeAt = user.hackatimeId ? user.createdAt : null;
   
+  // Calculate progress metrics using the Bay function
+  let progressMetrics;
+  try {
+    // Transform projects to match the Bay ProjectType structure
+    // Create a simplified version just for calculation
+    const transformedProjects = user.projects.map(project => {
+      // Create a minimal project object that matches what calculateProgressMetrics expects
+      const minimalProject = {
+        projectID: project.projectID,
+        name: project.name,
+        description: project.description || '',
+        codeUrl: project.codeUrl || '',
+        playableUrl: project.playableUrl || '',
+        screenshot: project.screenshot || '',
+        submitted: false,
+        userId: project.userId || user.id,
+        viral: project.viral || false,
+        shipped: project.shipped || false,
+        in_review: project.in_review || false,
+        chat_enabled: false,
+        rawHours: 0, // Will be calculated by getProjectHackatimeHours
+        hoursOverride: project.hoursOverride,
+        hackatime: '', // Legacy field
+        hackatimeLinks: project.hackatimeLinks || []
+      };
+      
+      return minimalProject;
+    });
+    
+    progressMetrics = calculateProgressMetrics(transformedProjects);
+  } catch (error) {
+    console.error('Error calculating progress metrics for user:', user.email, error);
+    progressMetrics = {
+      viralHours: 0,
+      shippedHours: 0,
+      otherHours: 0,
+      currency: 0
+    };
+  }
+  
   return {
     email: user.email,
     createdAt: user.createdAt,
@@ -814,7 +901,12 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     fourthProjectApproved: approvedProjects >= 4,
     userExistsInBay: true,
     totalRawHackatimeHours: Math.round(totalHours * 10) / 10, // Round to 1 decimal place
-    totalApprovedHackatimeHours: Math.round(approvedHours * 10) / 10 // Round to 1 decimal place
+    totalApprovedHackatimeHours: Math.round(approvedHours * 10) / 10, // Round to 1 decimal place
+    // New progress metric fields using Bay calculations
+    hoursToIslandViral: Math.round(progressMetrics.viralHours * 10) / 10,
+    hoursToIslandShipped: Math.round(progressMetrics.shippedHours * 10) / 10,
+    hoursToIslandUnapproved: Math.round(progressMetrics.otherHours * 10) / 10,
+    shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10 // Convert clamshells back to hours
   };
 }
 
