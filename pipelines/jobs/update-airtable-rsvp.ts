@@ -70,7 +70,8 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
   { name: 'loggedFirstHourOnFourthProject', type: 'checkbox' },
   { name: 'submittedFourthProject', type: 'checkbox' },
   { name: 'fourthProjectApproved', type: 'checkbox' },
-  { name: 'userExistsInBay', type: 'checkbox' }
+  { name: 'userExistsInBay', type: 'checkbox' },
+  { name: 'userAttemptedIdentity', type: 'checkbox' }
 ];
 
 // Map for our local field names to Airtable field names
@@ -92,7 +93,8 @@ const FIELD_MAPPING: Record<string, string> = {
   loggedFirstHourOnFourthProject: 'loggedFirstHourOnFourthProject',
   submittedFourthProject: 'submittedFourthProject',
   fourthProjectApproved: 'fourthProjectApproved',
-  userExistsInBay: 'userExistsInBay'
+  userExistsInBay: 'userExistsInBay',
+  userAttemptedIdentity: 'userAttemptedIdentity'
 };
 
 // Interface for our metrics data
@@ -115,6 +117,7 @@ interface UserMetrics {
   submittedFourthProject: boolean;
   fourthProjectApproved: boolean;
   userExistsInBay: boolean;
+  userAttemptedIdentity: boolean;
 }
 
 // Type for Airtable record
@@ -725,7 +728,8 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     loggedFirstHourOnFourthProject: false,
     submittedFourthProject: false,
     fourthProjectApproved: false,
-    userExistsInBay: true // All users in the database exist in Bay
+    userExistsInBay: true, // All users in the database exist in Bay
+    userAttemptedIdentity: user.identityToken ? true : false
   };
   
   // Sort projects by project ID as a proxy for creation order

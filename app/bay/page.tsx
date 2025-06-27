@@ -642,9 +642,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       const response = await fetch('/api/identity/me');
       const user = await fetch('/api/users/me');
       const userData = await user.json();
-      if (userData?.identityToken) {
-          const data = await response.json();
-          if (data?.verification_status === 'verified' || data?.verification_status === 'pending') {
+      const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+      if (userData?.identityToken || isAdmin) {
+        const data = await response.json();
+        if (data?.verification_status === 'verified' || data?.verification_status === 'pending' || isAdmin) {
           setShowIdentityPopup(false);
         } else {
           setShowIdentityPopup(true);

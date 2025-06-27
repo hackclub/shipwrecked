@@ -10,6 +10,7 @@
 
 import { PrismaClient } from '../../../app/generated/prisma/client';
 import * as dotenv from 'dotenv';
+import { exponentialFetchRetry } from '../exponentialRetry/exponentialRetry';
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +22,7 @@ const prisma = new PrismaClient({
 
 // Hackatime API base URL and token
 const HACKATIME_API_URL = process.env.HACKATIME_API_URL || 'https://hackatime.hackclub.com/api';
-const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN || 'ODRgbgxPjRBbivBStig1Dg==';
 
 if (!HACKATIME_API_TOKEN) {
   console.error('HACKATIME_API_TOKEN environment variable must be set');
@@ -44,7 +45,7 @@ async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProje
   try {
     const uri = `${HACKATIME_API_URL}/v1/users/${hackatimeId}/stats?features=projects&start_date=2025-04-22`;
     
-    const response = await fetch(uri, {
+    const response = await exponentialFetchRetry(uri, {
       headers: {
         'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
       }

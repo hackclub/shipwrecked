@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
         comment: body.comment,
         projectID: body.projectID,
         reviewerId: reviewerId,
+        reviewType: body.reviewType,
       },
       include: {
         reviewer: {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
     // nah, send the review email from here
     const host = process.env.NEXTAUTH_URL;
     // Still include result text in notifications if provided in the request
-    const resultText = body.result ? `${body.result === 'approve' ? 'Approved' : 'Rejected'}: ` : '';
+    const resultText = body.result ? `${body.result === 'approve' ? 'Approved' : (body.result === 'reject' ? 'Rejected' : 'Commented')}: ` : '';
     const updateContent = `Review Update for ${project.name} just came in! ${resultText}Check it out at https://${host}/bay`;
 
     const date = new Date();

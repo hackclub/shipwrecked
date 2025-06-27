@@ -265,7 +265,12 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               )}
               <span className="text-sm">{project.userName}</span>
             </div>
-            <UserCategoryBadge userId={project.userId} size="small" showMetrics={true} />
+            <UserCategoryBadge 
+              userId={project.userId} 
+              hackatimeId={project.userHackatimeId} 
+              size="small" 
+              showMetrics={true} 
+            />
           </div>
         </div>
         
@@ -381,6 +386,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
             rawHours={project.rawHours}
+            reviewType={project.latestReview?.reviewType || 'Other'}
             hackatimeLinks={project.hackatimeLinks}
           />
         </div>
@@ -686,4 +692,4 @@ export default function ReviewPageWithProvider() {
       <ReviewPage />
     </ReviewModeProvider>
   );
-} 
+}

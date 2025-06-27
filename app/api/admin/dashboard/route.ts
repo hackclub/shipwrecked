@@ -212,6 +212,16 @@ export async function GET() {
     // Get audit log time series data
     const auditLogTimeSeries = await getAuditLogTimeSeries();
 
+    // Count users with identity token
+    const usersWithIdentityToken = await prisma.user.count({
+      where: {
+        identityToken: {
+          not: null
+        }
+      }
+    });
+    const usersWithoutIdentityToken = totalUsers - usersWithIdentityToken;
+
     // Return all stats
     return NextResponse.json({
       totalUsers,
@@ -258,7 +268,15 @@ export async function GET() {
         mean: parseFloat(meanProjectsPerUser.toFixed(2)),
         median: parseFloat(medianProjectsPerUser.toFixed(2))
       },
-      auditLogTimeSeries
+      auditLogTimeSeries,
+      identityTokenStats: {
+        withIdentityToken: usersWithIdentityToken,
+        withoutIdentityToken: usersWithoutIdentityToken,
+        pieData: [
+          { name: 'With Identity Token', value: usersWithIdentityToken },
+          { name: 'Without Identity Token', value: usersWithoutIdentityToken }
+        ]
+      }
     });
   } catch (error) {
     console.error('Error fetching admin dashboard stats:', error);
