@@ -332,15 +332,16 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
   top4Projects.forEach(({ project, hours }) => {
     // Cap hours per project at 15
     let cappedHours = Math.min(hours, 15);
+    const approvedHours = getProjectApprovedHours(project);
     
-    if (project?.viral === true) {
+    if (project?.viral === true && approvedHours > 0) {
       viralHours += cappedHours;
     } 
     // If it's shipped but not viral - only count if it has approved hours
-    else if (project?.shipped === true && getProjectApprovedHours(project) > 0) {
+    else if (project?.shipped === true && approvedHours > 0) {
       shippedHours += cappedHours;
     } 
-    // Not shipped, not viral, or shipped with no approved hours
+    // Not shipped, not viral, or no approved hours
     else {
       // Cap non-shipped projects at 14.75 hours
       otherHours += Math.min(cappedHours, 14.75);

@@ -150,8 +150,12 @@ describe('calculateProgressMetrics', () => {
   });
 
   test('should calculate basic progress for single projects', () => {
-    // Test viral project
-    const viralProject = [createMockProject({ viral: true, rawHours: 10 })];
+    // Test viral project with approved hours
+    const viralProject = [createMockProject({ 
+      viral: true, 
+      rawHours: 10,
+      hackatimeLinks: [{ rawHours: 10, hoursOverride: 10 }] // Has approved hours
+    })];
     const viralResult = calculateProgressMetrics(viralProject);
     assert.equal(viralResult.viralHours, 10);
     assert.equal(viralResult.shippedHours, 0);
@@ -380,7 +384,13 @@ describe('calculateProgressMetrics', () => {
 
   test('should handle mixed project types correctly', () => {
     const projects = [
-      createMockProject({ projectID: '1', shipped: true, viral: true, rawHours: 15 }), // Viral
+      createMockProject({ 
+        projectID: '1', 
+        shipped: true, 
+        viral: true, 
+        rawHours: 15,
+        hackatimeLinks: [{ rawHours: 15, hoursOverride: 15 }] // Has approved hours
+      }), // Viral
       createMockProject({ 
         projectID: '2', 
         shipped: true, 
@@ -520,6 +530,33 @@ describe('calculateProgressMetrics', () => {
     assert.equal(result.totalPercentage, 0);
     assert.equal(result.rawHours, 0);
     assert.equal(result.currency, 0);
+  });
+
+  test('should prioritize viral over shipped when both are true', () => {
+    const projects = [
+      // Project that is BOTH shipped and viral with approved hours - should count as viral
+      createMockProject({ 
+        projectID: '1',
+        shipped: true, 
+        viral: true, 
+        rawHours: 12,
+        hackatimeLinks: [{ rawHours: 12, hoursOverride: 12 }] // Has approved hours
+      }),
+      // Project that is only shipped with approved hours
+      createMockProject({ 
+        projectID: '2',
+        shipped: true, 
+        viral: false, 
+        rawHours: 8,
+        hackatimeLinks: [{ rawHours: 8, hoursOverride: 8 }] // Has approved hours
+      }),
+    ];
+    
+    const result = calculateProgressMetrics(projects);
+    assert.equal(result.viralHours, 12, 'Shipped+viral project should count as viral hours');
+    assert.equal(result.shippedHours, 8, 'Shipped-only project should count as shipped hours');
+    assert.equal(result.otherHours, 0, 'No other hours expected');
+    assert.equal(result.totalHours, 20, 'Total should be viral + shipped = 12 + 8');
   });
 });
 
