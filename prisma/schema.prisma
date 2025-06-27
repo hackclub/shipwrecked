@@ -170,6 +170,7 @@ model Project {
   screenshot  String
   submitted   Boolean @default(false)
   airtableId  String?
+  hasRepoBadge Boolean @default(false)
 
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
