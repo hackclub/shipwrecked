@@ -46,7 +46,7 @@ type SortField = 'progress' | 'role' | 'name' | 'shipped' | 'in_review' | 'defau
 type SortOrder = 'asc' | 'desc';
 
 // Create a wrapper component that uses Suspense
-function AdminUsersContent() {
+function LeaderboardContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -272,7 +272,7 @@ function AdminUsersContent() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Shipwrecked Users</h1>
+        <h1 className="text-2xl font-bold">Shipwrecked Leaderboard</h1>
       </div>
       
       <div className="mb-6">
@@ -622,7 +622,7 @@ export default function Users() {
       <SessionWrapper>
         <Suspense fallback={<div>Loading users...</div>}>
         <div className="min-h-screen flex flex-col p-6">
-          <AdminUsersContent />
+          <LeaderboardContent />
         </div>
       </Suspense>
       </SessionWrapper>
