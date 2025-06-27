@@ -12,6 +12,7 @@ import { Icon } from '@hack-club/icons';
 import AddLinkModal from '@/components/admin/AddLinkModal';
 import UnlinkModal from '@/components/admin/UnlinkModal';
 import DeleteModal from '@/components/admin/DeleteModal';
+import SendModal from '@/app/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -678,6 +679,7 @@ function AdminProjectsContent() {
                       <p className="text-gray-600 text-xs line-clamp-1 mb-1">{project.description}</p>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center">
+
                           {project.user.image ? (
                             <img 
                               src={project.user.image} 
@@ -691,9 +693,11 @@ function AdminProjectsContent() {
                               </span>
                             </div>
                           )}
+
                           <span className="text-xs text-gray-600 truncate max-w-[80px]">
                             {project.user.name || 'User'}
                           </span>
+                          <SendModal name={project.user.name || 'Unknown'} email={project.user.email || 'Unknown'} userId={project.userId} />
                           {project.reviews.length > 0 && (
                             <span className="ml-1 text-xs bg-blue-50 text-blue-600 px-1 py-0.5 rounded">
                               {project.reviews.length}
@@ -762,6 +766,7 @@ function AdminProjectsContent() {
                       </span>
                     </div>
                   )}
+                  
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       {selectedProject.user.name || 'Unknown User'}
