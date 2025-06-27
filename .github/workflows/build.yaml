@@ -71,5 +71,6 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           REDIS_URL: ${{ secrets.REDIS_URL }}
           GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
+          LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
           MOCK_API: true
         run: yarn build
