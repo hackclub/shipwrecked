@@ -91,7 +91,7 @@ function LeaderboardContent() {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(u => u.status !== UserStatus.FraudSuspect).filter(user => 
     (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
     (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   ).map(user => {
