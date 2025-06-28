@@ -435,7 +435,7 @@ function ReviewPage() {
     }
     if (activeFilter) {
       setFilteredProjects(projects.filter(project => 
-        project.latestReview?.reviewType === activeFilter &&
+        (project.latestReview?.reviewType || 'Other') === activeFilter &&
         project.user.status !== UserStatus.FraudSuspect &&
         (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
