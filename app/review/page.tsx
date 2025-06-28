@@ -662,7 +662,7 @@ function ReviewPage() {
                         {selectedProject.latestReview?.reviewType == 'ShippedApproval' && <MDXShippedApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'ViralApproval' && <MDXViralApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXShipUpdateApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'Other' && <MDXOther components={components} />}
+                        {(selectedProject.latestReview?.reviewType || 'Other') == 'Other' && <MDXOther components={components} />}
                       </Suspense>
                     </div>
                   </div>
