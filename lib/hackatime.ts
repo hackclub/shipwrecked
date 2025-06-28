@@ -7,11 +7,13 @@ if (!process.env.HACKATIME_API_TOKEN) {
 }
 
 const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 async function makeHackatimeRequest(uri: string) {
   const response = await fetch(uri, {
     headers: {
-      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
+      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+      'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
     }
   });
   return response;
