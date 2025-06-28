@@ -435,7 +435,7 @@ function ReviewPage() {
     }
     if (activeFilter) {
       setFilteredProjects(projects.filter(project => 
-        project.latestReview?.reviewType === activeFilter &&
+        (project.latestReview?.reviewType || 'Other') === activeFilter &&
         project.user.status !== UserStatus.FraudSuspect &&
         (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -662,7 +662,7 @@ function ReviewPage() {
                         {selectedProject.latestReview?.reviewType == 'ShippedApproval' && <MDXShippedApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'ViralApproval' && <MDXViralApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXShipUpdateApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'Other' && <MDXOther components={components} />}
+                        {(selectedProject.latestReview?.reviewType || 'Other') == 'Other' && <MDXOther components={components} />}
                       </Suspense>
                     </div>
                   </div>
