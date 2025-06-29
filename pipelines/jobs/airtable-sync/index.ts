@@ -1,7 +1,6 @@
 import Airtable, { FieldSet } from "airtable";
 import { prisma } from "../../pipeline-prisma";
 import * as dotenv from 'dotenv';
-import { exponentialFetchRetry } from "../exponentialRetry/exponentialRetry";
 
 export async function syncAirtable() {
   dotenv.config();
@@ -30,9 +29,9 @@ export async function syncAirtable() {
   });
 
   const airtable = new Airtable({
-    apiKey: process.env.AIRTABLE_API_KEY,
+    apiKey: process.env.UNIFIED_AIRTABLE_API_KEY,
   });
-  const base = airtable.base(process.env.AIRTABLE_BASE_ID || "");
+  const base = airtable.base(process.env.UNIFIED_AIRTABLE_BASE_ID || "");
   const table = base("Approved Projects");
   for (const project of projects) {
     try {
@@ -41,7 +40,7 @@ export async function syncAirtable() {
           id: project.userId,
         },
       });
-      const response = await exponentialFetchRetry(
+      const response = await fetch(
         `${process.env.IDENTITY_URL}/api/v1/me`,
         {
           method: "GET",
