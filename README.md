@@ -1,3 +1,5 @@
+[![This project is part of Shipwrecked, the world's first hackathon on an island!](https://hc-cdn.hel1.your-objectstorage.com/s/v3/f5ceb98c004e4bebd5753fcbc435e85dda684b65_banner.png)](shipwrecked.hackclub.com)
+
 # Shipwrecked
 
 Shipwrecked is a once-in-a-lifetime, four-day flagship hackathon organized by Hack Club, a 501(c)(3) nonprofit that supports a global community of over 50,000 high school makers. The event takes place on Cathleen Stone Island in the Boston Harbor, where 130 hackers will gather for a unique story-based hackathon experience.
