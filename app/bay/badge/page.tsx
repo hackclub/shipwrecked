@@ -49,13 +49,7 @@ export default function BadgeGenerator() {
       }
     }
 
-    const badgeCode = `<div align="center">
-  <a href="${targetLink}" target="_blank">
-    <img src="${BADGE_IMAGE_URL}" 
-         alt="This project is part of Shipwrecked, the world's first hackathon on an island!" 
-         style="width: 35%;">
-  </a>
-</div>`;
+    const badgeCode = `<div align="center"><a href="${targetLink}" target="_blank"><img src="${BADGE_IMAGE_URL}" alt="This project is part of Shipwrecked, the world's first hackathon on an island!" style="width: 35%;"></a></div>`;
 
     setGeneratedBadge(badgeCode);
   };
