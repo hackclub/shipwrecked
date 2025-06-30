@@ -1,7 +1,7 @@
 <a href="https://shipwrecked.hackclub.com" target="_blank">
   <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/f5ceb98c004e4bebd5753fcbc435e85dda684b65_banner.png" 
        alt="This project is part of Shipwrecked, the world's first hackathon on an island!" 
-       style="width: 20%;">
+       style="width: 35%;">
 </a>
 
 # Shipwrecked
