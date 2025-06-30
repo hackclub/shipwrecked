@@ -1,4 +1,4 @@
-[![This project is part of Shipwrecked, the world's first hackathon on an island!](https://hc-cdn.hel1.your-objectstorage.com/s/v3/f5ceb98c004e4bebd5753fcbc435e85dda684b65_banner.png)](shipwrecked.hackclub.com)
+[![This project is part of Shipwrecked, the world's first hackathon on an island!](https://hc-cdn.hel1.your-objectstorage.com/s/v3/f5ceb98c004e4bebd5753fcbc435e85dda684b65_banner.png)](https://shipwrecked.hackclub.com)
 
 # Shipwrecked
 
