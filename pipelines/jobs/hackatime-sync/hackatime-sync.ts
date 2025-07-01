@@ -137,8 +137,8 @@ async function main(): Promise<void> {
             const hackatimeProject = hackatimeProjects.find(hp => hp.name === link.hackatimeName);
             
             if (hackatimeProject) {
-              // Calculate precise hours from total_seconds instead of using the potentially rounded hours field
-              const hours = hackatimeProject.total_seconds / 3600; // Convert seconds to hours with decimal precision
+              // Calculate precise hours from total_seconds and round to 2 decimal places for aesthetics
+              const hours = Math.round((hackatimeProject.total_seconds / 3600) * 100) / 100;
               
               // Only update if hours are different to avoid unnecessary database writes
               if (link.rawHours !== hours) {
