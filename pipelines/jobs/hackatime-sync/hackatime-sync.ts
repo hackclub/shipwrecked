@@ -31,7 +31,8 @@ if (!HACKATIME_API_TOKEN) {
 
 interface HackatimeProject {
   name: string;
-  hours: number;
+  total_seconds: number;
+  hours: number; // Keep for backward compatibility, but we'll use total_seconds for precision
 }
 
 interface UpdatedLink {
@@ -136,8 +137,8 @@ async function main(): Promise<void> {
             const hackatimeProject = hackatimeProjects.find(hp => hp.name === link.hackatimeName);
             
             if (hackatimeProject) {
-              // Get hours from the hackatime project
-              const hours = hackatimeProject.hours || 0;
+              // Calculate precise hours from total_seconds instead of using the potentially rounded hours field
+              const hours = hackatimeProject.total_seconds / 3600; // Convert seconds to hours with decimal precision
               
               // Only update if hours are different to avoid unnecessary database writes
               if (link.rawHours !== hours) {

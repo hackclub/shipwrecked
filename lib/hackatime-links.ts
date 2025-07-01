@@ -256,11 +256,14 @@ export async function syncHackatimeProjectHours(projectID: string) {
       const hackatimeProject = hackatimeProjects.find(hp => hp.name === link.hackatimeName);
       
       if (hackatimeProject) {
+        // Calculate precise hours from total_seconds instead of using the potentially rounded hours field
+        const preciseHours = hackatimeProject.total_seconds / 3600; // Convert seconds to hours with decimal precision
+        
         // Keep the existing hoursOverride, just update rawHours
         await prisma.hackatimeProjectLink.update({
           where: { id: link.id },
           data: { 
-            rawHours: hackatimeProject.hours || 0,
+            rawHours: preciseHours,
             // Don't modify the existing hoursOverride
             hoursOverride: link.hoursOverride 
           }

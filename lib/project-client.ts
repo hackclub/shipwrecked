@@ -139,7 +139,7 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
     otherHours,
     totalHours,
     totalPercentage,
-    rawHours: Math.round(rawHours),
+    rawHours: rawHours,
     currency: Math.floor(currency)
   };
 } 
