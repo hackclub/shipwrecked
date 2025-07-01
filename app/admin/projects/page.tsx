@@ -12,6 +12,7 @@ import { Icon } from '@hack-club/icons';
 import AddLinkModal from '@/components/admin/AddLinkModal';
 import UnlinkModal from '@/components/admin/UnlinkModal';
 import DeleteModal from '@/components/admin/DeleteModal';
+import SendModal from '@/app/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -678,6 +679,7 @@ function AdminProjectsContent() {
                       <p className="text-gray-600 text-xs line-clamp-1 mb-1">{project.description}</p>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center">
+
                           {project.user.image ? (
                             <img 
                               src={project.user.image} 
@@ -691,9 +693,11 @@ function AdminProjectsContent() {
                               </span>
                             </div>
                           )}
+
                           <span className="text-xs text-gray-600 truncate max-w-[80px]">
                             {project.user.name || 'User'}
                           </span>
+                          <SendModal name={project.user.name || 'Unknown'} email={project.user.email || 'Unknown'} userId={project.userId} />
                           {project.reviews.length > 0 && (
                             <span className="ml-1 text-xs bg-blue-50 text-blue-600 px-1 py-0.5 rounded">
                               {project.reviews.length}
@@ -738,10 +742,12 @@ function AdminProjectsContent() {
       </div>
       
       {/* Project Edit Panel - Desktop */}
-      <div className="hidden md:block md:w-1/2 lg:w-2/5 bg-white rounded-lg shadow-lg p-4 h-fit sticky top-4">
+      <div className="hidden md:block md:w-1/2 lg:w-2/5 bg-white rounded-lg shadow-lg px-4 max-h-[calc(100vh-2rem)] sticky top-4 overflow-y-auto">
         {selectedProject ? (
           <form onSubmit={handleFormSubmit} key={selectedProject.projectID}>
-            <h2 className="text-xl font-bold mb-4">Edit {selectedProject.name}</h2>
+            <div className="sticky top-0 bg-white z-10 pt-4 pb-1">
+              <h2 className="text-xl font-bold mb-4">Edit {selectedProject.name}</h2>
+            </div>
             <input type="hidden" name="projectID" value={selectedProject.projectID} />
             
             {/* Project Owner Information */}
@@ -762,6 +768,7 @@ function AdminProjectsContent() {
                       </span>
                     </div>
                   )}
+                  
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       {selectedProject.user.name || 'Unknown User'}

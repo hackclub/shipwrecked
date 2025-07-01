@@ -7,11 +7,13 @@ if (!process.env.HACKATIME_API_TOKEN) {
 }
 
 const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 async function makeHackatimeRequest(uri: string) {
   const response = await fetch(uri, {
     headers: {
-      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
+      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+      'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
     }
   });
   return response;
@@ -87,7 +89,11 @@ export async function lookupHackatimeIdByEmail(email: string): Promise<string | 
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_email/${encodeURIComponent(email)}`;
   
   try {
-    const response = await makeHackatimeRequest(uri);
+    const response = await fetch(uri, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OLD_HACKATIME_API_KEY}`
+      }
+    });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
     
     if (response.status === 404) {
@@ -118,7 +124,11 @@ export async function lookupHackatimeIdBySlack(slackId: string): Promise<string 
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_slack_uid/${slackId}`;
   
   try {
-    const response = await makeHackatimeRequest(uri);
+    const response = await fetch(uri, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OLD_HACKATIME_API_KEY}`
+      }
+    });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
     
     if (response.status === 404) {

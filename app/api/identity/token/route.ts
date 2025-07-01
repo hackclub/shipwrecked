@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log("token identity data", data);
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : error }, { status: 500 });

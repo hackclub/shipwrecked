@@ -359,6 +359,7 @@ export default function Header({ session, status }: HeaderProps) {
                     >
                       Users
                     </Link>
+
                     <Link
                       href="/admin/projects"
                       className={`block text-sm transition-colors pl-2 py-1 ${
@@ -368,6 +369,17 @@ export default function Header({ session, status }: HeaderProps) {
                           : "text-gray-700 hover:text-[#47D1F6] border-l-2 border-transparent"
                       }`}
                       onClick={() => setMobileMenuOpen(false)}
+
+                    <Link 
+                        href="/leaderboard" 
+                        className={`transition-colors ${isActive('/leaderboard') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                    >
+                        Leaderboard
+                    </Link>
+                    <Link 
+                        href="/faq" 
+                        className={`transition-colors ${isActive('/faq') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+
                     >
                       Projects
                     </Link>

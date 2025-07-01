@@ -142,123 +142,12 @@ async function getHackatimeProjects() {
   }
 }
 
-// Helper to get project hours with our matching logic
-export function getProjectHackatimeHours(project: ProjectType): number {
-  // Safety check for null/undefined project
-  if (!project) return 0;
-  
-  // If project has hackatimeLinks, calculate total from all links
-  if (project.hackatimeLinks && project.hackatimeLinks.length > 0) {
-    return project.hackatimeLinks.reduce((sum, link) => {
-      // Use the link's hoursOverride if it exists, otherwise use rawHours
-      const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
-        ? link.hoursOverride
-        : (typeof link.rawHours === 'number' ? link.rawHours : 0);
-      
-      return sum + effectiveHours;
-    }, 0);
-  }
-  
-  // Fallback for backward compatibility - use project-level rawHours
-  return project?.rawHours || 0;
-}
+// Import shared calculation functions from lib
+import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/lib/project-client';
 
-export interface ProgressMetrics {
-	shippedHours: number,
-	viralHours: number,
-	otherHours: number,
-	totalHours: number,
-	totalPercentage: number,
-	rawHours: number,
-	currency: number,
-}
-
-// Centralized function to calculate all progress metrics
-export function calculateProgressMetrics(projects: ProjectType[]): ProgressMetrics {
-  if (!projects || !Array.isArray(projects)) {
-    return {
-      shippedHours: 0,
-      viralHours: 0,
-      otherHours: 0,
-      totalHours: 0,
-      totalPercentage: 0,
-      rawHours: 0,
-      currency: 0
-    };
-  }
-
-  let shippedHours = 0;
-  let viralHours = 0;
-  let otherHours = 0;
-  let rawHours = 0;
-  let currency = 0;
-
-  // Get all projects sorted by hours for both calculations
-  const allProjectsWithHours = projects
-    .map(project => ({
-      project,
-      hours: getProjectHackatimeHours(project)
-    }))
-    .sort((a, b) => b.hours - a.hours);
-
-  // Get top 4 projects for island percentage calculation
-  const top4Projects = allProjectsWithHours.slice(0, 4);
-  
-  // Calculate island percentage from only top 4 projects
-  top4Projects.forEach(({ project, hours }) => {
-    // Cap hours per project at 15
-    let cappedHours = Math.min(hours, 15);
-    
-    if (project?.viral === true) {
-      viralHours += cappedHours;
-    } 
-    // If it's shipped but not viral
-    else if (project?.shipped === true) {
-      shippedHours += cappedHours;
-    } 
-    // Not shipped and not viral
-    else {
-      // Cap non-shipped projects at 14.75 hours
-      otherHours += Math.min(cappedHours, 14.75);
-    }
-  });
-
-  // Calculate clamshells from all projects
-  const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
-  const top4ProjectIds = new Set(top4Projects.map(({ project }) => project.projectID));
-  
-  allProjectsWithHours.forEach(({ project, hours }) => {
-    rawHours += hours;
-    
-    if (project?.shipped === true) {
-      if (top4ProjectIds.has(project.projectID)) {
-        // Top 4 projects: clamshells for hours beyond 15 (no cap)
-        if (hours > 15) {
-          currency += (hours - 15) * (phi * 10);
-        }
-      } else {
-        // All other shipped projects: clamshells for ALL hours
-        currency += hours * (phi * 10);
-      }
-    }
-  });
-
-  // Calculate total hours (capped at 60 for percentages)
-  const totalHours = Math.min(shippedHours + viralHours + otherHours, 60);
-  
-  // Total progress percentage (capped at 100%)
-  const totalPercentage = Math.min((totalHours / 60) * 100, 100);
-
-  return {
-    shippedHours,
-    viralHours,
-    otherHours,
-    totalHours,
-    totalPercentage,
-    rawHours: Math.round(rawHours),
-    currency: Math.floor(currency)
-  };
-}
+// Re-export for backward compatibility
+export { calculateProgressMetrics, getProjectHackatimeHours };
+export type { ProgressMetrics };
 
 // Project Detail Component
 function ProjectDetail({ 
@@ -640,9 +529,16 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   useEffect(() => {
     const getIdentity = async () => {
       const response = await fetch('/api/identity/me');
-      const data = await response.json();
-      if (data?.verification_status === 'verified' || data?.verification_status === 'pending') {
-        setShowIdentityPopup(false);
+      const user = await fetch('/api/users/me');
+      const userData = await user.json();
+      const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+      if (userData?.identityToken || isAdmin) {
+        const data = await response.json();
+        if (data?.verification_status === 'verified' || data?.verification_status === 'pending' || isAdmin) {
+          setShowIdentityPopup(false);
+        } else {
+          setShowIdentityPopup(true);
+        } 
       } else {
         setShowIdentityPopup(true);
       }

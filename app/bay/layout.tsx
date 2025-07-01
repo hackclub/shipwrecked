@@ -13,7 +13,7 @@ export default function BayLayout({ children }: any) {
     </>
 }
 
-function SessionWrapper({ children }: any) {
+export function SessionWrapper({ children }: any) {
     const { data: session, status } = useSession();
     
     // Only show header when authenticated

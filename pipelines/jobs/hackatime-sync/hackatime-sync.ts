@@ -10,6 +10,7 @@
 
 import { PrismaClient } from '../../../app/generated/prisma/client';
 import * as dotenv from 'dotenv';
+import { exponentialFetchRetry } from '../exponentialRetry/exponentialRetry';
 
 // Load environment variables
 dotenv.config();
@@ -44,9 +45,10 @@ async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProje
   try {
     const uri = `${HACKATIME_API_URL}/v1/users/${hackatimeId}/stats?features=projects&start_date=2025-04-22`;
     
-    const response = await fetch(uri, {
+    const response = await exponentialFetchRetry(uri, {
       headers: {
-        'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
+        'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': `${HACKATIME_API_TOKEN}`
       }
     });
     

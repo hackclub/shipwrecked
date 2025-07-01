@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../app/generated/prisma"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -98,6 +99,11 @@ model User {
 
   // Chat messages sent by this user  
   chatMessages ChatMessage[]
+
+  // Action messages sent by this user
+  actionMessagesSent ActionMessage[] @relation("sender")
+  // Action messages received by this user
+  actionMessagesReceived ActionMessage[] @relation("recipient")
 }
 
 model Account {
@@ -164,6 +170,8 @@ model Project {
   playableUrl String
   screenshot  String
   submitted   Boolean @default(false)
+  airtableId  String?
+  hasRepoBadge Boolean @default(false)
 
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
@@ -314,4 +322,20 @@ model ChatMessage {
   @@index([roomId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model ActionMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to user who sent the message
+  userId String
+  user   User   @relation("sender", fields: [userId], references: [id], onDelete: Cascade)
+  receipientId String
+  receipient   User   @relation("recipient", fields: [receipientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([receipientId])
 }
