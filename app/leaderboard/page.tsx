@@ -396,8 +396,13 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 flex items-center gap-4">
                               {user.name || 'Unknown'}
+                              {user.stats?.totalPercentage === 100 && (
+                                <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                                  <span>Invited</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -491,8 +496,13 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                           </div>
                         )}
                         <div>
-                          <div className="text-base font-medium text-gray-900">
+                          <div className="text-base font-medium text-gray-900 flex items-center gap-1">
                             {user.name || 'Unknown'}
+                            {user.stats?.totalPercentage === 100 && (
+                                <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                                  <span>Invited</span>
+                                </div>
+                              )}
                           </div>
                         </div>
                       </div>
