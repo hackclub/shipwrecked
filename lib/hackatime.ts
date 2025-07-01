@@ -47,7 +47,8 @@ export async function fetchHackatimeProjects(
     console.log(`📊 Hours for projects:`, data.data.projects.map(p => ({ 
       name: p.name, 
       hours: p.hours, 
-      total_seconds: p.total_seconds
+      total_seconds: p.total_seconds,
+      precise_hours: p.total_seconds / 3600 // Show the precise calculation
     })));
 
     metrics.increment("success.fetch_hackatime", 1);
