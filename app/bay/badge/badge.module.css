@@ -1,0 +1,215 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 2rem;
+  background: #f5f5f5;
+}
+
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.progressSection {
+  margin-bottom: 2rem;
+  padding-top: 0.5rem;
+  padding-bottom: 2rem;
+  background-color: #f5f5f5;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  margin-top: 0.625rem;
+}
+
+@media (min-width: 768px) {
+  .title {
+    margin-top: 0.25rem;
+  }
+}
+
+.description {
+  font-size: 1.1rem;
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.badgeSection {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  background: white;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .badgeSection {
+    padding: 2rem;
+  }
+}
+
+.preview {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.preview:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.previewContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.previewContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+}
+
+.codeBlock {
+  position: relative;
+  background: #1f2937;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.code {
+  color: #f3f4f6;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 1rem;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@media (min-width: 640px) {
+  .code {
+    padding: 1.5rem;
+  }
+}
+
+.copyButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copyButton:hover {
+  background: #2563eb;
+}
+
+.copyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.loading p {
+  font-size: 1.5rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 767px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: #f5f5f5;
+  }
+  
+  .content {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .progressSection {
+    margin-bottom: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 1.5rem;
+    background-color: #f5f5f5;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .description {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .badgeSection {
+    margin: 0 1rem;
+    padding: 1rem;
+  }
+  
+  .preview {
+    padding: 1.5rem;
+  }
+  
+  .code {
+    font-size: 0.8rem;
+    padding: 1rem;
+  }
+  
+  .copyButton {
+    position: static;
+    width: 100%;
+    margin-top: 1rem;
+  }
+  
+  .codeBlock {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .description {
+    font-size: 0.9rem;
+  }
+  
+  .badgeSection {
+    margin: 0 0.5rem;
+    padding: 0.75rem;
+  }
+}

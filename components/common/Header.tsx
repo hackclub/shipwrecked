@@ -74,6 +74,12 @@ export default function Header({ session, status }: HeaderProps) {
                         My Projects
                     </Link>
                     <Link 
+                        href="/bay/badge" 
+                        className={`transition-colors ${isActive('/bay/badge') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                    >
+                        Badge
+                    </Link>
+                    <Link 
                         href="/gallery" 
                         className={`transition-colors ${isActive('/gallery') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
                     >
@@ -192,6 +198,13 @@ export default function Header({ session, status }: HeaderProps) {
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 My Projects
+                            </Link>
+                            <Link 
+                                href="/bay/badge" 
+                                className={`block transition-colors ${isActive('/bay/badge') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Badge
                             </Link>
                             <Link 
                                 href="/gallery" 
