@@ -58,8 +58,14 @@ export async function syncAirtable() {
         (acc, project) => acc + (project?.hoursOverride || 0),
         0,
       );
-      let identityInfoJson = await response.json();
-      identityInfoJson = identityInfoJson.identity;
+      let identityInfoJson;
+      try {
+        identityInfoJson = await response.json();
+        identityInfoJson = identityInfoJson.identity;
+      } catch (error) {
+        console.error(`Failed to parse identity response for user ${user?.name}:`, error);
+        continue;
+      }
 
       // if identity is verified, set status to L1 in postgres
       if (
@@ -137,12 +143,16 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
 
       if (project.airtableId) {
         // Update existing record
-        await table.update([
-          {
-            id: project.airtableId,
-            fields,
-          },
-        ]);
+        try {
+          await table.update([
+            {
+              id: project.airtableId,
+              fields,
+            },
+          ]);
+        } catch (error) {
+          console.error(`Failed to update Airtable record for project ${project.name}:`, error);
+        }
       } else {
         // Create new/update record
         await table.create(
@@ -151,22 +161,26 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
               fields,
             },
           ],
-          function (err: Error | null, records: any) {
+          async function (err: Error | null, records: any) {
             if (err) {
               console.error(err);
               return;
             }
-            records.forEach(async function (record: any) {
-              await prisma.project.update({
-                where: {
-                  projectID: project.projectID,
-                },
-                data: {
-                  airtableId: record.getId(),
-                },
-              });
-              console.log(`created Airtable record ${record.getId()}, project name: ${project?.name}`)
-            });
+            for (const record of records) {
+              try {
+                await prisma.project.update({
+                  where: {
+                    projectID: project.projectID,
+                  },
+                  data: {
+                    airtableId: record.getId(),
+                  },
+                });
+                console.log(`created Airtable record ${record.getId()}, project name: ${project?.name}`)
+              } catch (error) {
+                console.error(`Failed to update project with Airtable ID for project ${project.name}:`, error);
+              }
+            }
           },
         );
       }
@@ -187,5 +201,30 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
         console.log(`destroying Airtable record ${record.getId()}, project name: ${project?.name}`)
     }
   }
+  for (const record of records) {
+    const project = await prisma.project.findFirst({
+      where: {
+        airtableId: record.getId(),
+      },
+    });
+    if (!project) {
+      try {
+        await record.destroy()
+        console.log(`destroying Airtable record ${record.getId()}`)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
 }
-syncAirtable()
+
+async function main() {
+  try {
+    await syncAirtable();
+  } catch (error) {
+    console.error('Fatal error in syncAirtable:', error);
+    process.exit(1);
+  }
+}
+
+main();
