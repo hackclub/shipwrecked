@@ -92,7 +92,8 @@ export async function lookupHackatimeIdByEmail(email: string): Promise<string | 
   try {
     const response = await fetch(uri, {
       headers: {
-        'Authorization': `Bearer ${process.env.OLD_HACKATIME_API_KEY}`
+        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
       }
     });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
@@ -127,7 +128,8 @@ export async function lookupHackatimeIdBySlack(slackId: string): Promise<string 
   try {
     const response = await fetch(uri, {
       headers: {
-        'Authorization': `Bearer ${process.env.OLD_HACKATIME_API_KEY}`
+        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
       }
     });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
