@@ -266,7 +266,7 @@ function ProjectDetail({
   // console.log(`ProjectDetail rendering: ${project.name}, hours=${projectHours}, viral=${project.viral}, shipped=${project.shipped}`);
   
   return (
-    <div className={`${styles.editForm}`}>
+    <div className={`${styles.editForm} max-h-screen overflow-y-auto`}>
       <div className="flex justify-between items-center mb-5 border-b pb-3 sticky top-0 bg-white z-10">
         <h2 className="text-2xl font-bold">{project.name}</h2>
         {isEditingAllowed ? (
