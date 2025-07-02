@@ -3,11 +3,14 @@ import process from "process";
 
 const githubRepoPattern = new RegExp("https://github\.com/(.*)/(.*)")
 
-// Rate Limit Prevention and Recovery
-const MAX_REQUESTS_PER_HOUR = Number(process.env.MAX_REQUESTS_PER_HOUR) ?? 60;
-const BADGE = process.env.BADGE ?? "testbadgestring";
-
-let hourQuota: number = MAX_REQUESTS_PER_HOUR;
+const BADGE = 
+`<div align="center">
+  <a href="https://shipwrecked.hackclub.com/?t=ghrm" target="_blank">
+    <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/739361f1d440b17fc9e2f74e49fc185d86cbec14_badge.png" 
+         alt="This project is part of Shipwrecked, the world's first hackathon on an island!" 
+         style="width: 35%;">
+  </a>
+</div>`;
 
 const parseGithubRepo = (repo: string): string[] => {
   const data = repo.match(githubRepoPattern)!
@@ -15,10 +18,17 @@ const parseGithubRepo = (repo: string): string[] => {
 }
 
 const getGithubReadme = async (repo: string, owner: string): Promise<string> => {
-  hourQuota -= 1;
-
-  let requst = await fetch(`https://api.github.com/repos/${repo}/${owner}/readme`).then(d => d.json())
-  let encodedData = requst.content
+  const request = await fetch(`https://api.github.com/repos/${repo}/${owner}/readme`, {
+    headers: {
+      "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`
+    }
+  })
+  if (request.status !== 200) { 
+    console.log(`${repo} not found, skipping...`)
+    return ""
+  }
+  const data = await request.json()
+  const encodedData = data.content
   return Buffer.from(encodedData, "base64").toString()
 }
 
@@ -26,48 +36,84 @@ const verifyBadge = (readme: string, badge: string) => {
   return readme.includes(badge)
 }
 
-const fetchProject = async () => {
-  const project = await prisma.project.findFirst({
+const fetchProjectsBatch = async () => {
+  const projects = await prisma.project.findMany({
     where: {
       hasRepoBadge: false,
+      codeUrl: {
+        not: ""
+      }
     }
   })
 
-  return project
+  console.log("Found", projects.length, "projects to verify")
+
+  return projects
 }
 
-const refreshRatelimit = async () => {
-  hourQuota = MAX_REQUESTS_PER_HOUR;
-  await loop()
-}
+const processBatch = async () => {
+  console.log("Starting Badge Verification batch...")
+  
+  const projects = await fetchProjectsBatch()
+  
+  if (projects.length === 0) {
+    console.log("All valid projects checked")
+    return
+  }
 
-const loop = async () => {
-  // If no request quota, wait for an hour and try again
-  if (hourQuota <= 0) return setTimeout(refreshRatelimit, 3600000)
+  console.log(`Processing ${projects.length} projects...`)
+  
+  let processedCount = 0
+  let verifiedCount = 0
 
-  const project = await fetchProject()
-  if (project == null) return console.log("All valid projects checked")
+  for (const project of projects) {
+    try {
+      const repo = project.codeUrl
+      
+      if (!repo.startsWith("https://github.com") || !repo.includes("github.com")) {
+        console.warn(`${repo} is not a github project, skipping...`)
+        continue
+      }
 
-  const repo = project.codeUrl
-  if (!repo.startsWith("https://github.com")) console.warn(`${repo} is not a github project, skipping...`)
+      const parsed = parseGithubRepo(repo)
+      const readme = await getGithubReadme(parsed[0], parsed[1])
+      const valid = verifyBadge(readme, BADGE)
 
-  const parsed = parseGithubRepo(repo)
-  const readme = await getGithubReadme(parsed[0], parsed[1])
-  const valid = verifyBadge(readme, BADGE)
+      if (!valid) {
+        continue
+      }
 
-  if (!valid) return console.log(`${repo} does not have a badge, continuing...`);
+      await prisma.project.update({
+        where: {
+          projectID: project.projectID
+        },
+        data: {
+          hasRepoBadge: true
+        }
+      })
 
-  await prisma.project.update({
-    where: {
-      projectID: project.projectID
-    },
-    data: {
-      hasRepoBadge: true
+      console.log(`Verified ${repo} Badge!`)
+      verifiedCount++
+      
+    } catch (error) {
+      console.error(`Error processing project ${project.name}:`, error)
     }
-  })
+    
+    processedCount++
+    
+    // Add a small delay to be respectful to GitHub's API
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
 
-  console.log(`Verified ${repo} Badge!`)
+  console.log(`Badge verification batch complete. Processed: ${processedCount}, Verified: ${verifiedCount}`)
 }
 
-console.log("Starting Badge Verification...")
-loop()
+// Main execution
+processBatch()
+  .catch((error) => {
+    console.error("Badge verification failed:", error)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
