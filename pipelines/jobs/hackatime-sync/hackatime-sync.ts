@@ -23,6 +23,7 @@ const prisma = new PrismaClient({
 // Hackatime API base URL and token
 const HACKATIME_API_URL = process.env.HACKATIME_API_URL || 'https://hackatime.hackclub.com/api';
 const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 if (!HACKATIME_API_TOKEN) {
   console.error('HACKATIME_API_TOKEN environment variable must be set');
@@ -49,7 +50,7 @@ async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProje
     const response = await exponentialFetchRetry(uri, {
       headers: {
         'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
-        'Rack-Attack-Bypass': `${HACKATIME_API_TOKEN}`
+        'Rack-Attack-Bypass': `${HACKATIME_RACK_ATTACK_BYPASS_TOKEN}`
       }
     });
     
