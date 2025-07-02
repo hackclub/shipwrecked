@@ -901,7 +901,7 @@ function AdminProjectsContent() {
                           className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                           placeholder="e.g. 10.5"
                           defaultValue={link.hoursOverride?.toString() || ''}
-                          step="0.1"
+                          step="0.01"
                         />
                         <span className="ml-2 text-xs text-gray-500">hours</span>
                       </div>
@@ -1130,7 +1130,7 @@ function AdminProjectsContent() {
                             className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                             placeholder="e.g. 10.5"
                             defaultValue={link.hoursOverride?.toString() || ''}
-                            step="0.1"
+                            step="0.01"
                           />
                           <span className="ml-2 text-xs text-gray-500">hours</span>
                         </div>
