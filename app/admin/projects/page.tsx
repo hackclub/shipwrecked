@@ -1277,7 +1277,7 @@ function AdminProjectsContent() {
               >
                 Cancel
               </button>
-              <button
+              {/* <button
                 onClick={handleDeleteProject}
                 className={`px-4 py-2 text-white rounded ${
                   confirmProjectName === projectToDelete?.name
@@ -1287,7 +1287,7 @@ function AdminProjectsContent() {
                 disabled={isDeleting || confirmProjectName !== projectToDelete?.name}
               >
                 {isDeleting ? "Deleting..." : "Delete Project"}
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
