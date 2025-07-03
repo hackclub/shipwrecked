@@ -1927,7 +1927,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 Cancel
               </button>
               
-              <button
+              {/* <button
                 className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
                 onClick={() => {
                   // Don't proceed if no project is selected
@@ -1944,7 +1944,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 }}
               >
                 Delete Project
-              </button>
+              </button> */}
             </div>
           </div>
         </Modal>
