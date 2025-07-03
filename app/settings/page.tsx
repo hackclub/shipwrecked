@@ -92,6 +92,7 @@ function SettingsContent() {
   const [isConnectingSlack, setIsConnectingSlack] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [identityStatus, setIdentityStatus] = useState('not_verified');
 
   // Fetch fresh user data directly from the server
   useEffect(() => {
@@ -101,6 +102,9 @@ function SettingsContent() {
       try {
         setIsLoading(true);
         const response = await fetch(`/api/users/me`);
+        const identityResponse = await fetch('/api/identity/me');
+        const identityData = await identityResponse.json();
+        setIdentityStatus(identityData.verification_status);
         
         if (!response.ok) {
           throw new Error('Failed to fetch user data');
@@ -176,6 +180,12 @@ function SettingsContent() {
     }
   };
 
+  const getIdentityUrl = async () => {
+    const response = await fetch('/api/identity/url');
+    const data = await response.json();
+    return data.url;
+  }
+
   // Determine which data to use - prefer directly fetched userData if available
   const userEmail = userData?.email || session?.user?.email;
   const userName = userData?.name || session?.user?.name;
@@ -224,6 +234,37 @@ function SettingsContent() {
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                       >
                         {isRequestingVerification ? "Sending..." : "Fix this..."}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-gray-600 mb-1">Identity Verified?</p>
+                <div className="flex items-center">
+                  {identityStatus === 'verified' ? (
+                    <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Verified
+                    </span>
+                  ) : identityStatus === 'pending' ? (
+                    <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      Pending Verification
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        No
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const url = await getIdentityUrl();
+                          window.open(url, '_blank');
+                        }}
+                        disabled={isRequestingVerification}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
+                      >
+                        {isRequestingVerification ? "Verifying..." : "Verify My Identity"}
                       </button>
                     </div>
                   )}

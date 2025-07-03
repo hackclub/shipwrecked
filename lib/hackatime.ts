@@ -7,11 +7,13 @@ if (!process.env.HACKATIME_API_TOKEN) {
 }
 
 const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 async function makeHackatimeRequest(uri: string) {
   const response = await fetch(uri, {
     headers: {
-      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
+      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+      'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
     }
   });
   return response;
@@ -45,7 +47,8 @@ export async function fetchHackatimeProjects(
     console.log(`📊 Hours for projects:`, data.data.projects.map(p => ({ 
       name: p.name, 
       hours: p.hours, 
-      total_seconds: p.total_seconds
+      total_seconds: p.total_seconds,
+      precise_hours: p.total_seconds / 3600 // Show the precise calculation
     })));
 
     metrics.increment("success.fetch_hackatime", 1);
@@ -87,7 +90,12 @@ export async function lookupHackatimeIdByEmail(email: string): Promise<string | 
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_email/${encodeURIComponent(email)}`;
   
   try {
-    const response = await makeHackatimeRequest(uri);
+    const response = await fetch(uri, {
+      headers: {
+        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
+      }
+    });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
     
     if (response.status === 404) {
@@ -118,7 +126,12 @@ export async function lookupHackatimeIdBySlack(slackId: string): Promise<string 
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_slack_uid/${slackId}`;
   
   try {
-    const response = await makeHackatimeRequest(uri);
+    const response = await fetch(uri, {
+      headers: {
+        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
+      }
+    });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
     
     if (response.status === 404) {

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         status: true,
         hackatimeId: true,
         slack: true,
+        identityToken: true,
       },
     });
 

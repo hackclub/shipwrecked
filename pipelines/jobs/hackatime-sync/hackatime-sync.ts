@@ -10,6 +10,7 @@
 
 import { PrismaClient } from '../../../app/generated/prisma/client';
 import * as dotenv from 'dotenv';
+import { exponentialFetchRetry } from '../exponentialRetry/exponentialRetry';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +23,7 @@ const prisma = new PrismaClient({
 // Hackatime API base URL and token
 const HACKATIME_API_URL = process.env.HACKATIME_API_URL || 'https://hackatime.hackclub.com/api';
 const HACKATIME_API_TOKEN = process.env.HACKATIME_API_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 if (!HACKATIME_API_TOKEN) {
   console.error('HACKATIME_API_TOKEN environment variable must be set');
@@ -30,7 +32,8 @@ if (!HACKATIME_API_TOKEN) {
 
 interface HackatimeProject {
   name: string;
-  hours: number;
+  total_seconds: number;
+  hours: number; // Keep for backward compatibility, but we'll use total_seconds for precision
 }
 
 interface UpdatedLink {
@@ -44,9 +47,10 @@ async function getHackatimeProjects(hackatimeId: string): Promise<HackatimeProje
   try {
     const uri = `${HACKATIME_API_URL}/v1/users/${hackatimeId}/stats?features=projects&start_date=2025-04-22`;
     
-    const response = await fetch(uri, {
+    const response = await exponentialFetchRetry(uri, {
       headers: {
-        'Authorization': `Bearer ${HACKATIME_API_TOKEN}`
+        'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+        'Rack-Attack-Bypass': `${HACKATIME_RACK_ATTACK_BYPASS_TOKEN}`
       }
     });
     
@@ -134,8 +138,8 @@ async function main(): Promise<void> {
             const hackatimeProject = hackatimeProjects.find(hp => hp.name === link.hackatimeName);
             
             if (hackatimeProject) {
-              // Get hours from the hackatime project
-              const hours = hackatimeProject.hours || 0;
+              // Calculate precise hours from total_seconds and round to 2 decimal places for aesthetics
+              const hours = Math.round((hackatimeProject.total_seconds / 3600) * 100) / 100;
               
               // Only update if hours are different to avoid unnecessary database writes
               if (link.rawHours !== hours) {

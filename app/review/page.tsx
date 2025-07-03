@@ -80,11 +80,19 @@ function AccessDeniedHaiku() {
 }
 
 // Type definitions for review page
+enum UserStatus {
+  Unknown = "Unknown",
+  L1 = "L1", 
+  L2 = "L2",
+  FraudSuspect = "FraudSuspect"
+}
+
 interface User {
   id: string;
   name: string | null;
   email: string | null;
   image: string | null;
+  status: UserStatus;
 }
 
 interface Review {
@@ -258,7 +266,12 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               )}
               <span className="text-sm">{project.userName}</span>
             </div>
-            <UserCategoryBadge userId={project.userId} size="small" showMetrics={true} />
+            <UserCategoryBadge 
+              userId={project.userId} 
+              hackatimeId={project.userHackatimeId} 
+              size="small" 
+              showMetrics={true} 
+            />
           </div>
         </div>
         
@@ -374,6 +387,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
             rawHours={project.rawHours}
+            reviewType={project.latestReview?.reviewType || 'Other'}
             hackatimeLinks={project.hackatimeLinks}
           />
         </div>
@@ -411,18 +425,30 @@ function ReviewPage() {
   
   // Apply filter when projects or filter changes
   useEffect(() => {
-    if (activeFilter) {
+    if (activeFilter === "FraudSuspect") {
       setFilteredProjects(projects.filter(project => 
-        project.latestReview?.reviewType === activeFilter &&
+        project.user.status === UserStatus.FraudSuspect &&
         (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
+      return;
+    }
+    if (activeFilter) {
+      setFilteredProjects(projects.filter(project => 
+        (project.latestReview?.reviewType || 'Other') === activeFilter &&
+        project.user.status !== UserStatus.FraudSuspect &&
+        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
+      ));
+      
     } else {
       setFilteredProjects(projects.filter(project => 
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        project.user.status !== UserStatus.FraudSuspect &&
+        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
     }
   }, [projects, activeFilter, searchTerm]);
@@ -563,6 +589,16 @@ function ReviewPage() {
               >
                 Other Requests
               </button>
+              <button
+                onClick={() => setActiveFilter('FraudSuspect')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  activeFilter === 'FraudSuspect'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
+              >
+                Banned Users
+              </button>
             </div>
           </div>
         )}
@@ -627,7 +663,7 @@ function ReviewPage() {
                         {selectedProject.latestReview?.reviewType == 'ShippedApproval' && <MDXShippedApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'ViralApproval' && <MDXViralApproval components={components} />}
                         {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXShipUpdateApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'Other' && <MDXOther components={components} />}
+                        {(selectedProject.latestReview?.reviewType || 'Other') == 'Other' && <MDXOther components={components} />}
                       </Suspense>
                     </div>
                   </div>
@@ -657,4 +693,4 @@ export default function ReviewPageWithProvider() {
       <ReviewPage />
     </ReviewModeProvider>
   );
-} 
+}

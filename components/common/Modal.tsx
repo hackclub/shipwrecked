@@ -11,6 +11,7 @@ interface ModalProps {
   children: React.ReactNode;
   okText?: string;
   hideFooter?: boolean;
+  hideCloseButton?: boolean;
 }
 
 export default function Modal({ 
@@ -19,7 +20,8 @@ export default function Modal({
   title = 'Information',
   children,
   okText = 'OK',
-  hideFooter = false
+  hideFooter = false,
+  hideCloseButton = false
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -84,6 +86,7 @@ export default function Modal({
           </span>
          <button 
             onClick={handleClose}
+            hidden={hideCloseButton}
             className={styles.closeButton}
             aria-label="Close modal"
           >

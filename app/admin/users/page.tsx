@@ -5,8 +5,9 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
-import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
+import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
+import SendModal from '@/app/components/communication/sendModal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -34,10 +35,11 @@ interface User {
     description: string;
   } | null;
   projects: ProjectType[],
+  identityToken?: string;
 }
 
 // Sorting types
-type SortField = 'progress' | 'role' | 'name' | 'default';
+type SortField = 'progress' | 'role' | 'name' | 'shipped' | 'in_review' | 'default';
 type SortOrder = 'asc' | 'desc';
 
 // Create a wrapper component that uses Suspense
@@ -51,7 +53,7 @@ function AdminUsersContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmUserEmail, setConfirmUserEmail] = useState('');
   const [sortField, setSortField] = useState<SortField>('default');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
   useEffect(() => {
     async function fetchUsers() {
@@ -89,7 +91,7 @@ function AdminUsersContent() {
 
   // Get sort icon
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️';
+    if (sortField !== field) return '↕';
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
@@ -134,6 +136,12 @@ function AdminUsersContent() {
           const nameA = (a.name || a.email || '').toLowerCase();
           const nameB = (b.name || b.email || '').toLowerCase();
           result = nameA.localeCompare(nameB);
+          break;
+        case 'shipped':
+          result = (b.projects.filter(project => project.shipped).length || 0) - (a.projects.filter(project => project.shipped).length || 0);
+          break;
+        case 'in_review':
+          result = (b.projects.filter(project => project.in_review).length || 0) - (a.projects.filter(project => project.in_review).length || 0);
           break;
         default:
           // Default sorting (original logic)
@@ -185,17 +193,34 @@ function AdminUsersContent() {
     let textColor = 'text-gray-800';
 	let label = "";
 
-	if (user.projects.filter(project => getProjectHackatimeHours(project) >= 15).length >= 4) {
-		if (!!user.projects.find(project => project.viral)) {
-			bgColor = "bg-yellow-100";
-			textColor = "text-yellow-800";
-			label = "Invitation";
-		} else {
-			bgColor = 'bg-green-100';
-			textColor = 'text-green-800';
-			label = "Waitlist";
-		}
-	}
+	  
+  let meetsRequirements = false;
+
+  let top4Projects = []
+  for (const project of user.projects) {
+    if (project.shipped && getProjectHackatimeHours(project) >= 10) {
+      top4Projects.push(getProjectHackatimeHours(project));
+    }
+  }
+  if (top4Projects.length >= 4) {
+    top4Projects.sort((a, b) => b - a);
+    top4Projects = top4Projects.slice(0, 4);
+    if (top4Projects.reduce((acc, current) => acc + current, 0) >= 60) {
+      meetsRequirements = true;
+    }
+  }
+
+  if (meetsRequirements) {
+    if (!!user.projects.find(project => project.viral)) {
+      bgColor = "bg-yellow-100";
+      textColor = "text-yellow-800";
+      label = "Invitation";
+    } else {
+      bgColor = 'bg-green-100';
+      textColor = 'text-green-800';
+      label = "Waitlist";
+    }
+  }
     
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
@@ -301,9 +326,12 @@ function AdminUsersContent() {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
+                    #
+                  </th>
                   <th 
                     scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -332,6 +360,26 @@ function AdminUsersContent() {
                   </th>
                   <th 
                     scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('shipped')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # Shipped
+                      <span className="text-xs">{getSortIcon('shipped')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('in_review')}
+                  >
+                    <div className="flex items-center gap-1">
+                      # In Review
+                      <span className="text-xs">{getSortIcon('in_review')}</span>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
                     className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('role')}
                   >
@@ -345,6 +393,9 @@ function AdminUsersContent() {
                   </th>
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Verified
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                    Identity
                   </th>
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Hackatime
@@ -362,8 +413,13 @@ function AdminUsersContent() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((user, index) => (
                     <tr key={user.id}>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </div>
+                      </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
@@ -374,8 +430,9 @@ function AdminUsersContent() {
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm font-medium text-gray-900">
                               {user.name || 'Unknown'}
+                              <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} userId={user.id} />
                             </div>
                           </div>
                         </div>
@@ -401,6 +458,16 @@ function AdminUsersContent() {
                         {getProgressBadge(user)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.projects.filter(project => project.shipped).length}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.projects.filter(project => project.in_review).length}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
                           user.role === 'Admin' 
                             ? 'bg-purple-100 text-purple-800' 
@@ -421,6 +488,15 @@ function AdminUsersContent() {
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {user.emailVerified ? '✓' : '✗'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                          user.identityToken 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {user.identityToken ? '✓' : '✗'}
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
@@ -511,13 +587,16 @@ function AdminUsersContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, index) => (
                   <div 
                     key={user.id}
                     className="block bg-white rounded-lg shadow-md overflow-hidden"
                   >
                     <div className="p-4">
                       <div className="flex items-center mb-3">
+                        <div className="text-lg font-medium text-gray-500 mr-3">
+                          #{index + 1}
+                        </div>
                         {user.image ? (
                           <img className="h-12 w-12 rounded-full mr-3" src={user.image} alt={user.name || 'User'} />
                         ) : (
@@ -528,6 +607,7 @@ function AdminUsersContent() {
                         <div>
                           <div className="text-base font-medium text-gray-900">
                             {user.name || 'Unknown'}
+                            <SendModal name={user.name || 'Unknown'} email={user.email || 'Unknown'} userId={user.id} />
                           </div>
                           <div className="text-sm text-gray-600">
                             {user.email}
@@ -543,6 +623,18 @@ function AdminUsersContent() {
                         <div>
                           <span className="text-gray-500 block">Progress</span>
                           {getProgressBadge(user)}
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block"># Shipped</span>
+                          <span className="text-gray-800">
+                            {user.projects.filter(project => project.shipped).length}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block"># In Review</span>
+                          <span className="text-gray-800">
+                            {user.projects.filter(project => project.in_review).length}
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-500 block">Role</span>
@@ -578,6 +670,16 @@ function AdminUsersContent() {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {user.emailVerified ? 'Verified' : 'No'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Identity Verified?</span>
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.identityToken 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.identityToken ? 'Verified' : 'No'}
                           </span>
                         </div>
                         <div>
@@ -690,4 +792,4 @@ export default function AdminUsers() {
       <AdminUsersContent />
     </Suspense>
   );
-} 
+}

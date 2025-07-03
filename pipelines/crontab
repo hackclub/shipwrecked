@@ -7,4 +7,10 @@
 # Run Airtable RSVP update every 10 minutes
 */10 * * * * cd /app && tsx /app/pipelines/jobs/airtable-rsvp/update-airtable-rsvp.ts >> /var/log/cron.log 2>&1
 
+# Run Airtable sync every hour
+0 * * * * cd /app && tsx /app/pipelines/jobs/airtable-sync/index.ts >> /var/log/cron.log 2>&1
+
+# Run Badge Verification every 30 minutes
+*/30 * * * * cd /app && tsx /app/pipelines/jobs/badge-verification/index.ts >> /var/log/cron.log 2>&1
+
 # Empty line at the end of the file is required for a valid cron file 
