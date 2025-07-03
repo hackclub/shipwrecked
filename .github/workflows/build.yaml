@@ -74,3 +74,16 @@ jobs:
           LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
           MOCK_API: true
         run: yarn build
+
+      - name: Run the app
+        run: yarn run start && sleep 10
+      
+      - name: Check if website loads
+        run: |
+          # Test key pages
+          curl -f http://localhost:3000 || exit 1
+          curl -f http://localhost:3000/bay || exit 1
+          curl -f http://localhost:3000/gallery || exit 1
+          curl -f http://localhost:3000/leaderboard || exit 1
+          
+          echo "✅ All pages loaded successfully!"
