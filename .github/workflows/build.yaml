@@ -95,9 +95,12 @@ jobs:
       - name: Check if website loads
         run: |
           # Test key pages
+          echo "Testing main page"
           curl -f http://localhost:3000 || exit 1
+          echo "Testing bay page"
           curl -f http://localhost:3000/bay || exit 1
+          echo "Testing gallery page"
           curl -f http://localhost:3000/gallery || exit 1
+          echo "Testing leaderboard page"
           curl -f http://localhost:3000/leaderboard || exit 1
-          
           echo "✅ All pages loaded successfully!"
