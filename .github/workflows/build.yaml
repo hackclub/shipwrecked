@@ -69,8 +69,38 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXTAUTH_URL: http://localhost:3000
-          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_URL: redis://localhost:6379
           GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
           LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
-          MOCK_API: true
+          MOCK_API: "true"
         run: yarn build
+
+      - name: Run the app
+        env:
+          HACKATIME_API_TOKEN: "doesntmatter"
+          LOOPS_TRANSACTIONAL_SIGNIN_EMAIL_ID: "notimportant"
+          LOOPS_TRANSACTIONAL_NOTIFICATION_EMAIL_ID: "notimportant"
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: http://localhost:3000
+          REDIS_URL: redis://localhost:6379
+          GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
+          LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
+          MOCK_API: "true"
+        run: |
+          yarn start &
+          sleep 15
+      
+      - name: Check if website loads
+        run: |
+          # Test key pages
+          echo "Testing main page"
+          curl -f http://localhost:3000 || exit 1
+          echo "Testing bay page"
+          curl -f http://localhost:3000/bay || exit 1
+          echo "Testing gallery page"
+          curl -f http://localhost:3000/gallery || exit 1
+          echo "Testing leaderboard page"
+          curl -f http://localhost:3000/leaderboard || exit 1
+          echo "✅ All pages loaded successfully!"
