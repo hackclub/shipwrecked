@@ -69,14 +69,28 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXTAUTH_URL: http://localhost:3000
-          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_URL: redis://localhost:6379
           GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
           LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
-          MOCK_API: true
+          MOCK_API: "true"
         run: yarn build
 
       - name: Run the app
-        run: yarn run start && sleep 10
+        env:
+          HACKATIME_API_TOKEN: "doesntmatter"
+          LOOPS_TRANSACTIONAL_SIGNIN_EMAIL_ID: "notimportant"
+          LOOPS_TRANSACTIONAL_NOTIFICATION_EMAIL_ID: "notimportant"
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: http://localhost:3000
+          REDIS_URL: redis://localhost:6379
+          GRAPHITE_HOST: ${{ secrets.GRAPHITE_HOST }}
+          LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID: ${{ secrets.LOOPS_TRANSACTIONAL_PERSONALIZED_EMAIL_ID }}
+          MOCK_API: "true"
+        run: |
+          yarn start &
+          sleep 15
       
       - name: Check if website loads
         run: |
