@@ -465,6 +465,7 @@ function ProjectDetail({
         {/* Project Reviews Section */}
         <ReviewSection 
           projectID={project.projectID} 
+          projectOwnerUserId={project.userId}
           initialFlags={projectFlags}
           onFlagsUpdated={handleFlagsUpdated}
           rawHours={project.rawHours}
@@ -1806,6 +1807,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   {/* Project Reviews Section for Mobile */}
                   <ReviewSection 
                     projectID={selectedProject.projectID}
+                    projectOwnerUserId={selectedProject.userId}
                     initialFlags={{
                       shipped: !!selectedProject.shipped,
                       viral: !!selectedProject.viral,

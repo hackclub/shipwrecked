@@ -8,7 +8,6 @@ interface HackatimeUserStatsData {
   user: {
     id: string;
     name: string | null;
-    email: string | null;
     hackatimeId: string;
   };
   languages: HackatimeLanguage[];
@@ -22,9 +21,10 @@ interface HackatimeUserStatsData {
 
 interface HackatimeLanguageStatsProps {
   className?: string;
+  userId?: string; // ID of the project owner whose stats to fetch
 }
 
-export default function HackatimeLanguageStats({ className = '' }: HackatimeLanguageStatsProps) {
+export default function HackatimeLanguageStats({ className = '', userId }: HackatimeLanguageStatsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<HackatimeUserStatsData | null>(null);
@@ -45,14 +45,27 @@ export default function HackatimeLanguageStats({ className = '' }: HackatimeLang
     };
   }, []);
 
+  // Reset data when userId changes
+  useEffect(() => {
+    setData(null);
+    setError(null);
+    setIsOpen(false);
+  }, [userId]);
+
   const fetchLanguageStats = async () => {
     if (data || isLoading) return; // Don't fetch if we already have data or are loading
+
+    // Don't fetch if no userId is provided
+    if (!userId) {
+      setError('No user specified');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/hackatime/user-stats');
+      const response = await fetch(`/api/hackatime/user-stats?userId=${encodeURIComponent(userId)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -130,12 +143,12 @@ export default function HackatimeLanguageStats({ className = '' }: HackatimeLang
         type="button"
         onClick={handleToggleDropdown}
         className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-md text-sm font-medium text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
+        disabled={isLoading || !userId}
       >
         <div className="flex items-center gap-2">
           <Icon glyph="code" size={16} />
           <span>
-            {isLoading ? 'Loading...' : 'View Language Stats'}
+            {isLoading ? 'Loading...' : !userId ? 'No user specified' : 'View Language Stats'}
           </span>
         </div>
         <Icon glyph={isOpen ? 'up-caret' : 'down-caret'} size={14} />
