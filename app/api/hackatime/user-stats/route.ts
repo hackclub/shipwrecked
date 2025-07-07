@@ -15,7 +15,7 @@ interface HackatimeUserStatsResponse {
   };
 }
 
-// GET - Retrieve user's Hackatime language statistics
+// GET - Retrieve user's Hackatime language statistics, optionally filtered by project
 export async function GET(request: Request) {
   try {
     // Check authentication
@@ -32,9 +32,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
     }
 
-    // Get the user ID from query parameters (the user whose project is being reviewed)
+    // Get parameters from query
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const projectNames = searchParams.get('projectNames'); // Comma-separated project names
     
     if (!userId) {
       return NextResponse.json({ error: 'userId parameter is required' }, { status: 400 });
@@ -61,9 +62,14 @@ export async function GET(request: Request) {
       }, { status: 200 });
     }
 
-    // Fetch language stats from Hackatime API
-    const uri = `https://hackatime.hackclub.com/api/v1/users/${user.hackatimeId}/stats?features=languages&limit=10`;
+    // Build Hackatime API URL with optional project filter
+    let uri = `https://hackatime.hackclub.com/api/v1/users/${user.hackatimeId}/stats?features=languages`;
     
+    if (projectNames) {
+      // Use the comma-separated project names directly
+      uri += `&filter_by_project=${encodeURIComponent(projectNames)}`;
+    }
+
     const response = await fetch(uri, {
       headers: {
         'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
@@ -88,19 +94,26 @@ export async function GET(request: Request) {
       }, { status: 200 });
     }
 
+    // Sort languages by total_seconds (descending) and take top 10
+    const sortedLanguages = data.data.languages
+      .sort((a, b) => b.total_seconds - a.total_seconds)
+      .slice(0, 10);
+
     return NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         hackatimeId: user.hackatimeId
       },
-      languages: data.data.languages,
+      languages: sortedLanguages,
       summary: {
         username: data.data.username,
         total_seconds: data.data.total_seconds,
         human_readable_total: data.data.human_readable_total,
-        range: data.data.human_readable_range
-      }
+        range: data.data.human_readable_range,
+        project_filtered: !!projectNames
+      },
+      projectNames: projectNames || null
     });
   } catch (error) {
     console.error('Error getting Hackatime user stats:', error);

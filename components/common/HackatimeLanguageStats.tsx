@@ -16,15 +16,18 @@ interface HackatimeUserStatsData {
     total_seconds: number;
     human_readable_total: string;
     range: string;
+    project_filtered?: boolean;
   };
+  projectNames?: string | null;
 }
 
 interface HackatimeLanguageStatsProps {
   className?: string;
   userId?: string; // ID of the project owner whose stats to fetch
+  projectNames?: string[]; // Array of project names to filter stats by
 }
 
-export default function HackatimeLanguageStats({ className = '', userId }: HackatimeLanguageStatsProps) {
+export default function HackatimeLanguageStats({ className = '', userId, projectNames }: HackatimeLanguageStatsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<HackatimeUserStatsData | null>(null);
@@ -45,12 +48,12 @@ export default function HackatimeLanguageStats({ className = '', userId }: Hacka
     };
   }, []);
 
-  // Reset data when userId changes
+  // Reset data when userId or projectNames changes
   useEffect(() => {
     setData(null);
     setError(null);
     setIsOpen(false);
-  }, [userId]);
+  }, [userId, projectNames]);
 
   const fetchLanguageStats = async () => {
     if (data || isLoading) return; // Don't fetch if we already have data or are loading
@@ -65,7 +68,14 @@ export default function HackatimeLanguageStats({ className = '', userId }: Hacka
     setError(null);
 
     try {
-      const response = await fetch(`/api/hackatime/user-stats?userId=${encodeURIComponent(userId)}`);
+      const url = new URL('/api/hackatime/user-stats', window.location.origin);
+      url.searchParams.set('userId', userId);
+      if (projectNames && projectNames.length > 0) {
+        // Join project names with commas for the API
+        url.searchParams.set('projectNames', projectNames.join(','));
+      }
+      
+      const response = await fetch(url.toString());
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -148,7 +158,14 @@ export default function HackatimeLanguageStats({ className = '', userId }: Hacka
         <div className="flex items-center gap-2">
           <Icon glyph="code" size={16} />
           <span>
-            {isLoading ? 'Loading...' : !userId ? 'No user specified' : 'View Language Stats'}
+            {isLoading 
+              ? 'Loading...' 
+              : !userId 
+                ? 'No user specified' 
+                : projectNames && projectNames.length > 0
+                  ? `View Language Stats (${projectNames.length} projects)`
+                  : 'View Language Stats'
+            }
           </span>
         </div>
         <Icon glyph={isOpen ? 'up-caret' : 'down-caret'} size={14} />
@@ -179,9 +196,17 @@ export default function HackatimeLanguageStats({ className = '', userId }: Hacka
             <div className="p-4">
               {/* Header */}
               <div className="mb-3 pb-2 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900 text-sm">Top Programming Languages</h3>
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  {data.summary.project_filtered 
+                    ? `Programming Languages (Top 10)`
+                    : 'Top Programming Languages'
+                  }
+                </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   {data.summary.human_readable_total} total • {data.summary.range}
+                  {data.summary.project_filtered && (
+                    <span className="ml-1 text-blue-600">• Project filtered</span>
+                  )}
                 </p>
               </div>
 
