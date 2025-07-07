@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import Icon from '@hackclub/icons';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
 import ProjectFlagsEditor, { ProjectFlags } from './ProjectFlagsEditor';
+import HackatimeLanguageStats from './HackatimeLanguageStats';
 
 interface ReviewerInfo {
   id: string;
@@ -498,7 +499,15 @@ export default function ReviewSection({
 
   return (
     <div className="space-y-6 bg-white p-4 sm:p-6 rounded-lg mb-12 w-full max-w-full">
-      <h3 className="text-lg font-semibold border-b pb-2">Project Reviews</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-2">
+        <h3 className="text-lg font-semibold">Project Reviews</h3>
+        {/* Hackatime Language Stats Dropdown - only visible in review mode */}
+        {isReviewMode && (
+          <div className="w-full sm:w-80">
+            <HackatimeLanguageStats />
+          </div>
+        )}
+      </div>
       
       {/* Project Flags Editor */}
       {isReviewMode && initialFlags && (
