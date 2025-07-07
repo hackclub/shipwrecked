@@ -16,7 +16,7 @@ interface HackatimeUserStatsResponse {
 }
 
 // GET - Retrieve user's Hackatime language statistics
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Check authentication
     const session = await getServerSession(opts);
@@ -27,18 +27,25 @@ export async function GET() {
     // Check if user is admin or reviewer
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
       return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
     }
 
-    // Get the user's Hackatime ID
+    // Get userId from query parameters
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId parameter is required' }, { status: 400 });
+    }
+
+    // Get the target user's Hackatime ID
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { 
+      where: { id: userId },
+      select: {
         id: true,
         name: true,
-        email: true,
         hackatimeId: true
       }
     });
@@ -46,9 +53,9 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     if (!user.hackatimeId) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'User does not have a Hackatime account connected',
         languages: []
       }, { status: 200 });
@@ -56,7 +63,7 @@ export async function GET() {
 
     // Fetch language stats from Hackatime API
     const uri = `https://hackatime.hackclub.com/api/v1/users/${user.hackatimeId}/stats?features=languages&limit=10`;
-    
+
     const response = await fetch(uri, {
       headers: {
         'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
@@ -66,16 +73,16 @@ export async function GET() {
 
     if (!response.ok) {
       console.error(`Error fetching Hackatime user stats: ${response.status} ${response.statusText}`);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to fetch Hackatime user stats',
         languages: []
       }, { status: 500 });
     }
 
     const data: HackatimeUserStatsResponse = await response.json();
-    
+
     if (!data?.data?.languages) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'No language data available',
         languages: []
       }, { status: 200 });
@@ -85,7 +92,6 @@ export async function GET() {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
         hackatimeId: user.hackatimeId
       },
       languages: data.data.languages,
