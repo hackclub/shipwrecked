@@ -28,7 +28,7 @@
     "ioredis": "^5.6.1",
     "lenis": "^1.2.3",
     "motion": "^12.6.3",
-    "next": "15.2.3",
+    "next": "^15.3.5",
     "next-auth": "^4.24.11",
     "nodemailer": "^7.0.3",
     "postcss": "^8.5.3",
