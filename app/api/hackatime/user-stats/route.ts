@@ -16,7 +16,7 @@ interface HackatimeUserStatsResponse {
 }
 
 // GET - Retrieve user's Hackatime language statistics
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Check authentication
     const session = await getServerSession(opts);
@@ -32,13 +32,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
     }
 
-    // Get the user's Hackatime ID
+    // Get the user ID from query parameters (the user whose project is being reviewed)
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'userId parameter is required' }, { status: 400 });
+    }
+
+    // Get the target user's Hackatime ID
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { 
         id: true,
         name: true,
-        email: true,
         hackatimeId: true
       }
     });
@@ -85,7 +92,6 @@ export async function GET() {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
         hackatimeId: user.hackatimeId
       },
       languages: data.data.languages,

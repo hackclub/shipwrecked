@@ -28,6 +28,7 @@ export interface ReviewType {
 
 interface ReviewSectionProps {
   projectID: string;
+  projectOwnerUserId?: string; // ID of the project owner for fetching language stats
   initialFlags?: ProjectFlags;
   onFlagsUpdated?: (updatedProject: unknown) => void;
   rawHours?: number;
@@ -42,6 +43,7 @@ interface ReviewSectionProps {
 
 export default function ReviewSection({ 
   projectID, 
+  projectOwnerUserId,
   initialFlags,
   onFlagsUpdated,
   reviewType,
@@ -534,7 +536,7 @@ export default function ReviewSection({
         {/* Hackatime Language Stats Dropdown - only visible in review mode */}
         {isReviewMode && (
           <div className="w-full sm:w-80">
-            <HackatimeLanguageStats />
+            <HackatimeLanguageStats userId={projectOwnerUserId} />
           </div>
         )}
       </div>
