@@ -8,6 +8,16 @@ export interface HackatimeProject {
   percent: number;
 }
 
+export interface HackatimeLanguage {
+  name: string;
+  total_seconds: number;
+  text: string;
+  hours: number;
+  minutes: number;
+  percent: number;
+  digital: string;
+}
+
 export interface HackatimeStatsData {
   username: string;
   user_id: string;
@@ -22,6 +32,10 @@ export interface HackatimeStatsData {
   daily_average: number;
   human_readable_total: string;
   human_readable_daily_average: string;
+}
+
+export interface HackatimeStatsLanguageData extends HackatimeStatsData {
+  languages: Array<HackatimeLanguage>;
 }
 
 export interface HackatimeStats {
