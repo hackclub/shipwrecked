@@ -7,6 +7,7 @@ import Icon from '@hackclub/icons';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
 import ProjectFlagsEditor, { ProjectFlags } from './ProjectFlagsEditor';
 import HackatimeLanguageStats from './HackatimeLanguageStats';
+import ReviewChecklist from './ReviewChecklist';
 
 interface ReviewerInfo {
   id: string;
@@ -28,7 +29,7 @@ export interface ReviewType {
 interface ReviewSectionProps {
   projectID: string;
   initialFlags?: ProjectFlags;
-  onFlagsUpdated?: (updatedProject: any) => void;
+  onFlagsUpdated?: (updatedProject: unknown) => void;
   rawHours?: number;
   reviewType?: string;
   hackatimeLinks?: Array<{
@@ -43,7 +44,6 @@ export default function ReviewSection({
   projectID, 
   initialFlags,
   onFlagsUpdated,
-  rawHours,
   reviewType,
   hackatimeLinks = [],
 }: ReviewSectionProps) {
@@ -56,6 +56,8 @@ export default function ReviewSection({
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [isDeletingReview, setIsDeletingReview] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [checklistJustification, setChecklistJustification] = useState('');
   
   // State to track flag changes
   const [flagsChanged, setFlagsChanged] = useState(false);
@@ -251,7 +253,7 @@ export default function ReviewSection({
     // Force check all hackatime links for any differences
     hackatimeLinks.forEach(link => {
       // Handle null, undefined, or absent values consistently
-      const getNumberValue = (obj: Record<string, any>, key: string): number | undefined => {
+      const getNumberValue = (obj: Record<string, unknown>, key: string): number | undefined => {
         const value = obj[key];
         // Treat null and undefined the same way - as undefined (no override)
         if (value === null || value === undefined) return undefined;
@@ -329,6 +331,12 @@ export default function ReviewSection({
     // Validate that a result is selected
     if (!reviewResult) {
       toast.error('Please select a review result');
+      return;
+    }
+    
+    // If approving and checklist hasn't been completed, show it
+    if (reviewResult === 'approve' && !checklistJustification) {
+      setShowChecklist(true);
       return;
     }
     
@@ -414,13 +422,19 @@ export default function ReviewSection({
         setFlagsChanged(false);
       }
       
+      // Combine the checklist justification with the comment if approving
+      let finalComment = newComment.trim();
+      if (reviewResult === 'approve' && checklistJustification) {
+        finalComment = `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
+      }
+      
       // Then submit the review with result and flag changes noted in the comment
       const resultPrefix = reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : '💬 Commented');
-      const commentContent = newComment.trim() ? `\n${newComment.trim()}` : '';
+      const commentContent = finalComment ? `\n${finalComment}` : '';
       const flagChanges = getFlagChangesDescription();
       const reviewCompleted = !flagChanges && wasInReview ? '\n\n[✓ Review completed]' : '';
       
-      const finalComment = `${resultPrefix}${commentContent}${flagChanges}${reviewCompleted}`;
+      const finalReviewComment = `${resultPrefix}${commentContent}${flagChanges}${reviewCompleted}`;
       
       const reviewResponse = await fetch('/api/reviews', {
         method: 'POST',
@@ -429,9 +443,10 @@ export default function ReviewSection({
         },
         body: JSON.stringify({
           projectID,
-          comment: finalComment,
+          comment: finalReviewComment,
           result: reviewResult, // Include for email notifications
           reviewType: reviewResult === 'comment' ? reviewType : null,
+          justification: reviewResult === 'approve' ? checklistJustification : undefined,
         }),
       });
       
@@ -447,12 +462,27 @@ export default function ReviewSection({
       setReviews([newReview, ...reviews]);
       setNewComment('');
       setReviewResult(null); // Reset result
+      setChecklistJustification(''); // Clear checklist justification
+      setShowChecklist(false); // Hide checklist
       toast.success('Review submitted successfully');
     } catch (error) {
       console.error('Error submitting review:', error);
       toast.error('Failed to submit review');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleChecklistComplete = (justification: string) => {
+    setChecklistJustification(justification);
+    setShowChecklist(false);
+  };
+
+  const handleReviewResultChange = (result: 'approve' | 'reject' | 'comment' | null) => {
+    setReviewResult(result);
+    // Clear checklist justification if switching away from approval
+    if (result !== 'approve') {
+      setChecklistJustification('');
     }
   };
 
@@ -527,6 +557,14 @@ export default function ReviewSection({
         </div>
       )}
       
+      {/* Show checklist if user wants to approve and hasn't completed it */}
+      {showChecklist && (
+        <ReviewChecklist
+          onChecklistComplete={handleChecklistComplete}
+          isSubmitting={isLoading}
+        />
+      )}
+      
       {/* Add new review form - only visible in review mode */}
       {isReviewMode && (
         <form onSubmit={handleSubmitReview} className="mb-6">
@@ -538,7 +576,7 @@ export default function ReviewSection({
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
-                onClick={() => setReviewResult('approve')}
+                onClick={() => handleReviewResultChange('approve')}
                 className={`flex-1 px-4 py-2 rounded-md border transition-colors flex items-center justify-center gap-2 ${
                   reviewResult === 'approve'
                     ? 'bg-green-50 border-green-500 text-green-700'
@@ -550,7 +588,7 @@ export default function ReviewSection({
               </button>
               <button
                 type="button"
-                onClick={() => setReviewResult('reject')}
+                onClick={() => handleReviewResultChange('reject')}
                 className={`flex-1 px-4 py-2 rounded-md border transition-colors flex items-center justify-center gap-2 ${
                   reviewResult === 'reject'
                     ? 'bg-red-50 border-red-500 text-red-700'
@@ -562,7 +600,7 @@ export default function ReviewSection({
               </button>
               <button
                 type="button"
-                onClick={() => setReviewResult('comment')}
+                onClick={() => handleReviewResultChange('comment')}
                 className={`flex-1 px-4 py-2 rounded-md border transition-colors flex items-center justify-center gap-2 ${
                   reviewResult === 'comment'
                     ? 'bg-gray-50 border-gray-500 text-gray-700'
@@ -578,6 +616,12 @@ export default function ReviewSection({
             )}
             {reviewResult === 'comment' && (
               <p className="mt-1 text-xs text-gray-600">A comment is required.</p>
+            )}
+            {reviewResult === 'approve' && !checklistJustification && (
+              <p className="mt-1 text-xs text-green-600">✓ You will need to complete a review checklist before approval</p>
+            )}
+            {reviewResult === 'approve' && checklistJustification && (
+              <p className="mt-1 text-xs text-green-600">✓ Review checklist completed</p>
             )}
           </div>
 
@@ -617,7 +661,13 @@ export default function ReviewSection({
             <p>Preview:</p>
             <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">
               {reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : (reviewResult === 'comment' ? '💬 Commented' : ''))}
-              {newComment.trim() ? '\n' + newComment.trim() : ''}
+              {(() => {
+                let commentText = newComment.trim();
+                if (reviewResult === 'approve' && checklistJustification) {
+                  commentText = `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
+                }
+                return commentText ? '\n' + commentText : '';
+              })()}
               
               {/* Direct simple comparison of flags */}
               {(() => {

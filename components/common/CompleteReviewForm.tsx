@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
+import ReviewChecklist from './ReviewChecklist';
 
 interface CompleteReviewFormProps {
   projectID: string;
@@ -19,6 +20,8 @@ export default function CompleteReviewForm({
   const [comment, setComment] = useState('');
   const [isApproved, setIsApproved] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [checklistJustification, setChecklistJustification] = useState('');
 
   // Only show this component in review mode AND if the project is in review
   if (!isReviewMode || !isInReview) {
@@ -28,8 +31,21 @@ export default function CompleteReviewForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // If approving and checklist hasn't been completed, show it
+    if (isApproved && !checklistJustification) {
+      setShowChecklist(true);
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
+      
+      // Combine the checklist justification with the comment if approving
+      let finalComment = comment.trim();
+      if (isApproved && checklistJustification) {
+        finalComment = `Justification for approved hours: ${checklistJustification}\n\n${comment.trim()}`.trim();
+      }
+      
       const response = await fetch('/api/projects/complete-review', {
         method: 'POST',
         headers: {
@@ -38,7 +54,8 @@ export default function CompleteReviewForm({
         body: JSON.stringify({
           projectID,
           approved: isApproved,
-          comment: comment.trim(),
+          comment: finalComment,
+          justification: isApproved ? checklistJustification : undefined,
         }),
       });
       
@@ -51,6 +68,8 @@ export default function CompleteReviewForm({
       
       // Clear the form
       setComment('');
+      setChecklistJustification('');
+      setShowChecklist(false);
       
       // Notify parent component
       onReviewCompleted(data.project, data.review);
@@ -61,10 +80,31 @@ export default function CompleteReviewForm({
       setIsSubmitting(false);
     }
   };
+
+  const handleChecklistComplete = (justification: string) => {
+    setChecklistJustification(justification);
+    setShowChecklist(false);
+  };
+
+  const handleApprovalChange = (approved: boolean) => {
+    setIsApproved(approved);
+    // Clear checklist justification if switching away from approval
+    if (!approved) {
+      setChecklistJustification('');
+    }
+  };
   
   return (
     <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
       <h3 className="text-sm font-bold text-green-800 mb-3">Complete Review</h3>
+      
+      {/* Show checklist if user wants to approve and hasn't completed it */}
+      {showChecklist && (
+        <ReviewChecklist
+          onChecklistComplete={handleChecklistComplete}
+          isSubmitting={isSubmitting}
+        />
+      )}
       
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
@@ -88,13 +128,23 @@ export default function CompleteReviewForm({
               type="checkbox"
               id="approve"
               checked={isApproved}
-              onChange={() => setIsApproved(!isApproved)}
+              onChange={() => handleApprovalChange(!isApproved)}
               className="h-4 w-4 text-green-600 focus:ring-green-500 rounded"
             />
             <label htmlFor="approve" className="text-sm font-medium text-gray-700">
               Approve this project
             </label>
           </div>
+          {isApproved && !checklistJustification && (
+            <p className="text-sm text-green-700 mt-1">
+              ✓ You will need to complete a review checklist before approval
+            </p>
+          )}
+          {isApproved && checklistJustification && (
+            <p className="text-sm text-green-700 mt-1">
+              ✓ Review checklist completed
+            </p>
+          )}
         </div>
         
         <button

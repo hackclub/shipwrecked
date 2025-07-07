@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
         projectID: body.projectID,
         reviewerId: reviewerId,
         reviewType: body.reviewType,
+        justification: body.justification || null,
       },
       include: {
         reviewer: {
