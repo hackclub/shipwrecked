@@ -210,6 +210,9 @@ model Review {
   // Review request type
   reviewType ReviewRequestType? // Nullable for backward compatibility with existing reviews
 
+  // Justification for approved hours (from checklist)
+  justification String?
+
   // Relation to the project being reviewed
   projectID String
   project   Project @relation(fields: [projectID], references: [projectID])

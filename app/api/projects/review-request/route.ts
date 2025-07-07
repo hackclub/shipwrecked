@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         reviewerId: session.user.id,
         comment: body.comment,
         reviewType: body.reviewType,
+        justification: body.justification || null,
       },
     });
 

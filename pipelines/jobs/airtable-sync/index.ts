@@ -92,8 +92,20 @@ export async function syncAirtable() {
         continue;
       }
       const reviewers = project.reviews.filter((review) => review.reviewer.name != user?.name).map((review) => `Name: ${review.reviewer.name} Email: ${review.reviewer.email} Slack ID: ${review.reviewer.slack}`).join("\n")
+      
+      // Extract checklist justification from review comments
+      const checklistJustification = project.reviews
+        .filter((review) => review.comment.includes('Justification for approved hours:'))
+        .map((review) => {
+          const lines = review.comment.split('\n');
+          const justificationLine = lines.find(line => line.startsWith('Justification for approved hours:'));
+          return justificationLine ? justificationLine.replace('Justification for approved hours:', '').trim() : '';
+        })
+        .filter(justification => justification.length > 0)
+        .join('\n\n');
+      
       const overrideHoursSpentJustification = 
-      `This project was reviewed by the following people:
+      `${checklistJustification ? `REVIEWER JUSTIFICATION:\n${checklistJustification}\n\n` : ''}This project was reviewed by the following people:
 
 ${reviewers}
 

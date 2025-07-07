@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
           comment: `✅ Review Completed: ${body.comment}`,
           projectID: body.projectID,
           reviewerId: session.user.id,
+          justification: body.justification || null,
         },
       });
     }
