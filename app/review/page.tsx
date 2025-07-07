@@ -19,6 +19,25 @@ import UserCategoryBadge from "@/components/common/UserCategoryBadge";
 import { useMDXComponents } from "@/mdx-components";
 import { lazy, Suspense } from "react";
 
+// Custom CSS for glowing effect
+const glowStyles = `
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4), 0 0 90px rgba(251, 191, 36, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
+    }
+  }
+  
+  .goal-completing-glow {
+    animation: glow 2s ease-in-out infinite, pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+`;
+
 // Constants for the 60-hour goal calculation
 const TOTAL_HOURS_GOAL = 60;
 const MAX_HOURS_PER_PROJECT = 15;
@@ -190,18 +209,18 @@ function ProjectCard({
 
   return (
     <div
-      className={`bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow ${
+      className={`bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 ${
         isGoalCompleting
-          ? "ring-4 ring-yellow-400 ring-opacity-75 relative"
+          ? "ring-4 ring-yellow-400 ring-opacity-75 relative border-2 border-yellow-300 goal-completing-glow"
           : ""
       }`}
       onClick={onClick}
     >
-      {/* {isGoalCompleting && (
-        <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full z-10">
-          🏆 Goal Completing
+      {isGoalCompleting && (
+        <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full z-10 shadow-lg animate-bounce">
+          Final Project!
         </div>
-      )} */}
+      )}
       <div
         className={`p-4 border-l-4 ${
           color === "blue"
@@ -270,8 +289,6 @@ function ProjectDetail({
   onClose: () => void;
   onReviewSubmitted: () => void;
 }) {
-  const { isReviewMode } = useReviewMode();
-
   // Add debugging
   console.log("ProjectDetail selected project:", project);
 
@@ -283,16 +300,17 @@ function ProjectDetail({
   });
 
   // Handle project flag updates
-  const handleFlagsUpdated = (updatedProject: any) => {
+  const handleFlagsUpdated = (updatedProject: unknown) => {
+    const proj = updatedProject as Project;
     setProjectFlags({
-      shipped: !!updatedProject.shipped,
-      viral: !!updatedProject.viral,
-      in_review: !!updatedProject.in_review,
-      approved: !!updatedProject.approved,
+      shipped: !!proj.shipped,
+      viral: !!proj.viral,
+      in_review: !!proj.in_review,
+      approved: !!proj.approved,
     });
 
     // If in_review was changed to false, notify the parent component to refresh the list
-    if (project.in_review && !updatedProject.in_review) {
+    if (project.in_review && !proj.in_review) {
       onReviewSubmitted();
     }
   };
@@ -338,7 +356,7 @@ function ProjectDetail({
             </div>
             <UserCategoryBadge
               userId={project.userId}
-              hackatimeId={project.userHackatimeId}
+              hackatimeId={project.userHackatimeId || undefined}
               size="small"
               showMetrics={true}
             />
@@ -485,8 +503,7 @@ function ProjectDetail({
 }
 
 function ReviewPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -618,6 +635,7 @@ function ReviewPage() {
   // Authentication and access control is now handled by the layout
   return (
     <div className="min-h-screen bg-gray-50">
+      <style dangerouslySetInnerHTML={{ __html: glowStyles }} />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
