@@ -536,7 +536,10 @@ export default function ReviewSection({
         {/* Hackatime Language Stats Dropdown - only visible in review mode */}
         {isReviewMode && (
           <div className="w-full sm:w-80">
-            <HackatimeLanguageStats userId={projectOwnerUserId} />
+            <HackatimeLanguageStats 
+              userId={projectOwnerUserId} 
+              projectNames={hackatimeLinks?.map(link => link.hackatimeName) || []}
+            />
           </div>
         )}
       </div>
