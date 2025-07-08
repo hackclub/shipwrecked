@@ -163,6 +163,11 @@ function wouldCompleteGoal(project: Project): boolean {
   // Get the project owner's current approved hours (already calculated in API)
   const ownerCurrentHours = project.ownerApprovedHours || 0;
 
+  // Check if user already has 60+ hours - if so, don't show final project indicators
+  if (ownerCurrentHours >= TOTAL_HOURS_GOAL) {
+    return false;
+  }
+
   // Get the project's hours
   const projectHours = project.rawHours || 0;
 
