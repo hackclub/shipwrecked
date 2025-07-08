@@ -59,6 +59,8 @@ export default function ReviewSection({
   const [isDeletingReview, setIsDeletingReview] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
+  // Add state for checklist completion and justification
+  const [isChecklistComplete, setIsChecklistComplete] = useState(false);
   const [checklistJustification, setChecklistJustification] = useState('');
   
   // State to track flag changes
@@ -180,50 +182,6 @@ export default function ReviewSection({
     }
   };
   
-  // Helper to check if two override objects are equal
-  const isOverridesEqual = (
-    overrides1: Record<string, number | undefined> | undefined,
-    overrides2: Record<string, number | undefined> | undefined
-  ): boolean => {
-    // If both are undefined/null, they're equal
-    if (!overrides1 && !overrides2) return true;
-    // If one is undefined/null but the other isn't, they're different
-    if (!overrides1 || !overrides2) return false;
-    
-    // Check if keys match
-    const keys1 = Object.keys(overrides1);
-    const keys2 = Object.keys(overrides2);
-    
-    if (keys1.length !== keys2.length) return false;
-    
-    // Check if values match
-    for (const key of keys1) {
-      const val1 = overrides1[key];
-      const val2 = overrides2[key];
-      
-      // Handle undefined/null equality - treat both as equivalent "no value"
-      if ((val1 === undefined || val1 === null) && 
-          (val2 === undefined || val2 === null)) {
-        continue;
-      }
-      
-      // Handle numeric comparison with small epsilon for floating point precision
-      if (typeof val1 === 'number' && typeof val2 === 'number') {
-        if (Math.abs(val1 - val2) > 0.001) {
-          return false;
-        }
-        continue;
-      }
-      
-      // Strict equality for other cases
-      if (val1 !== val2) {
-        return false;
-      }
-    }
-    
-    return true;
-  };
-
   // Generate a description of flag changes for the review comment
   const getFlagChangesDescription = (): string => {
     const changes: string[] = [];
@@ -337,7 +295,7 @@ export default function ReviewSection({
     }
     
     // If approving and checklist hasn't been completed, show it
-    if (reviewResult === 'approve' && !checklistJustification) {
+    if (reviewResult === 'approve' && !isChecklistComplete) {
       setShowChecklist(true);
       return;
     }
@@ -475,9 +433,10 @@ export default function ReviewSection({
     }
   };
 
-  const handleChecklistComplete = (justification: string) => {
+  // Update checklist state handler
+  const handleChecklistStateChange = (complete: boolean, justification: string) => {
+    setIsChecklistComplete(complete);
     setChecklistJustification(justification);
-    setShowChecklist(false);
   };
 
   const handleReviewResultChange = (result: 'approve' | 'reject' | 'comment' | null) => {
@@ -485,6 +444,9 @@ export default function ReviewSection({
     // Clear checklist justification if switching away from approval
     if (result !== 'approve') {
       setChecklistJustification('');
+      setIsChecklistComplete(false); // Hide checklist if switching away
+    } else if (!isChecklistComplete) {
+      setShowChecklist(true); // Show checklist immediately when Approve is clicked and not yet completed
     }
   };
 
@@ -562,14 +524,6 @@ export default function ReviewSection({
         </div>
       )}
       
-      {/* Show checklist if user wants to approve and hasn't completed it */}
-      {showChecklist && (
-        <ReviewChecklist
-          onChecklistComplete={handleChecklistComplete}
-          isSubmitting={isLoading}
-        />
-      )}
-      
       {/* Add new review form - only visible in review mode */}
       {isReviewMode && (
         <form onSubmit={handleSubmitReview} className="mb-6">
@@ -622,11 +576,21 @@ export default function ReviewSection({
             {reviewResult === 'comment' && (
               <p className="mt-1 text-xs text-gray-600">A comment is required.</p>
             )}
-            {reviewResult === 'approve' && !checklistJustification && (
+            {reviewResult === 'approve' && !isChecklistComplete && (
               <p className="mt-1 text-xs text-green-600">✓ You will need to complete a review checklist before approval</p>
             )}
-            {reviewResult === 'approve' && checklistJustification && (
+            {reviewResult === 'approve' && isChecklistComplete && (
               <p className="mt-1 text-xs text-green-600">✓ Review checklist completed</p>
+            )}
+
+            {/* Checklist directly under review result */}
+            {showChecklist && (
+              <div className="mt-4">
+                <ReviewChecklist
+                  isSubmitting={isLoading}
+                  onChecklistStateChange={handleChecklistStateChange}
+                />
+              </div>
             )}
           </div>
 
@@ -655,7 +619,12 @@ export default function ReviewSection({
           </div>
           <button
             type="submit"
-            disabled={isLoading || !reviewResult || ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim())}
+            disabled={
+              isLoading ||
+              !reviewResult ||
+              ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim()) ||
+              (reviewResult === 'approve' && !isChecklistComplete)
+            }
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Submitting...' : (flagsChanged ? 'Submit Review with Flag Changes' : 'Submit Review')}
