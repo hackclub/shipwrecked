@@ -214,6 +214,13 @@ export default function Header({ session, status }: HeaderProps) {
                                 Gallery
                             </Link>
                             <Link 
+                                href="/leaderboard" 
+                                className={`block transition-colors ${isActive('/leaderboard') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Leaderboard
+                            </Link>
+                            <Link 
                                 href="/faq" 
                                 className={`block transition-colors ${isActive('/faq') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                 onClick={() => setMobileMenuOpen(false)}
