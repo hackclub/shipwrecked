@@ -19,22 +19,10 @@ import UserCategoryBadge from "@/components/common/UserCategoryBadge";
 import { useMDXComponents } from "@/mdx-components";
 import { lazy, Suspense } from "react";
 
-// Custom CSS for glowing effect
+// Custom CSS for static glow effect
 const glowStyles = `
-  @keyframes glow {
-    0% {
-      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
-    }
-    50% {
-      box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4), 0 0 90px rgba(251, 191, 36, 0.3);
-    }
-    100% {
-      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
-    }
-  }
-  
   .goal-completing-glow {
-    animation: glow 2s ease-in-out infinite, pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
   }
 `;
 
