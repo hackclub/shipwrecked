@@ -10,9 +10,7 @@ const port = parseInt(process.env.PORT) || 3000; // Use PORT env var from Docker
 const nextConfig = {
   dev,
   hostname,
-  port,
-  // Enable turbopack in development mode
-  ...(dev ? { turbo: true } : {})
+  port
 };
 
 // Initialize Next.js
