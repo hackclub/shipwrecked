@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     }
 
     // Build Hackatime API URL with optional project filter
-    let uri = `https://hackatime.hackclub.com/api/v1/users/${user.hackatimeId}/stats?features=languages`;
+    let uri = `https://hackatime.hackclub.com/api/v1/users/${user.hackatimeId}/stats?features=languages&start_date=2025-04-22`;
     
     if (projectNames) {
       // Use the comma-separated project names directly
