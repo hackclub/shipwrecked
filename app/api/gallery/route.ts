@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         screenshot: true,
         shipped: true,
         viral: true,
+        hasRepoBadge: true,
         chat_enabled: true,
         userId: true,
         hackatimeLinks: true,

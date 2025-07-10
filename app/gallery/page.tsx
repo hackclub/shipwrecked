@@ -25,6 +25,7 @@ interface Project {
   screenshot: string;
   shipped: boolean;
   viral: boolean;
+  hasRepoBadge: boolean;
   userId: string;
   rawHours: number;
   hackatimeName: string;
@@ -46,7 +47,7 @@ interface Project {
   }[];
 }
 
-type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions' | 'recentChat';
+type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions' | 'recentChat' | 'badge';
 
 // Helper function to check if a URL is a valid image
 const isValidImageUrl = (url: string): boolean => {
@@ -78,7 +79,7 @@ export default function Gallery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showViral, setShowViral] = useState(false);
   const [showShipped, setShowShipped] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('upvotes');
+  const [sortBy, setSortBy] = useState<SortOption>('badge');
 
   // Upvote loading state
   const [upvotingProjects, setUpvotingProjects] = useState<Set<string>>(new Set());
@@ -160,6 +161,11 @@ export default function Gallery() {
     // Sort projects
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case 'badge':
+          // Badge projects first, then by upvotes
+          if (a.hasRepoBadge && !b.hasRepoBadge) return -1;
+          if (!a.hasRepoBadge && b.hasRepoBadge) return 1;
+          return b.upvoteCount - a.upvoteCount;
         case 'hasImage':
           const aHasValidImage = isValidImageUrl(a.screenshot);
           const bHasValidImage = isValidImageUrl(b.screenshot);
@@ -407,6 +413,23 @@ export default function Gallery() {
                     New Chats
                   </div>
                 </label>
+                <label className="w-18">
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    value="badge"
+                    checked={sortBy === 'badge'}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="sr-only"
+                  />
+                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                    sortBy === 'badge'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`} style={{ fontSize: '11px' }}>
+                    Badge
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -572,6 +595,11 @@ export default function Gallery() {
 
                   {/* Status Badges */}
                   <div className="flex gap-1">
+                    {project.hasRepoBadge && (
+                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                        Badge
+                      </span>
+                    )}
                     {project.viral && (
                       <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded-full">
                         Viral
