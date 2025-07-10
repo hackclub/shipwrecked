@@ -18,7 +18,7 @@ export async function GET() {
   }
 
   try {
-    // Fetch all users with basic info
+    // Fetch all users with basic info and userTags
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -32,6 +32,11 @@ export async function GET() {
         status: true,
         hackatimeId: true,
         identityToken: true,
+        userTags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

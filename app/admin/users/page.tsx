@@ -8,6 +8,8 @@ import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
 import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
 import SendModal from '@/app/components/communication/sendModal';
+import TagManagement from '@/components/common/TagManagement';
+import Modal from '@/components/common/Modal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -17,6 +19,24 @@ enum UserStatus {
   L1 = "L1", 
   L2 = "L2",
   FraudSuspect = "FraudSuspect"
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+  userCount?: number;
+  projectCount?: number;
+  totalUsage?: number;
+}
+
+interface UserTag {
+  id: string;
+  tagId: string;
+  createdAt: string;
+  tag: Tag;
 }
 
 interface User {
@@ -36,6 +56,7 @@ interface User {
   } | null;
   projects: ProjectType[],
   identityToken?: string;
+  userTags?: UserTag[];
 }
 
 // Sorting types
@@ -54,6 +75,59 @@ function AdminUsersContent() {
   const [confirmUserEmail, setConfirmUserEmail] = useState('');
   const [sortField, setSortField] = useState<SortField>('default');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [briefMode, setBriefMode] = useState(true);
+  const [tagManagementUser, setTagManagementUser] = useState<User | null>(null);
+  const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
+
+  // Load brief mode preference from cookie on mount
+  useEffect(() => {
+    const savedBriefMode = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('adminUsersBriefMode='))
+      ?.split('=')[1];
+    if (savedBriefMode !== undefined) {
+      setBriefMode(savedBriefMode === 'true');
+    }
+  }, []);
+
+  // Save brief mode preference to cookie when changed
+  const toggleBriefMode = () => {
+    const newBriefMode = !briefMode;
+    setBriefMode(newBriefMode);
+    document.cookie = `adminUsersBriefMode=${newBriefMode}; path=/; max-age=${60 * 60 * 24 * 365}`; // 1 year
+  };
+
+  // Tag management functions
+  const openTagManagement = (user: User) => {
+    setTagManagementUser(user);
+    setIsTagManagementOpen(true);
+  };
+
+  const closeTagManagement = () => {
+    setTagManagementUser(null);
+    setIsTagManagementOpen(false);
+  };
+
+  const handleTagsUpdated = () => {
+    // Refresh users list to get updated tags
+    if (status === 'authenticated') {
+      async function fetchUsers() {
+        try {
+          const response = await fetch('/api/admin/users');
+          if (response.ok) {
+            const data = await response.json();
+            setUsers(data);
+          }
+        } catch (error) {
+          console.error('Error fetching users:', error);
+        }
+      }
+      fetchUsers();
+    }
+  };
   
   useEffect(() => {
     async function fetchUsers() {
@@ -77,6 +151,30 @@ function AdminUsersContent() {
     }
   }, [status]);
 
+  // Fetch available tags
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setIsLoadingTags(true);
+        const response = await fetch('/api/admin/tags');
+        if (response.ok) {
+          const tags = await response.json();
+          setAvailableTags(tags);
+        } else {
+          console.error('Failed to fetch tags:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      } finally {
+        setIsLoadingTags(false);
+      }
+    }
+    
+    if (status === 'authenticated') {
+      fetchTags();
+    }
+  }, [status]);
+
   // Handle sorting
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -95,10 +193,19 @@ function AdminUsersContent() {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
-  const filteredUsers = users.filter(user => 
-    (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-    (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  ).map(user => {
+  const filteredUsers = users.filter(user => {
+    // Text search filter
+    const matchesSearch = (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                         (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    
+    // Tag filter
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.every(selectedTagId => 
+                         user.userTags?.some(userTag => userTag.tag.id === selectedTagId)
+                       );
+    
+    return matchesSearch && matchesTags;
+  }).map(user => {
     try {
       return { ...user, stats: calculateProgressMetrics(user.projects || []) };
     } catch (error) {
@@ -295,8 +402,30 @@ function AdminUsersContent() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Administrate Users</h1>
+        <button
+          onClick={toggleBriefMode}
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+            briefMode
+              ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+          }`}
+          title="Toggle brief mode to show fewer columns"
+        >
+          <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${
+            briefMode 
+              ? 'border-blue-500 bg-blue-500' 
+              : 'border-gray-300 bg-white'
+          }`}>
+            {briefMode && (
+              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
+          </div>
+          Brief Mode
+        </button>
       </div>
       
       <div className="mb-6">
@@ -313,6 +442,82 @@ function AdminUsersContent() {
           </span>
         </div>
       </div>
+
+      {/* Tag Filter */}
+      <div className="mb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Filter by tags:</span>
+          {isLoadingTags ? (
+            <div className="flex items-center text-sm text-gray-500">
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+              Loading tags...
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectedTags([])}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  selectedTags.length === 0
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All Users ({users.length})
+              </button>
+              {availableTags.map(tag => {
+                const isSelected = selectedTags.includes(tag.id);
+                const usersWithTag = users.filter(user => 
+                  user.userTags?.some(userTag => userTag.tag.id === tag.id)
+                ).length;
+                
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                      } else {
+                        setSelectedTags(prev => [...prev, tag.id]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                      isSelected
+                        ? 'text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{
+                      backgroundColor: isSelected ? (tag.color || '#374151') : undefined,
+                      borderColor: tag.color || '#d1d5db',
+                      ...(isSelected ? {} : { border: '1px solid' })
+                    }}
+                    title={tag.description || undefined}
+                  >
+                    {tag.name} ({usersWithTag})
+                  </button>
+                );
+              })}
+              {selectedTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                  title="Clear all tag filters"
+                >
+                  Clear filters
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        {selectedTags.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            Showing users with {selectedTags.length === 1 ? 'tag' : 'all tags'}: {' '}
+            {selectedTags.map(tagId => {
+              const tag = availableTags.find(t => t.id === tagId);
+              return tag?.name;
+            }).join(', ')}
+          </div>
+        )}
+      </div>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
@@ -326,9 +531,11 @@ function AdminUsersContent() {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
-                    #
-                  </th>
+                  {!briefMode && (
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
+                      #
+                    </th>
+                  )}
                   <th 
                     scope="col" 
                     className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
@@ -342,9 +549,11 @@ function AdminUsersContent() {
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-48">
                     Email
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
-                    Joined
-                  </th>
+                  {!briefMode && (
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
+                      Joined
+                    </th>
+                  )}
                   <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Status
                   </th>
@@ -358,26 +567,30 @@ function AdminUsersContent() {
                       <span className="text-xs">{getSortIcon('progress')}</span>
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('shipped')}
-                  >
-                    <div className="flex items-center gap-1">
-                      # Shipped
-                      <span className="text-xs">{getSortIcon('shipped')}</span>
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('in_review')}
-                  >
-                    <div className="flex items-center gap-1">
-                      # In Review
-                      <span className="text-xs">{getSortIcon('in_review')}</span>
-                    </div>
-                  </th>
+                  {!briefMode && (
+                    <>
+                      <th 
+                        scope="col" 
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('shipped')}
+                      >
+                        <div className="flex items-center gap-1">
+                          # Shipped
+                          <span className="text-xs">{getSortIcon('shipped')}</span>
+                        </div>
+                      </th>
+                      <th 
+                        scope="col" 
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('in_review')}
+                      >
+                        <div className="flex items-center gap-1">
+                          # In Review
+                          <span className="text-xs">{getSortIcon('in_review')}</span>
+                        </div>
+                      </th>
+                    </>
+                  )}
                   <th 
                     scope="col" 
                     className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
@@ -388,18 +601,27 @@ function AdminUsersContent() {
                       <span className="text-xs">{getSortIcon('role')}</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
-                    Category
+                  {!briefMode && (
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
+                      Category
+                    </th>
+                  )}
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
+                    Tags
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
-                    Verified
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
-                    Identity
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
-                    Hackatime
-                  </th>
+                  {!briefMode && (
+                    <>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                        Verified
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                        Identity
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
+                        Hackatime
+                      </th>
+                    </>
+                  )}
                   <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">
                     Actions
                   </th>
@@ -408,18 +630,20 @@ function AdminUsersContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-3 py-4 text-center text-gray-500">
+                    <td colSpan={briefMode ? 7 : 14} className="px-3 py-4 text-center text-gray-500">
                       No users found
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user, index) => (
                     <tr key={user.id}>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-500">
-                          {index + 1}
-                        </div>
-                      </td>
+                      {!briefMode && (
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-500">
+                            {index + 1}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
@@ -442,31 +666,37 @@ function AdminUsersContent() {
                           {user.email}
                         </div>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-xs text-gray-500">
-                          {new Date(user.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: '2-digit'
-                          })}
-                        </div>
-                      </td>
+                      {!briefMode && (
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-xs text-gray-500">
+                            {new Date(user.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: '2-digit'
+                            })}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-3 py-3 whitespace-nowrap">
                         {getUserStatusBadge(user.status)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         {getProgressBadge(user)}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => project.shipped).length}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => project.in_review).length}
-                        </div>
-                      </td>
+                      {!briefMode && (
+                        <>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {user.projects.filter(project => project.shipped).length}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {user.projects.filter(project => project.in_review).length}
+                            </div>
+                          </td>
+                        </>
+                      )}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
                           user.role === 'Admin' 
@@ -478,36 +708,80 @@ function AdminUsersContent() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <UserCategoryDisplay category={user.category} size="small" />
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
-                          user.emailVerified 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {user.emailVerified ? '✓' : '✗'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
-                          user.identityToken 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {user.identityToken ? '✓' : '✗'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {user.hackatimeId ? (
-                          <div className="text-xs text-gray-600 truncate max-w-16" title={user.hackatimeId}>
-                            {user.hackatimeId}
+                      {!briefMode && (
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <UserCategoryDisplay category={user.category} size="small" />
+                        </td>
+                      )}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap gap-1 max-w-32">
+                            {user.userTags && user.userTags.length > 0 ? (
+                              user.userTags.slice(0, 2).map((userTag) => (
+                                <span
+                                  key={userTag.id}
+                                  className="inline-flex items-center px-2 py-1 text-xs rounded-full border"
+                                  style={{
+                                    backgroundColor: userTag.tag.color ? `${userTag.tag.color}20` : '#f3f4f6',
+                                    borderColor: userTag.tag.color || '#d1d5db',
+                                    color: userTag.tag.color || '#374151'
+                                  }}
+                                  title={`${userTag.tag.name}${userTag.tag.description ? ': ' + userTag.tag.description : ''}`}
+                                >
+                                  {userTag.tag.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400 text-xs">No tags</span>
+                            )}
+                            {user.userTags && user.userTags.length > 2 && (
+                              <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500 bg-gray-100 rounded-full border border-gray-200">
+                                +{user.userTags.length - 2}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
+                          <button
+                            onClick={() => openTagManagement(user)}
+                            className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Manage tags"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
+                      {!briefMode && (
+                        <>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                              user.emailVerified 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {user.emailVerified ? '✓' : '✗'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                              user.identityToken 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {user.identityToken ? '✓' : '✗'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            {user.hackatimeId ? (
+                              <div className="text-xs text-gray-600 truncate max-w-16" title={user.hackatimeId}>
+                                {user.hackatimeId}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+                          </td>
+                        </>
+                      )}
                       <td className="px-3 py-3 whitespace-nowrap text-right text-xs">
                         <div className="flex gap-2 justify-end">
                           <Link
@@ -652,6 +926,40 @@ function AdminUsersContent() {
                           <span className="text-gray-500 block">Category</span>
                           <UserCategoryDisplay category={user.category} size="small" />
                         </div>
+                        <div className="col-span-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 block">Tags</span>
+                            <button
+                              onClick={() => openTagManagement(user)}
+                              className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Manage tags"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {user.userTags && user.userTags.length > 0 ? (
+                              user.userTags.map((userTag) => (
+                                <span
+                                  key={userTag.id}
+                                  className="inline-flex items-center px-2 py-1 text-xs rounded-full border"
+                                  style={{
+                                    backgroundColor: userTag.tag.color ? `${userTag.tag.color}20` : '#f3f4f6',
+                                    borderColor: userTag.tag.color || '#d1d5db',
+                                    color: userTag.tag.color || '#374151'
+                                  }}
+                                  title={`${userTag.tag.name}${userTag.tag.description ? ': ' + userTag.tag.description : ''}`}
+                                >
+                                  {userTag.tag.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400 text-xs">No tags</span>
+                            )}
+                          </div>
+                        </div>
                         <div>
                           <span className="text-gray-500 block">Joined</span>
                           <span className="text-gray-800">
@@ -713,6 +1021,25 @@ function AdminUsersContent() {
             )}
           </div>
         </>
+      )}
+      
+      {/* Tag Management Modal */}
+      {isTagManagementOpen && tagManagementUser && (
+        <Modal 
+          isOpen={isTagManagementOpen}
+          onClose={closeTagManagement}
+          title={`Manage Tags for ${tagManagementUser.name || tagManagementUser.email || 'User'}`}
+        >
+          <TagManagement
+            entityType="user"
+            entityId={tagManagementUser.id}
+            entityName={tagManagementUser.name || tagManagementUser.email}
+            currentTags={tagManagementUser.userTags || []}
+            onTagsUpdated={handleTagsUpdated}
+            showTitle={false}
+            compact={false}
+          />
+        </Modal>
       )}
       
       {/* Delete Confirmation Modal with email verification */}
