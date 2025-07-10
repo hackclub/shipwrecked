@@ -55,6 +55,11 @@ export async function GET(request: NextRequest) {
           },
         },
         hackatimeLinks: true,
+        projectTags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 

@@ -60,21 +60,24 @@ export async function POST(request: Request) {
       }
     }
 
+    // Ensure tag name is lowercase
+    const normalizedTagName = tagName.toLowerCase().trim();
+
     // Find or create the tag
     let tag = await prisma.tag.findUnique({
-      where: { name: tagName }
+      where: { name: normalizedTagName }
     });
 
     if (!tag) {
       // Create new tag if it doesn't exist
       tag = await prisma.tag.create({
         data: {
-          name: tagName,
+          name: normalizedTagName,
           description: tagDescription || null,
           color: tagColor || null
         }
       });
-      console.log(`Created new tag: ${tagName}`);
+      console.log(`Created new tag: ${normalizedTagName}`);
     }
 
     // Check if the tag is already associated with the entity
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
 
     if (existingAssociation) {
       return NextResponse.json(
-        { error: `Tag "${tagName}" is already associated with this ${entityType}` },
+        { error: `Tag "${normalizedTagName}" is already associated with this ${entityType}` },
         { status: 409 }
       );
     }
@@ -144,11 +147,11 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log(`Successfully added tag "${tagName}" to ${entityType} ${entityId}`);
+    console.log(`Successfully added tag "${normalizedTagName}" to ${entityType} ${entityId}`);
 
     return NextResponse.json({
       success: true,
-      message: `Tag "${tagName}" successfully added to ${entityType}`,
+      message: `Tag "${normalizedTagName}" successfully added to ${entityType}`,
       data: {
         tag,
         association,

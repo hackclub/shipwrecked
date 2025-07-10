@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
+import TagManagement from '@/components/common/TagManagement';
 
 enum UserStatus {
   Unknown = "Unknown",
@@ -33,6 +34,20 @@ interface AdminProjectType extends ProjectType {
   }[];
 }
 
+
+interface UserTag {
+  id: string;
+  tagId: string;
+  createdAt: string;
+  tag: {
+    id: string;
+    name: string;
+    description?: string;
+    color?: string;
+    createdAt: string;
+  };
+}
+
 interface User {
   id: string;
   name: string | null;
@@ -45,6 +60,7 @@ interface User {
   hackatimeId: string | null;
   slack: string | null;
   projects?: AdminProjectType[];
+  userTags?: UserTag[];
 }
 
 
@@ -57,6 +73,8 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [userRole, setUserRole] = useState<string>('User');
   const [userStatus, setUserStatus] = useState<UserStatus>(UserStatus.Unknown);
+
+
 
   useEffect(() => {
     async function fetchUser() {
@@ -84,6 +102,8 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     
     fetchUser();
   }, [params.userId, status]);
+
+
 
   const updateUser = async () => {
     if (!user) return;
@@ -118,6 +138,20 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
       toast.error('Failed to update user');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+
+
+  const refreshUserData = async () => {
+    try {
+      const userResponse = await fetch(`/api/admin/users/${params.userId}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
     }
   };
 
@@ -468,6 +502,21 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
           </button>
         </div>
       </div>
+
+      {/* Tags Section */}
+      <div className="bg-white rounded-lg shadow overflow-hidden mt-6">
+        <div className="p-6">
+          <TagManagement
+            entityType="user"
+            entityId={user?.id || ''}
+            entityName={user?.name || undefined}
+            currentTags={user?.userTags || []}
+            onTagsUpdated={refreshUserData}
+          />
+        </div>
+      </div>
+
+
       
       <Toaster richColors />
     </div>
