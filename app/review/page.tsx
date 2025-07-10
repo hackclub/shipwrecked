@@ -13,8 +13,21 @@ import ProjectClassificationBadge from '@/components/common/ProjectClassificatio
 import ProjectHistogramChart from '@/components/common/ProjectHistogramChart';
 import UserClusterChart from '@/components/common/UserClusterChart';
 import UserCategoryBadge from '@/components/common/UserCategoryBadge';
+import TagManagement from '@/components/common/TagManagement';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
+
+// Custom CSS for static glow effect
+const glowStyles = `
+  .goal-completing-glow {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2);
+  }
+`;
+
+// Constants for the 60-hour goal calculation
+const TOTAL_HOURS_GOAL = 60;
+const MAX_HOURS_PER_PROJECT = 15;
+const GOAL_COMPLETION_MIN_HOURS = 40; // Minimum project owner hours to be in "goal completing" range
 
 const MDXShippedApproval = lazy(() => import('./review-guidelines/shipped-approval.mdx'));
 const MDXViralApproval = lazy(() => import('./review-guidelines/viral-approval.mdx'));
@@ -104,9 +117,24 @@ interface Review {
   reviewType?: string; // Optional for backward compatibility
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+}
+
+interface ProjectTag {
+  id: string;
+  tagId: string;
+  createdAt: string;
+  tag: Tag;
+}
+
 interface Project {
   projectID: string;
-  name: string;
+  name: string | null;
   description: string;
   codeUrl: string;
   playableUrl: string;
@@ -127,6 +155,7 @@ interface Project {
   latestReview: Review | null;
   reviewCount: number;
   rawHours: number;
+  ownerApprovedHours: number;
   hoursOverride?: number;
   hackatimeLinks?: {
     id: string;
@@ -135,6 +164,26 @@ interface Project {
     hoursOverride?: number;
   }[];
   projectTags?: ProjectTag[];
+}
+
+// Helper function to check if a project would complete the project owner's 60-hour goal
+function wouldCompleteGoal(project: Project): boolean {
+  // Get the project owner's current approved hours (already calculated in API)
+  const ownerCurrentHours = project.ownerApprovedHours || 0;
+
+  // Check if user already has 60+ hours - if so, don't show final project indicators
+  if (ownerCurrentHours >= TOTAL_HOURS_GOAL) {
+    return false;
+  }
+
+  // Get the project's hours
+  const projectHours = project.rawHours || 0;
+
+  // Check if owner currently has >40 approved hours and this project has ≥15 hours
+  const ownerHasEnoughHours = ownerCurrentHours > GOAL_COMPLETION_MIN_HOURS;
+  const projectIsSignificant = projectHours >= MAX_HOURS_PER_PROJECT;
+
+  return ownerHasEnoughHours && projectIsSignificant;
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
@@ -467,7 +516,7 @@ function ReviewPage() {
     if (activeFilter === "FraudSuspect") {
       setFilteredProjects(projects.filter(project => 
         project.user.status === UserStatus.FraudSuspect &&
-        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
@@ -477,7 +526,7 @@ function ReviewPage() {
       setFilteredProjects(projects.filter(project => 
         (project.latestReview?.reviewType || 'Other') === activeFilter &&
         project.user.status !== UserStatus.FraudSuspect &&
-        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
@@ -485,7 +534,7 @@ function ReviewPage() {
     } else {
       setFilteredProjects(projects.filter(project => 
         project.user.status !== UserStatus.FraudSuspect &&
-        (project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
       ));
