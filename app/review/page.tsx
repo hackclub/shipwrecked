@@ -137,6 +137,7 @@ interface Project {
   userId: string;
   viral: boolean;
   shipped: boolean;
+  hasRepoBadge: boolean;
   in_review: boolean;
   approved: boolean;
   user: User;
@@ -226,7 +227,14 @@ function ProjectCard({
         }`}
       >
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold truncate">{project.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold truncate">{project.name}</h3>
+            {project.hasRepoBadge && (
+              <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex-shrink-0">
+                Has Badge
+              </span>
+            )}
+          </div>
           <span
             className={`text-xs ${
               color === "blue"
@@ -596,6 +604,16 @@ function ReviewPage() {
       }
 
       const data = await response.json();
+      
+      // Sort projects with badge priority
+      data.sort((a: Project, b: Project) => {
+        // Badge projects get priority
+        if (a.hasRepoBadge && !b.hasRepoBadge) return -1;
+        if (!a.hasRepoBadge && b.hasRepoBadge) return 1;
+        // For same badge status, keep existing order
+        return 0;
+      });
+      
       setProjects(data);
       setFilteredProjects(data); // Initialize filtered projects with all projects
     } catch (err) {
