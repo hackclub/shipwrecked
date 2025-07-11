@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       whereCondition.viral = true;
     }
     
-    // Fetch all projects with user info, reviews, and hackatime links
+    // Fetch all projects with user info, reviews, hackatime links, and project tags
     const projects = await prisma.project.findMany({
       where: whereCondition,
       include: {
@@ -49,7 +49,12 @@ export async function GET(request: Request) {
             id: true,
           },
         },
-        hackatimeLinks: true
+        hackatimeLinks: true,
+        projectTags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: {
         user: {

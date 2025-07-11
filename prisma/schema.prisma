@@ -100,10 +100,12 @@ model User {
   // Chat messages sent by this user  
   chatMessages ChatMessage[]
 
-  // Action messages sent by this user
-  actionMessagesSent ActionMessage[] @relation("sender")
-  // Action messages received by this user
-  actionMessagesReceived ActionMessage[] @relation("recipient")
+  // Action messages sent and received by this user
+  actionMessagesSent     ActionMessage[] @relation("ActionMessageSender")
+  actionMessagesReceived ActionMessage[] @relation("ActionMessageRecipient")
+
+  // User tags
+  userTags UserTag[]
 }
 
 model Account {
@@ -170,8 +172,6 @@ model Project {
   playableUrl String
   screenshot  String
   submitted   Boolean @default(false)
-  airtableId  String?
-  hasRepoBadge Boolean @default(false)
 
   viral     Boolean @default(false)
   shipped   Boolean @default(false)
@@ -179,6 +179,12 @@ model Project {
   
   // Chat feature flag
   chat_enabled Boolean @default(false)
+
+  // Airtable integration
+  airtableId String? @unique
+
+  // Repository badge verification
+  hasRepoBadge Boolean @default(false)
 
   // user relation
   userId String
@@ -198,6 +204,9 @@ model Project {
   
   // Chat rooms for this project
   chatRooms ChatRoom[]
+
+  // Project tags
+  projectTags ProjectTag[]
 
   @@id([projectID, userId])
 }
@@ -327,18 +336,69 @@ model ChatMessage {
   @@index([createdAt])
 }
 
+// Action message model for admin communication
 model ActionMessage {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relation to user who sent the message
-  userId String
-  user   User   @relation("sender", fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  content      String
+  createdAt    DateTime @default(now())
+  
+  // Sender (admin/reviewer)
+  userId       String
+  user         User     @relation("ActionMessageSender", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Recipient (user being messaged)
   receipientId String
-  receipient   User   @relation("recipient", fields: [receipientId], references: [id], onDelete: Cascade)
+  recipient    User     @relation("ActionMessageRecipient", fields: [receipientId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([receipientId])
+  @@index([createdAt])
+}
+
+// Tag system models
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userTags    UserTag[]
+  projectTags ProjectTag[]
+
+  @@index([name])
+}
+
+model UserTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tagId])
+  @@index([userId])
+  @@index([tagId])
+}
+
+model ProjectTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  projectID String
+  project   Project @relation(fields: [projectID], references: [projectID], onDelete: Cascade)
+  
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([projectID, tagId])
+  @@index([projectID])
+  @@index([tagId])
 }

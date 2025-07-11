@@ -23,7 +23,7 @@ export async function GET(
   try {
     const { userId } = await params;
     
-    // Fetch the specific user with their projects
+    // Fetch the specific user with their projects and tags
     const user = await prisma.user.findUnique({
       where: {
         id: userId,
@@ -47,6 +47,14 @@ export async function GET(
                 id: true
               }
             }
+          }
+        },
+        userTags: {
+          include: {
+            tag: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       },
