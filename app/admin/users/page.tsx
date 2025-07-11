@@ -120,6 +120,14 @@ function AdminUsersContent() {
           if (response.ok) {
             const data = await response.json();
             setUsers(data);
+            
+            // Update the tagManagementUser with fresh data if modal is still open
+            if (tagManagementUser) {
+              const updatedUser = data.find((user: User) => user.id === tagManagementUser.id);
+              if (updatedUser) {
+                setTagManagementUser(updatedUser);
+              }
+            }
           }
         } catch (error) {
           console.error('Error fetching users:', error);

@@ -498,6 +498,9 @@ function ReviewPage() {
   // Add filter state
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
   // Auto-enable review mode when the component mounts
   useEffect(() => {
     enableReviewMode();
@@ -510,36 +513,72 @@ function ReviewPage() {
       fetchProjectsInReview();
     }
   }, [status]);
+
+  // Fetch available tags
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setIsLoadingTags(true);
+        const response = await fetch('/api/admin/tags');
+        
+        if (response.ok) {
+          const tags = await response.json();
+          setAvailableTags(tags);
+        } else {
+          console.error('Failed to fetch tags:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      } finally {
+        setIsLoadingTags(false);
+      }
+    }
+    
+    if (status === 'authenticated') {
+      fetchTags();
+    }
+  }, [status]);
   
   // Apply filter when projects or filter changes
   useEffect(() => {
+    let filtered = projects;
+
+    // Apply text search filter
+    if (searchTerm) {
+      filtered = filtered.filter(project => 
+        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(project => 
+        selectedTags.every(selectedTagId => 
+          project.projectTags?.some(projectTag => projectTag.tag.id === selectedTagId)
+        )
+      );
+    }
+
+    // Apply review type filter
     if (activeFilter === "FraudSuspect") {
-      setFilteredProjects(projects.filter(project => 
-        project.user.status === UserStatus.FraudSuspect &&
-        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
-      ));
-      return;
-    }
-    if (activeFilter) {
-      setFilteredProjects(projects.filter(project => 
+      filtered = filtered.filter(project => 
+        project.user.status === UserStatus.FraudSuspect
+      );
+    } else if (activeFilter) {
+      filtered = filtered.filter(project => 
         (project.latestReview?.reviewType || 'Other') === activeFilter &&
-        project.user.status !== UserStatus.FraudSuspect &&
-        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
-      ));
-      
+        project.user.status !== UserStatus.FraudSuspect
+      );
     } else {
-      setFilteredProjects(projects.filter(project => 
-        project.user.status !== UserStatus.FraudSuspect &&
-        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
-      ));
+      filtered = filtered.filter(project => 
+        project.user.status !== UserStatus.FraudSuspect
+      );
     }
-  }, [projects, activeFilter, searchTerm]);
+
+    setFilteredProjects(filtered);
+  }, [projects, activeFilter, searchTerm, selectedTags]);
 
   // Close modal when escape key is pressed
   useEffect(() => {
@@ -688,6 +727,77 @@ function ReviewPage() {
               >
                 Banned Users
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tag Filter */}
+        {!isLoading && projects.length > 0 && availableTags.length > 0 && (
+          <div className="mb-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 mr-2">Filter by tags:</span>
+              {availableTags.map((tag) => {
+                const tagProjectCount = projects.filter(project =>
+                  project.projectTags?.some(projectTag => projectTag.tag.id === tag.id)
+                ).length;
+
+                if (tagProjectCount === 0) return null;
+
+                const isSelected = selectedTags.includes(tag.id);
+                
+                // Helper function to determine if a color is light/white
+                const isLightColor = (color: string) => {
+                  if (!color) return false;
+                  // Handle hex colors
+                  if (color.startsWith('#')) {
+                    const hex = color.slice(1);
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    // Calculate brightness using standard formula
+                    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                    return brightness > 200; // Threshold for "light" colors
+                  }
+                  // Handle named colors - assume white/light colors are problematic
+                  return ['white', 'lightgray', 'lightgrey', 'silver', 'whitesmoke'].includes(color.toLowerCase());
+                };
+
+                const hasValidColor = tag.color && !isLightColor(tag.color);
+
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                      } else {
+                        setSelectedTags([...selectedTags, tag.id]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                      isSelected
+                        ? hasValidColor
+                          ? `text-white border-2 border-gray-300`
+                          : 'bg-blue-600 text-white'
+                        : hasValidColor
+                          ? `text-gray-800 border border-gray-300 hover:bg-gray-100`
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                    style={isSelected && hasValidColor ? { backgroundColor: tag.color } : 
+                           !isSelected && hasValidColor ? { backgroundColor: `${tag.color}20` } : {}}
+                  >
+                    {tag.name} ({tagProjectCount})
+                  </button>
+                );
+              })}
+              {selectedTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="px-3 py-1.5 text-sm font-medium rounded-full transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 ml-2"
+                >
+                  Clear Tags
+                </button>
+              )}
             </div>
           </div>
         )}

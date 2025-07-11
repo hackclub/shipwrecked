@@ -13,6 +13,7 @@ import AddLinkModal from '@/components/admin/AddLinkModal';
 import UnlinkModal from '@/components/admin/UnlinkModal';
 import DeleteModal from '@/components/admin/DeleteModal';
 import SendModal from '@/app/components/communication/sendModal';
+import TagManagement from '@/components/common/TagManagement';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,21 @@ interface User {
   name: string | null;
   email: string | null;
   image: string | null;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+}
+
+interface ProjectTag {
+  id: string;
+  tagId: string;
+  createdAt: string;
+  tag: Tag;
 }
 
 interface Project {
@@ -39,6 +55,7 @@ interface Project {
   reviews: { id: string }[];
   rawHours: number;
   hackatimeLinks: { id: string; hackatimeName: string; rawHours: number; hoursOverride?: number }[];
+  projectTags?: ProjectTag[];
 }
 
 // Type for form state
@@ -71,6 +88,9 @@ function AdminProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -106,6 +126,10 @@ function AdminProjectsContent() {
   const [newHackatimeName, setNewHackatimeName] = useState('');
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<string[]>([]);
+  
+  // State for tag management
+  const [tagManagementProject, setTagManagementProject] = useState<Project | null>(null);
+  const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
   
   // Get the current filter from URL
   const currentFilter = searchParams.get('filter') || 'all';
@@ -241,12 +265,46 @@ function AdminProjectsContent() {
     };
   }, [status, currentFilter, selectedProjectId]);
 
-  // Filter projects based on search term
-  const filteredProjects = projects.filter(project => 
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  // Fetch available tags
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setIsLoadingTags(true);
+        const response = await fetch('/api/admin/tags');
+        
+        if (response.ok) {
+          const tags = await response.json();
+          setAvailableTags(tags);
+        } else {
+          console.error('Failed to fetch tags:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      } finally {
+        setIsLoadingTags(false);
+      }
+    }
+    
+    if (status === 'authenticated') {
+      fetchTags();
+    }
+  }, [status]);
+
+  // Filter projects based on search term and tags
+  const filteredProjects = projects.filter(project => {
+    // Text search filter
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    
+    // Tag filter
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.every(selectedTagId => 
+                         project.projectTags?.some(projectTag => projectTag.tag.id === selectedTagId)
+                       );
+    
+    return matchesSearch && matchesTags;
+  });
   
   // Calculate total effective hours and raw hours of filtered projects
   const totalEffectiveHours = filteredProjects.reduce((total, project) => {
@@ -551,6 +609,55 @@ function AdminProjectsContent() {
     }
   };
 
+  // Tag management functions
+  const openTagManagement = (project: Project) => {
+    setTagManagementProject(project);
+    setIsTagManagementOpen(true);
+  };
+
+  const closeTagManagement = () => {
+    setTagManagementProject(null);
+    setIsTagManagementOpen(false);
+  };
+
+  const handleTagsUpdated = () => {
+    // Refresh projects list to get updated tags
+    if (status === 'authenticated') {
+      async function fetchProjects() {
+        try {
+          const url = currentFilter === 'all' 
+            ? '/api/admin/projects' 
+            : `/api/admin/projects?filter=${currentFilter}`;
+            
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            setProjects(data);
+            
+            // Update the tagManagementProject with fresh data if modal is still open
+            if (tagManagementProject) {
+              const updatedProject = data.find((project: Project) => project.projectID === tagManagementProject.projectID);
+              if (updatedProject) {
+                setTagManagementProject(updatedProject);
+              }
+            }
+            
+            // Update the selectedProject with fresh data if it exists
+            if (selectedProject) {
+              const updatedSelectedProject = data.find((project: Project) => project.projectID === selectedProject.projectID);
+              if (updatedSelectedProject) {
+                setSelectedProject(updatedSelectedProject);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+        }
+      }
+      fetchProjects();
+    }
+  };
+
   if (status !== 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -622,6 +729,77 @@ function AdminProjectsContent() {
               Viral
             </button>
           </div>
+
+          {/* Tag Filter */}
+          {availableTags.length > 0 && (
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-gray-700 mr-2">Filter by tags:</span>
+                {availableTags.map((tag) => {
+                  const tagProjectCount = projects.filter(project =>
+                    project.projectTags?.some(projectTag => projectTag.tag.id === tag.id)
+                  ).length;
+
+                  if (tagProjectCount === 0) return null;
+
+                  const isSelected = selectedTags.includes(tag.id);
+                  
+                  // Helper function to determine if a color is light/white
+                  const isLightColor = (color: string) => {
+                    if (!color) return false;
+                    // Handle hex colors
+                    if (color.startsWith('#')) {
+                      const hex = color.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      // Calculate brightness using standard formula
+                      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                      return brightness > 200; // Threshold for "light" colors
+                    }
+                    // Handle named colors - assume white/light colors are problematic
+                    return ['white', 'lightgray', 'lightgrey', 'silver', 'whitesmoke'].includes(color.toLowerCase());
+                  };
+
+                  const hasValidColor = tag.color && !isLightColor(tag.color);
+
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                        } else {
+                          setSelectedTags([...selectedTags, tag.id]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                        isSelected
+                          ? hasValidColor
+                            ? `text-white border-2 border-gray-300`
+                            : 'bg-blue-600 text-white'
+                          : hasValidColor
+                            ? `text-gray-800 border border-gray-300 hover:bg-gray-100`
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                      style={isSelected && hasValidColor ? { backgroundColor: tag.color } : 
+                             !isSelected && hasValidColor ? { backgroundColor: `${tag.color}20` } : {}}
+                    >
+                      {tag.name} ({tagProjectCount})
+                    </button>
+                  );
+                })}
+                {selectedTags.length > 0 && (
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    className="px-3 py-1.5 text-sm font-medium rounded-full transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 ml-2"
+                  >
+                    Clear Tags
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           
           <div className="relative">
             <input
@@ -677,6 +855,64 @@ function AdminProjectsContent() {
                         <StatusBadge project={project} />
                       </div>
                       <p className="text-gray-600 text-xs line-clamp-1 mb-1">{project.description}</p>
+                      
+                      {/* Project Tags */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-wrap gap-1 flex-1">
+                          {project.projectTags && project.projectTags.length > 0 ? (
+                            project.projectTags.map((projectTag) => {
+                              // Helper function to determine if a color is light/white
+                              const isLightColor = (color: string) => {
+                                if (!color) return false;
+                                // Handle hex colors
+                                if (color.startsWith('#')) {
+                                  const hex = color.slice(1);
+                                  const r = parseInt(hex.substr(0, 2), 16);
+                                  const g = parseInt(hex.substr(2, 2), 16);
+                                  const b = parseInt(hex.substr(4, 2), 16);
+                                  // Calculate brightness using standard formula
+                                  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                                  return brightness > 200; // Threshold for "light" colors
+                                }
+                                // Handle named colors - assume white/light colors are problematic
+                                return ['white', 'lightgray', 'lightgrey', 'silver', 'whitesmoke'].includes(color.toLowerCase());
+                              };
+
+                              const hasValidColor = projectTag.tag.color && !isLightColor(projectTag.tag.color);
+
+                              return (
+                                <span
+                                  key={projectTag.id}
+                                  className="inline-flex items-center px-2 py-0.5 text-xs rounded-full border"
+                                  style={{
+                                    backgroundColor: hasValidColor ? `${projectTag.tag.color}20` : '#f3f4f6',
+                                    borderColor: hasValidColor ? projectTag.tag.color : '#d1d5db',
+                                    color: hasValidColor ? projectTag.tag.color : '#374151'
+                                  }}
+                                  title={`${projectTag.tag.name}${projectTag.tag.description ? ': ' + projectTag.tag.description : ''}`}
+                                >
+                                  {projectTag.tag.name}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span className="text-gray-400 text-xs">No tags</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTagManagement(project);
+                          }}
+                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors ml-2"
+                          title="Manage tags"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </button>
+                      </div>
+                      
                       <div className="flex justify-between items-center">
                         <div className="flex items-center">
 
@@ -1431,6 +1667,25 @@ function AdminProjectsContent() {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Tag Management Modal */}
+      {isTagManagementOpen && tagManagementProject && (
+        <Modal 
+          isOpen={isTagManagementOpen}
+          onClose={closeTagManagement}
+          title={`Manage Tags for ${tagManagementProject.name || 'Project'}`}
+        >
+          <TagManagement
+            entityType="project"
+            entityId={tagManagementProject.projectID}
+            entityName={tagManagementProject.name}
+            currentTags={tagManagementProject.projectTags || []}
+            onTagsUpdated={handleTagsUpdated}
+            showTitle={false}
+            compact={false}
+          />
+        </Modal>
       )}
       
       <Toaster richColors />

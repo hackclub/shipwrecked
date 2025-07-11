@@ -11,10 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check for admin role or isAdmin flag
+    // Check for admin or reviewer role
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    const isReviewer = session.user.role === 'Reviewer';
+    
+    if (!isAdmin && !isReviewer) {
+      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
     }
 
     // Fetch all tags ordered by name
