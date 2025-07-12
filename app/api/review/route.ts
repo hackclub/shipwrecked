@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
       where: {
         in_review: true,
       },
+      orderBy: {
+        createdAt: 'asc',
+      },
       include: {
         user: {
           select: {
