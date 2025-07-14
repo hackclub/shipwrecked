@@ -2,30 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
-import yaml from 'js-yaml';
-import fs from 'fs';
-import path from 'path';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
 import { calculateProgressMetrics } from '@/lib/project-client';
-
-interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  image?: string;
-  price: number;
-  config?: {
-    progress_per_hour?: number;
-    dollars_per_hour?: number;
-  };
-}
-
-function getShopItems(): ShopItem[] {
-  const filePath = path.join(process.cwd(), 'app/bay/shop-items.yaml');
-  const fileContents = fs.readFileSync(filePath, 'utf8');
-  const data = yaml.load(fileContents) as { items: ShopItem[] };
-  return data.items || [];
-}
 
 async function getUserShellBalance(userId: string): Promise<number> {
   // Get user with totalShellsSpent
@@ -80,9 +58,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Identity verification required' }, { status: 403 });
     }
 
-    // Get shop item
-    const shopItems = getShopItems();
-    const item = shopItems.find(i => i.id === itemId);
+    // Get shop item from database
+    const item = await prisma.shopItem.findFirst({
+      where: { 
+        id: itemId,
+        active: true 
+      },
+    });
+    
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
@@ -99,6 +82,24 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Prepare order config for dynamic items
+    function safeConfigObject(config: any) {
+      return (config && typeof config === 'object' && !Array.isArray(config)) ? config : {};
+    }
+    let orderConfig = item.config || undefined;
+    if (item.costType === 'config') {
+      if (item.name.toLowerCase().includes('travel stipend')) {
+        // For travel stipend, store hours (default to quantity)
+        orderConfig = { ...safeConfigObject(item.config), hours: quantity };
+      } else if (item.name.toLowerCase().includes('progress')) {
+        // For island progress, store percent (quantity * progress_per_hour)
+        const progressPerHour = (safeConfigObject(item.config).progress_per_hour ?? 0);
+        const percent = quantity * progressPerHour;
+        orderConfig = { ...safeConfigObject(item.config), percent };
+      }
+      // Add more dynamic item types as needed
+    }
+
     // Create shop order
     const order = await prisma.shopOrder.create({
       data: {
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
         itemName: item.name,
         price: totalPrice,
         quantity,
-        config: item.config,
+        config: orderConfig,
       },
     });
 

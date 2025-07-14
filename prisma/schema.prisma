@@ -430,3 +430,31 @@ model ShopOrder {
   @@index([userId])
   @@index([status])
 }
+
+enum ShopItemCostType {
+  fixed
+  config
+}
+
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  image       String?
+  price       Int
+  usdCost     Float    @default(0) // USD cost per unit (required for all items)
+  costType    ShopItemCostType @default(fixed) // 'fixed' or 'config'
+  active      Boolean  @default(true)
+  config      Json?    // Item-specific configuration (progress_per_hour, dollars_per_hour, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+}
+
+model GlobalConfig {
+  id    String @id @default("global")
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt
+}
