@@ -35,6 +35,15 @@ export default function ProjectReviewRequest({
   const [comment, setComment] = useState('');
   const [reviewType, setReviewType] = useState<ReviewRequestType>(isShipped ? 'HoursApproval' : 'ShippedApproval');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Checklist state
+  const [checklist, setChecklist] = useState({
+    codeComplete: false,
+    easyToRun: false,
+    experienceableBuild: false,
+    wellDocumented: false,
+    polished: false
+  });
 
   // Effect to update default reviewType when isShipped or isViral changes
   useEffect(() => {
@@ -75,6 +84,13 @@ export default function ProjectReviewRequest({
       toast.error('Please specify what you need reviewed');
       return;
     }
+
+    // Check if all checklist items are completed
+    const allChecklistComplete = Object.values(checklist).every(checked => checked);
+    if (!allChecklistComplete) {
+      toast.error('Please complete all checklist items before submitting');
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -99,6 +115,14 @@ export default function ProjectReviewRequest({
       
       // Clear the form
       setComment('');
+      // Reset checklist
+      setChecklist({
+        codeComplete: false,
+        easyToRun: false,
+        experienceableBuild: false,
+        wellDocumented: false,
+        polished: false
+      });
       
       // Notify parent component
       onRequestSubmitted(data.project, data.review);
@@ -109,6 +133,17 @@ export default function ProjectReviewRequest({
       setIsSubmitting(false);
     }
   };
+
+  // Helper function to handle checklist changes
+  const handleChecklistChange = (key: keyof typeof checklist) => {
+    setChecklist(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Check if all checklist items are completed
+  const allChecklistComplete = Object.values(checklist).every(checked => checked);
 
   // Helper text based on selected review type
   const getPlaceholderText = () => {
@@ -171,10 +206,88 @@ export default function ProjectReviewRequest({
             required
           />
         </div>
+
+        {/* Pre-submission Checklist */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Pre-submission Checklist*
+          </label>
+          <div className="space-y-2 bg-white p-3 rounded border border-gray-200">
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="codeComplete"
+                checked={checklist.codeComplete}
+                onChange={() => handleChecklistChange('codeComplete')}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="codeComplete" className="text-sm text-gray-700">
+                ✅ Code is complete and functional — Project runs as described after setup, with all core features working (e.g., login flow, interactivity).
+              </label>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="easyToRun"
+                checked={checklist.easyToRun}
+                onChange={() => handleChecklistChange('easyToRun')}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="easyToRun" className="text-sm text-gray-700">
+                📦 Easy to run locally — Clear, working setup instructions (&lt;2 min) with no need for guessing or extra troubleshooting beyond documented steps in the readme.
+              </label>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="experienceableBuild"
+                checked={checklist.experienceableBuild}
+                onChange={() => handleChecklistChange('experienceableBuild')}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="experienceableBuild" className="text-sm text-gray-700">
+                🌐 Experienceable build — Live site, working APK/TestFlight, or other runnable build exists (videos alone are not acceptable unless explicitly approved).
+              </label>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="wellDocumented"
+                checked={checklist.wellDocumented}
+                onChange={() => handleChecklistChange('wellDocumented')}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="wellDocumented" className="text-sm text-gray-700">
+                📄 Well-documented — README clearly explains what the project does, how to run it, and includes working screenshots and links.
+              </label>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="polished"
+                checked={checklist.polished}
+                onChange={() => handleChecklistChange('polished')}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="polished" className="text-sm text-gray-700">
+                🧹 Polished and presentable — No major bugs or visual issues; looks intentional and ready for others to experience.
+              </label>
+            </div>
+          </div>
+        </div>
         
         <button
           type="submit"
-          disabled={isSubmitting || !comment.trim()}
+          disabled={isSubmitting || !comment.trim() || !allChecklistComplete}
           className="w-full px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting ? 'Submitting...' : 'Submit for Review'}
