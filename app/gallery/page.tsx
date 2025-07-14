@@ -10,6 +10,7 @@ import Toast from '@/components/common/Toast';
 import Image from 'next/image';
 import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
+import { ensureHttps } from '@/lib/utils';
 
 // Dynamically import the chat modal to avoid SSR issues with socket.io
 const ProjectChatModal = dynamic(() => import('@/components/common/ProjectChatModal'), {
@@ -534,7 +535,7 @@ export default function Gallery() {
                   <div className="flex flex-wrap gap-2 mb-3">
                     {project.codeUrl && (
                       <a 
-                        href={project.codeUrl} 
+                        href={ensureHttps(project.codeUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
@@ -545,7 +546,7 @@ export default function Gallery() {
                     )}
                     {project.playableUrl && (
                       <a 
-                        href={project.playableUrl} 
+                        href={ensureHttps(project.playableUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"

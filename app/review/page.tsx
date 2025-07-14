@@ -16,6 +16,7 @@ import UserCategoryBadge from '@/components/common/UserCategoryBadge';
 import TagManagement from '@/components/common/TagManagement';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
+import { ensureHttps } from '@/lib/utils';
 
 // Custom CSS for static glow effect
 const glowStyles = `
@@ -455,7 +456,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             <div className="flex flex-col gap-2">
               {project.codeUrl && (
                 <a 
-                  href={project.codeUrl} 
+                  href={ensureHttps(project.codeUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
@@ -466,7 +467,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               )}
               {project.playableUrl && (
                 <a 
-                  href={project.playableUrl} 
+                  href={ensureHttps(project.playableUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"

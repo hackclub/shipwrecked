@@ -27,8 +27,8 @@ import ProjectReviewRequest from '@/components/common/ProjectReviewRequest';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
 import CompleteReviewForm from '@/components/common/CompleteReviewForm';
 import ProjectMetadataWarning from '@/components/common/ProjectMetadataWarning';
+import { ensureHttps } from '@/lib/utils';
 import IDPopup from '@/app/components/identity/IDPopup';
-
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
@@ -424,7 +424,7 @@ function ProjectDetail({
             <div className="flex flex-col gap-2">
               {project.codeUrl && (
                 <a 
-                  href={project.codeUrl} 
+                  href={ensureHttps(project.codeUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
@@ -435,7 +435,7 @@ function ProjectDetail({
               )}
               {project.playableUrl && (
                 <a 
-                  href={project.playableUrl} 
+                  href={ensureHttps(project.playableUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
