@@ -104,3 +104,68 @@ p {
 .percentage-animated {
   animation: percentagePulse 1.5s ease-in-out;
 }
+
+/* AI Analysis Markdown Styling */
+.ai-analysis-content {
+  line-height: 1.6;
+}
+
+.ai-analysis-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.ai-analysis-content li {
+  margin: 0.25rem 0;
+}
+
+.ai-analysis-content p {
+  margin: 0.5rem 0;
+}
+
+.ai-analysis-content strong {
+  font-weight: 600;
+  color: #374151;
+}
+
+.ai-analysis-content em {
+  font-style: italic;
+}
+
+.ai-analysis-content h1,
+.ai-analysis-content h2,
+.ai-analysis-content h3,
+.ai-analysis-content h4,
+.ai-analysis-content h5,
+.ai-analysis-content h6 {
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+  color: #374151;
+}
+
+.ai-analysis-content h1 { font-size: 1.5rem; }
+.ai-analysis-content h2 { font-size: 1.25rem; }
+.ai-analysis-content h3 { font-size: 1.125rem; }
+.ai-analysis-content h4 { font-size: 1rem; }
+
+.ai-analysis-content code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.ai-analysis-content pre {
+  background-color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.ai-analysis-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
