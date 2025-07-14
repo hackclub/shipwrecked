@@ -130,7 +130,7 @@ export async function GET() {
         userImage: project.user?.image || null,
         userHackatimeId: project.user?.hackatimeId || null,
         latestReview,
-        reviewCount: project.reviews?.length || 0,
+        reviewCount: project.reviews?.filter((review: { reviewerId: string }) => review.reviewerId === project.userId).length || 0,
         rawHours: rawHours,
         ownerApprovedHours: userProjectsMap[project.userId] || 0,
       };

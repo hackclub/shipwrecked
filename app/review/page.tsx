@@ -299,7 +299,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                   src="/thisisfine.gif" 
                   alt="This is fine - many reviews" 
                   className="w-6 h-6"
-                  title={`This project has ${project.reviewCount} replies on the review thread. Be cautious!`}
+                  title={`This project has ${project.reviewCount} reviews on the review thread. Be cautious!`}
                 />
               )}
             </div>
@@ -442,7 +442,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   className="w-10 h-10"
                 />
                 <span className="text-sm text-orange-600 font-medium">
-                  {project.reviewCount} replies on the review thread. Be cautious!
+                  {project.reviewCount} reviews on the review thread. Be cautious!
                 </span>
               </div>
             )}
