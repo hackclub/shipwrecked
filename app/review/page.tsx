@@ -16,6 +16,7 @@ import UserCategoryBadge from '@/components/common/UserCategoryBadge';
 import TagManagement from '@/components/common/TagManagement';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 // Custom CSS for static glow effect
 const glowStyles = `
@@ -130,6 +131,12 @@ interface ProjectTag {
   tagId: string;
   createdAt: string;
   tag: Tag;
+}
+
+interface AIAnalysis {
+  summary: string;
+  setupInstructions: string;
+  error?: string;
 }
 
 interface Project {
@@ -310,6 +317,118 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   );
 }
 
+function AIAnalysisSection({ project }: { project: Project }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [analysisData, setAnalysisData] = useState<AIAnalysis | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const fetchAnalysis = async () => {
+    if (hasLoaded || !project.codeUrl) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/review/ai-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          githubUrl: project.codeUrl
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analysis');
+      }
+
+      const data = await response.json();
+      setAnalysisData(data);
+      setHasLoaded(true);
+    } catch (error) {
+      console.error('Error fetching AI analysis:', error);
+      setAnalysisData({
+        summary: '',
+        setupInstructions: '',
+        error: error instanceof Error ? error.message : 'Failed to load analysis'
+      });
+      setHasLoaded(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded && !hasLoaded) {
+      fetchAnalysis();
+    }
+  };
+
+  // Don't show if there's no GitHub URL
+  if (!project.codeUrl) {
+    return null;
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-lg overflow-hidden">
+      <button
+        onClick={handleToggle}
+        className="w-full p-4 text-left flex items-center justify-between hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon glyph="analytics" size={16} />
+          <h3 className="text-sm font-medium text-gray-700">AI Project Analysis</h3>
+        </div>
+        <Icon 
+          glyph={isExpanded ? "view-close" : "view-forward"} 
+          size={16} 
+          className="text-gray-500" 
+        />
+      </button>
+      
+      {isExpanded && (
+        <div className="px-4 pb-4">
+          {isLoading && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm">Analyzing project...</span>
+            </div>
+          )}
+          
+          {analysisData?.error && (
+            <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
+              Error: {analysisData.error}
+            </div>
+          )}
+          
+          {analysisData && !analysisData.error && (
+            <div className="space-y-4">
+              {analysisData.summary && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Project Summary</h4>
+                  <div className="bg-white p-3 rounded border prose prose-sm max-w-none ai-analysis-content">
+                    <ReactMarkdown>{analysisData.summary}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+              
+              {analysisData.setupInstructions && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Setup Instructions</h4>
+                  <div className="bg-white p-3 rounded border prose prose-sm max-w-none ai-analysis-content">
+                    <ReactMarkdown>{analysisData.setupInstructions}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjectDetail({ project, onClose, onReviewSubmitted }: { 
   project: Project; 
   onClose: () => void;
@@ -394,7 +513,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             </div>
             <UserCategoryBadge 
               userId={project.userId} 
-              hackatimeId={project.userHackatimeId} 
+              hackatimeId={project.userHackatimeId || undefined} 
               size="small" 
               showMetrics={true} 
             />
@@ -556,6 +675,9 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             hackatimeLinks={project.hackatimeLinks}
           />
         </div>
+
+        {/* AI Analysis Section */}
+        <AIAnalysisSection project={project} />
       </div>
     </div>
   );
