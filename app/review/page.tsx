@@ -472,6 +472,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
         <div className="bg-gray-50 p-4 rounded-lg">
           <ReviewSection 
             projectID={project.projectID} 
+            projectOwnerUserId={project.userId}
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
             rawHours={project.rawHours}

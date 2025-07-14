@@ -60,7 +60,7 @@ export default function HackatimeLanguageStats({ className = '', userId, project
 
     // Don't fetch if no userId is provided
     if (!userId) {
-      setError('No user specified');
+      setError('User ID not available');
       return;
     }
 
@@ -161,7 +161,7 @@ export default function HackatimeLanguageStats({ className = '', userId, project
             {isLoading 
               ? 'Loading...' 
               : !userId 
-                ? 'No user specified' 
+                ? 'User data unavailable' 
                 : projectNames && projectNames.length > 0
                   ? `View Language Stats (${projectNames.length} projects)`
                   : 'View Language Stats'
