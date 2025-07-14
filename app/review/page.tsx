@@ -198,6 +198,20 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   const reviewType = project.latestReview?.reviewType || 'Other';
   const { label, color } = reviewTypeLabels[reviewType] || reviewTypeLabels.Other;
 
+  // Calculate days in review
+  const calculateDaysInReview = () => {
+    if (!project.latestReview?.createdAt) return null;
+    
+    const reviewDate = new Date(project.latestReview.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  const daysInReview = calculateDaysInReview();
+
   return (
     <div 
       className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
@@ -263,7 +277,21 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
             <span className="text-xs text-gray-600">{project.userName}</span>
           </div>
           
-          <div className="text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            {daysInReview !== null && (
+              <div className="flex items-center gap-1">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  daysInReview <= 1 ? 'bg-green-100 text-green-800' :
+                  daysInReview <= 3 ? 'bg-yellow-100 text-yellow-800' :
+                  daysInReview <= 7 ? 'bg-orange-100 text-orange-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {daysInReview === 0 ? 'Today' : 
+                   daysInReview === 1 ? '1 day' : 
+                   `${daysInReview} days`}
+                </span>
+              </div>
+            )}
             <span>Reviews: {project.reviewCount}</span>
           </div>
         </div>
@@ -277,10 +305,22 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
   onClose: () => void;
   onReviewSubmitted: () => void;
 }) {
-  const { isReviewMode } = useReviewMode();
-  
   // Add debugging
   console.log('ProjectDetail selected project:', project);
+  
+  // Calculate days in review
+  const calculateDaysInReview = () => {
+    if (!project.latestReview?.createdAt) return null;
+    
+    const reviewDate = new Date(project.latestReview.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  const daysInReview = calculateDaysInReview();
   
   const [projectFlags, setProjectFlags] = useState({
     shipped: !!project.shipped,
@@ -370,6 +410,20 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
               shipped={projectFlags.shipped} 
               in_review={projectFlags.in_review}
             />
+            {daysInReview !== null && (
+              <div className="mt-3 flex justify-center">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  daysInReview <= 1 ? 'bg-green-100 text-green-800' :
+                  daysInReview <= 3 ? 'bg-yellow-100 text-yellow-800' :
+                  daysInReview <= 7 ? 'bg-orange-100 text-orange-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  🕒 {daysInReview === 0 ? 'Submitted today' : 
+                      daysInReview === 1 ? 'In review for 1 day' : 
+                      `In review for ${daysInReview} days`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         
