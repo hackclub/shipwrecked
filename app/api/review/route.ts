@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { opts } from '../auth/[...nextauth]/route';
 
 // GET all projects that are in review (from all users)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check for valid session - user must be logged in but doesn't need to be the project owner
     const session = await getServerSession(opts);
@@ -136,7 +136,24 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(formattedProjects);
+    // Sort projects by latest review creation date (oldest first - earliest submitted for review)
+    // Projects without reviews will be sorted to the end
+    const sortedProjects = formattedProjects.sort((a, b) => {
+      const aReviewDate = a.latestReview?.createdAt;
+      const bReviewDate = b.latestReview?.createdAt;
+      
+      // If neither has reviews, maintain original order
+      if (!aReviewDate && !bReviewDate) return 0;
+      
+      // Projects without reviews go to the end
+      if (!aReviewDate) return 1;
+      if (!bReviewDate) return -1;
+      
+      // Sort by date (oldest first)
+      return new Date(aReviewDate).getTime() - new Date(bReviewDate).getTime();
+    });
+
+    return NextResponse.json(sortedProjects);
   } catch (error) {
     console.error('Error fetching projects in review:', error);
     return NextResponse.json(
