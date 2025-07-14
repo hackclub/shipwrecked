@@ -292,7 +292,17 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                 </span>
               </div>
             )}
-            <span>Reviews: {project.reviewCount}</span>
+            <div className="flex items-center gap-1">
+              <span>Reviews: {project.reviewCount}</span>
+              {project.reviewCount >= 5 && (
+                <img 
+                  src="/thisisfine.gif" 
+                  alt="This is fine - many reviews" 
+                  className="w-6 h-6"
+                  title={`This project has ${project.reviewCount} replies on the review thread. Be cautious!`}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -421,6 +431,18 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   🕒 {daysInReview === 0 ? 'Submitted today' : 
                       daysInReview === 1 ? 'In review for 1 day' : 
                       `In review for ${daysInReview} days`}
+                </span>
+              </div>
+            )}
+            {project.reviewCount >= 5 && (
+              <div className="mt-3 flex justify-center items-center gap-2">
+                <img 
+                  src="/thisisfine.gif" 
+                  alt="This is fine - many reviews" 
+                  className="w-10 h-10"
+                />
+                <span className="text-sm text-orange-600 font-medium">
+                  {project.reviewCount} replies on the review thread. Be cautious!
                 </span>
               </div>
             )}
