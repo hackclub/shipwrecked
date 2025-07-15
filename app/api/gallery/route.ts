@@ -33,7 +33,8 @@ export async function GET(request: Request) {
           select: {
             name: true,
             slack: true,
-            image: true
+            image: true,
+            hackatimeId: true
           }
         },
         _count: {

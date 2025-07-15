@@ -54,3 +54,17 @@ export interface HacaktimeMostRecentHeartbeat {
   has_heartbeat: boolean,
   heartbeat: unknown
 }
+
+export interface HackatimeTrustData {
+  trust_level: string;
+  suspected: boolean;
+  banned: boolean;
+  admin_level: string;
+  stats: {
+    total_heartbeats: number;
+    total_coding_time: number;
+    languages_used: number;
+    projects_worked_on: number;
+    days_active: number;
+  };
+}
