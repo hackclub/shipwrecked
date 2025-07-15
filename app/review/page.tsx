@@ -404,6 +404,16 @@ function AIAnalysisSection({ project }: { project: Project }) {
           
           {analysisData && !analysisData.error && (
             <div className="space-y-4">
+              {/* AI Warning */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                <div className="flex items-center gap-2">
+                  <Icon glyph="important" size={16} className="text-yellow-600" />
+                  <span className="text-sm text-yellow-800 font-medium">
+                    This content was AI generated. AI is occasionally wrong.
+                  </span>
+                </div>
+              </div>
+              
               {analysisData.summary && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Project Summary</h4>
