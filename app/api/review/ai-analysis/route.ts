@@ -13,6 +13,21 @@ interface AIAnalysisResult {
   error?: string;
 }
 
+function cleanupMarkdown(content: string): string {
+  //temp testing
+  // Convert • bullets to proper markdown bullets
+  // content = content.replace(/^•\s+/gm, '- ');
+  
+  // // Convert numbered bullet points like "1." to markdown bullets
+  // content = content.replace(/^\d+\.\s+/gm, '- ');
+  
+  // // Ensure proper spacing after bullets
+  // content = content.replace(/^-\s*/gm, '- ');
+  // content = content.replace(/^\*\s*/gm, '- ');
+  
+  return content.trim();
+}
+
 async function fetchReadmeFromGitHub(githubUrl: string): Promise<string> {
   // Parse GitHub URL to extract owner and repo
   const match = githubUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
@@ -57,7 +72,7 @@ async function summarizeProject(readmeContent: string): Promise<string> {
     "messages": [
       {
         "role": "system",
-        "content": "You are an assistant that summarizes GitHub projects for human reviewers. Extract the main goals and key features of the project from the README content. Provide exactly 5 bullet points that are concise and informative, focusing on what the project does, its main functionality, and key features. Each bullet should be 1-2 sentences maximum. This summary is for a human reviewer to quickly understand the project's purpose and capabilities. You're not selling a product, just summarizing the project for quality assessment. Keep it simple and unbiased so the reviewer can focus on quality testing the project. Only talk about the 5 most important features to keep it digestible and focused."
+        "content": "You are an assistant that summarizes GitHub projects for human reviewers. Extract the main goals and key features of the project from the README content. Provide exactly 5 bullet points in proper markdown format using - or * for bullets. Each bullet should be 1-2 sentences maximum and focus on what the project does, its main functionality, and key features. This summary is for a human reviewer to quickly understand the project's purpose and capabilities. You're not selling a product, just summarizing the project for quality assessment. Keep it simple and unbiased so the reviewer can focus on quality testing the project. Only talk about the 5 most important features to keep it digestible and focused. Use proper markdown formatting with - or * for bullet points, **bold** for emphasis, and `code` for technical terms."
       },
       {
         "role": "user",
@@ -72,7 +87,8 @@ async function summarizeProject(readmeContent: string): Promise<string> {
     "stop": null
   });
 
-  return chatCompletion.choices[0]?.message?.content || '';
+  const rawContent = chatCompletion.choices[0]?.message?.content || '';
+  return cleanupMarkdown(rawContent);
 }
 
 async function extractSetupInstructions(readmeContent: string): Promise<string> {
@@ -99,7 +115,8 @@ async function extractSetupInstructions(readmeContent: string): Promise<string> 
     "stop": null
   });
 
-  return chatCompletion.choices[0]?.message?.content || '';
+  const rawContent = chatCompletion.choices[0]?.message?.content || '';
+  return cleanupMarkdown(rawContent);
 }
 
 export async function POST(request: Request) {
