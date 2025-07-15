@@ -40,6 +40,16 @@ Before Shipwrecked, participants earn their spot through "The Bay" - a 3-month o
 
    This ensures that both the development server and any scripts directly reference the same environment file.
 
+### Required Environment Variables
+
+The application requires several environment variables to function properly:
+
+- `HACKATIME_API_TOKEN`: Standard Hackatime API token for user data and project information
+- `HACKATIME_ADMIN_TOKEN`: Admin-level Hackatime API token for accessing trust level data (required for reviewers/admins)
+- `SUPERADMIN_PASSWORD`: Password for super admin access (see Super Admin Access section)
+
+For a complete list of required environment variables, check the codebase for variables prefixed with `process.env.`
+
 ### Super Admin Access
 
 The application includes a special Super Admin feature that allows granting administrator privileges to users by visiting `/superadmin` and entering a password.

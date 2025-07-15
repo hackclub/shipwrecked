@@ -14,6 +14,7 @@ import ProjectHistogramChart from '@/components/common/ProjectHistogramChart';
 import UserClusterChart from '@/components/common/UserClusterChart';
 import UserCategoryBadge from '@/components/common/UserCategoryBadge';
 import TagManagement from '@/components/common/TagManagement';
+import TrustStats from '@/components/common/TrustStats';
 import { useMDXComponents } from '@/mdx-components';
 import { lazy, Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -282,6 +283,16 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
               </div>
             )}
             <span className="text-xs text-gray-600">{project.userName}</span>
+            {project.userHackatimeId && (
+              <div className="ml-2">
+                <TrustStats 
+                  hackatimeId={project.userHackatimeId} 
+                  userName={project.userName || 'User'} 
+                  size="sm" 
+                  showStats={true} 
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -519,7 +530,19 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   </span>
                 </div>
               )}
-              <span className="text-sm">{project.userName}</span>
+              <div className="flex flex-col">
+                <span className="text-sm">{project.userName}</span>
+                {project.userHackatimeId && (
+                  <div className="mt-1">
+                    <TrustStats 
+                      hackatimeId={project.userHackatimeId} 
+                      userName={project.userName || 'User'} 
+                      size="md" 
+                      showStats={true} 
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <UserCategoryBadge 
               userId={project.userId} 
