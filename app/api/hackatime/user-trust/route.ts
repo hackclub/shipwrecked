@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { opts } from '../../auth/[...nextauth]/route';
 
 const HACKATIME_ADMIN_TOKEN = process.env.HACKATIME_ADMIN_TOKEN;
+const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYPASS_TOKEN;
 
 interface HackatimeTrustData {
   user: {
@@ -70,6 +71,7 @@ export async function GET(request: Request) {
     const response = await fetch(uri, {
       headers: {
         'Authorization': `Bearer ${HACKATIME_ADMIN_TOKEN}`,
+        'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
       }
     });
 
