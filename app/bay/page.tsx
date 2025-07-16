@@ -28,6 +28,7 @@ import ImageWithFallback from '@/components/common/ImageWithFallback';
 import CompleteReviewForm from '@/components/common/CompleteReviewForm';
 import ProjectMetadataWarning from '@/components/common/ProjectMetadataWarning';
 import IDPopup from '@/app/components/identity/IDPopup';
+import PendingOrders from '@/components/common/PendingOrders';
 
 
 // Force dynamic rendering to prevent prerendering errors during build
@@ -534,6 +535,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       const userData = await user.json();
       const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
       if (userData?.identityToken || isAdmin) {
+        if (!response.ok) {
+          return;
+        }
         const data = await response.json();
         if (data?.verification_status === 'verified' || data?.verification_status === 'pending' || isAdmin) {
           setShowIdentityPopup(false);
@@ -575,6 +579,13 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   
   // Extract percentage separately to avoid object reference issues
   const percentage = useMemo(() => progressMetrics.totalPercentage, [progressMetrics.totalPercentage]);
+
+  // Shell balance state
+  const [shellBalance, setShellBalance] = useState<number | null>(null);
+  const [shellBalanceLoading, setShellBalanceLoading] = useState(true);
+  
+  // Progress data state
+  const [progressData, setProgressData] = useState<any>(null);
 
   // Animation state for clamshell value and percentage
   const [animatedClamshells, setAnimatedClamshells] = useState(0);
@@ -636,6 +647,33 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
     animationRef.current = requestAnimationFrame(animateValue);
   }, []);
+
+  // Fetch shell balance and progress data
+  useEffect(() => {
+    const fetchShellBalance = async () => {
+      if (!session?.user?.id) {
+        setShellBalanceLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users/me/shells');
+        if (response.ok) {
+          const data = await response.json();
+          setShellBalance(data.shells);
+          setProgressData(data.progress);
+        } else {
+          console.error('Failed to fetch shell balance');
+        }
+      } catch (error) {
+        console.error('Error fetching shell balance:', error);
+      } finally {
+        setShellBalanceLoading(false);
+      }
+    };
+
+    fetchShellBalance();
+  }, [session?.user?.id]);
 
   // Watch for currency and percentage changes and trigger animation
   useEffect(() => {
@@ -936,6 +974,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
     const viralPercentage = (metrics.viralHours / 60) * 100;
     const otherPercentage = (metrics.otherHours / 60) * 100;
     
+    // Get purchased progress percentage
+    const purchasedPercentage = progressData?.purchased?.percentage || 0;
+    
     // Create segments array
     const segments: ProgressSegment[] = [];
     
@@ -975,10 +1016,25 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       });
     }
     
-    // Add remaining segment if total < 100%
-    if (metrics.totalPercentage < 100) {
+    // Add purchased progress segment if there are purchased hours
+    if (purchasedPercentage > 0) {
       segments.push({
-        value: 100 - metrics.totalPercentage,
+        value: purchasedPercentage,
+        color: '#ec4899',
+        label: 'Purchased',
+        tooltip: `${progressData?.purchased?.hours?.toFixed(1) || 0} hours purchased from shop`,
+        animated: false,
+        status: 'completed'
+      });
+    }
+    
+    // Calculate total progress including purchased
+    const totalProgressWithPurchased = Math.min(metrics.totalPercentage + purchasedPercentage, 100);
+    
+    // Add remaining segment if total < 100%
+    if (totalProgressWithPurchased < 100) {
+      segments.push({
+        value: 100 - totalProgressWithPurchased,
         color: '#e5e7eb', // Light gray
         tooltip: 'Remaining progress needed',
         status: 'pending'
@@ -1037,6 +1093,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
           {impersonationData ? `${impersonationData.user.name ? `${impersonationData.user.name}'s Voyage` : 'User Voyage'}` : 'Your Voyage'}
         </h2>
+        
+        {/* Show pending orders for non-impersonation mode */}
+        {!impersonationData && <PendingOrders />}
         <div className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto">
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-2 sm:px-4 md:px-0">
@@ -1068,9 +1127,11 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           {/* Progress + Clamshells Section */}
           <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6 mt-4">
             {/* Progress representation */}
-            <Tooltip content={`Believe it or not, you are ${Math.round(progressMetrics.totalPercentage)}% of the way to the Island!!!`}>
+            <Tooltip content={`Believe it or not, you are ${Math.round(progressData?.total?.percentage || progressMetrics.totalPercentage)}% of the way to the Island!!!`}>
               <div className="flex flex-col items-center justify-center w-24 sm:w-28 md:w-32 bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 h-[90px] sm:h-[100px] md:h-[108px]">
-                <div className={`text-xl sm:text-2xl md:text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>{animatedPercentage}%</div>
+                <div className={`text-xl sm:text-2xl md:text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>
+                  {progressData?.total?.percentage ? Math.round(progressData.total.percentage) : animatedPercentage}%
+                </div>
                 <div className={`text-[10px] sm:text-xs text-gray-500 text-center ${isGlowing ? 'percentage-animated' : ''}`}>Island Progress</div>
               </div>
             </Tooltip>
@@ -1079,7 +1140,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
             <div className={`text-2xl sm:text-3xl md:text-4xl font-bold text-gray-400 ${isGlowing ? 'percentage-animated' : ''}`}>+</div>
             
             {/* Clamshells */}
-            <Tooltip content="Approved & shipped hours that exceed 15h per project are converted into Clamshells.  These funds can be applied to travel costs, and also potentially converted to grantable prizes!">
+            <Tooltip content="Your current shell balance (earned shells minus spent shells). These can be used in the shop for rewards and opportunities!">
               <div className="relative flex items-center justify-center bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 w-24 sm:w-28 md:w-32 h-[90px] sm:h-[100px] md:h-[108px]" style={{overflow: 'hidden'}}>
                 <div className="relative w-full h-full flex items-center justify-center">
                                       <img 
@@ -1089,7 +1150,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                       style={{transform: 'scale(1.6) translateX(-2px) translateY(-2px)'}}
                     />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="font-bold text-sm sm:text-base text-center text-black" style={{marginTop: '-2px'}}>{animatedClamshells}</span>
+                    <span className="font-bold text-sm sm:text-base text-center text-black" style={{marginTop: '-2px'}}>
+                      {shellBalanceLoading ? '...' : (shellBalance !== null ? shellBalance : animatedClamshells)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1126,6 +1189,12 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#3b82f6' }}></span>
                 <strong>Blue:</strong> Hours from in-progress projects (not yet shipped or viral)
               </li>
+              {progressData?.purchased?.hours > 0 && (
+                <li>
+                  <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#ec4899' }}></span>
+                  <strong>Pink:</strong> Hours purchased from the shop
+                </li>
+              )}
               <li>
                 <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#e5e7eb' }}></span>
                 <strong>Gray:</strong> Remaining progress needed to reach 100%

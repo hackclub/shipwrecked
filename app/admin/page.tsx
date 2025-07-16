@@ -231,6 +231,95 @@ function AuditLogTimeSeriesChart({ data, title }: { data: AuditLogDay[], title: 
   );
 }
 
+// Shop Analytics Widget Component
+function ShopAnalyticsWidget({ timeRange }: { timeRange: string }) {
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch(`/api/admin/shop-analytics?timeRange=${timeRange}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAnalytics(data);
+        }
+      } catch (error) {
+        console.error('Error fetching shop analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [timeRange]);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-8 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <p className="text-gray-500">No analytics data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium mb-4">Shop Analytics ({timeRange})</h3>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Total Shells</p>
+          <p className="text-2xl font-bold text-blue-600">{analytics.totalShells.toLocaleString()}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Total USD</p>
+          <p className="text-2xl font-bold text-green-600">${analytics.totalUsd.toFixed(2)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Payout Rate</p>
+          <p className="text-2xl font-bold text-purple-600">${analytics.payoutRate.toFixed(2)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Orders</p>
+          <p className="text-2xl font-bold text-orange-600">{analytics.orderCount}</p>
+        </div>
+      </div>
+      
+      {analytics.itemAnalytics.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Item Breakdown</h4>
+          <div className="space-y-2">
+            {analytics.itemAnalytics.map((item: any) => (
+              <div key={item.itemId} className="flex justify-between text-sm">
+                <span className="text-gray-600">{item.itemName}</span>
+                <div className="flex space-x-4">
+                  <span className="text-blue-600">{item.shells} shells</span>
+                  <span className="text-green-600">${item.usd.toFixed(2)}</span>
+                  <span className="text-purple-600">${item.payoutRate.toFixed(2)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { status } = useSession();
   const [stats, setStats] = useState({
@@ -272,6 +361,7 @@ export default function AdminDashboard() {
     }
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [shopTimeRange, setShopTimeRange] = useState('7d');
   
   useEffect(() => {
     async function fetchStats() {
@@ -352,6 +442,26 @@ export default function AdminDashboard() {
             value={stats.totalLogs} 
             icon="📋" 
             linkTo="/admin/audit-logs" 
+          />
+        </div>
+      </div>
+
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Shop Management</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard 
+            title="Shop Items" 
+            value="Manage" 
+            icon="🛍️" 
+            linkTo="/admin/shop-items" 
+            description="Add, edit, and manage shop items"
+          />
+          <StatCard 
+            title="Shop Orders" 
+            value="View" 
+            icon="📦" 
+            linkTo="/admin/shop-orders" 
+            description="Review and fulfill shop orders"
           />
         </div>
       </div>
@@ -443,6 +553,48 @@ export default function AdminDashboard() {
         <h2 className="text-xl font-semibold mb-4">Review Leaderboard</h2>
         <div className="w-full">
           <ReviewLeaderboard />
+        </div>
+      </div>
+
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Shop Analytics</h2>
+        <div className="flex items-center space-x-4 mb-4">
+          <span className="text-sm text-gray-500">Time Range:</span>
+          <div className="flex space-x-2">
+            {['1h', '24h', '7d', 'all'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setShopTimeRange(range)}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  shopTimeRange === range 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {range === 'all' ? 'All Time' : range}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ShopAnalyticsWidget timeRange={shopTimeRange} />
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <Link 
+                href="/admin/shop-items"
+                className="block w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
+              >
+                Manage Shop Items
+              </Link>
+              <Link 
+                href="/admin/shop-orders"
+                className="block w-full text-left px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+              >
+                View Shop Orders
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

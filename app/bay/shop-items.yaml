@@ -1,0 +1,22 @@
+# Shop Items Configuration
+#
+# price_formula: shells required = phi * 10 * hours
+# For progress: 1 hour bought = 0.9 hours of progress (90% efficiency)
+# For stipend: $10/hr
+
+items:
+  - id: progress_to_island
+    name: "Progress to the Island"
+    description: "Buy progress towards reaching the island."
+    image: ""
+    price: 16
+    config:
+      progress_per_hour: 0.8  # 1 hour bought = 0.8 hours progress
+
+  - id: travel_stipend
+    name: "Travel Stipend"
+    description: "Exchange shells for travel stipend funds at $10/hr. Manual fulfillment."
+    image: "https://hc-cdn.hel1.your-objectstorage.com/s/v3/809e19bd9a1daa8a1b53a2ebfe82fe3958239ac5_image.png"
+    price: 16
+    config:
+      dollars_per_hour: 10  # $10/hr

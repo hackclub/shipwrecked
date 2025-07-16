@@ -44,6 +44,9 @@ enum AuditLogEventType {
   UserCreated
   ProjectDeleted
   SlackConnected
+  ShopOrderCreated
+  ShopOrderFulfilled
+  ShopOrderRejected
   OtherEvent
 }
 
@@ -106,6 +109,12 @@ model User {
 
   // User tags
   userTags UserTag[]
+
+  // Shop orders
+  totalShellsSpent Int @default(0)
+  purchasedProgressHours Float @default(0) // Progress purchased from shop
+  shopOrders ShopOrder[] @relation("user")
+  fulfilledShopOrders ShopOrder[] @relation("fulfilledByUser")
 }
 
 model Account {
@@ -401,4 +410,51 @@ model ProjectTag {
   @@unique([projectID, tagId])
   @@index([projectID])
   @@index([tagId])
+}
+
+model ShopOrder {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation("user", fields: [userId], references: [id], onDelete: Cascade)
+  itemId       String
+  itemName     String
+  price        Int
+  quantity     Int
+  status       String   @default("pending") // 'pending' or 'fulfilled' or 'rejected'
+  createdAt    DateTime @default(now())
+  fulfilledAt  DateTime?
+  fulfilledBy  String?  // admin userId who fulfilled
+  fulfilledByUser User?  @relation("fulfilledByUser", fields: [fulfilledBy], references: [id])
+  config       Json?    // for item-specific data (e.g., hours, stipend amount)
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ShopItemCostType {
+  fixed
+  config
+}
+
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  image       String?
+  price       Int
+  usdCost     Float    @default(0) // USD cost per unit (required for all items)
+  costType    ShopItemCostType @default(fixed) // 'fixed' or 'config'
+  active      Boolean  @default(true)
+  config      Json?    // Item-specific configuration (progress_per_hour, dollars_per_hour, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+}
+
+model GlobalConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt
 }

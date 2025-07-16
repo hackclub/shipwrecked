@@ -6,6 +6,9 @@ export interface ProgressMetrics {
   totalPercentage: number;
   rawHours: number;
   currency: number;
+  purchasedProgressHours: number;
+  totalProgressWithPurchased: number;
+  totalPercentageWithPurchased: number;
 }
 
 // Helper to get project hours with our matching logic
@@ -51,7 +54,7 @@ export function getProjectApprovedHours(project: any): number {
 }
 
 // Centralized function to calculate all progress metrics
-export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
+export function calculateProgressMetrics(projects: any[], purchasedProgressHours: number = 0): ProgressMetrics {
   if (!projects || !Array.isArray(projects)) {
     return {
       shippedHours: 0,
@@ -60,7 +63,10 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
       totalHours: 0,
       totalPercentage: 0,
       rawHours: 0,
-      currency: 0
+      currency: 0,
+      purchasedProgressHours,
+      totalProgressWithPurchased: purchasedProgressHours,
+      totalPercentageWithPurchased: Math.min((purchasedProgressHours / 60) * 100, 100)
     };
   }
 
@@ -84,7 +90,7 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
   // Calculate island percentage from only top 4 projects
   top4Projects.forEach(({ project, hours }) => {
     // Cap hours per project at 15
-    let cappedHours = Math.min(hours, 15);
+    const cappedHours = Math.min(hours, 15);
     const approvedHours = getProjectApprovedHours(project);
     
     if (project?.viral === true && approvedHours > 0) {
@@ -133,6 +139,10 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
   // Total progress percentage (capped at 100%)
   const totalPercentage = Math.min((totalHours / 60) * 100, 100);
 
+  // Calculate total progress including purchased progress
+  const totalProgressWithPurchased = Math.min(totalHours + purchasedProgressHours, 60);
+  const totalPercentageWithPurchased = Math.min((totalProgressWithPurchased / 60) * 100, 100);
+
   return {
     shippedHours,
     viralHours,
@@ -140,6 +150,9 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
     totalHours,
     totalPercentage,
     rawHours: rawHours,
-    currency: Math.floor(currency)
+    currency: Math.floor(currency),
+    purchasedProgressHours,
+    totalProgressWithPurchased,
+    totalPercentageWithPurchased
   };
 } 
