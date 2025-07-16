@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 interface ShopOrder {
@@ -30,7 +31,7 @@ export default function ShopOrdersPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  
+  const { data: session, status } = useSession();
   // Confirmation modal state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationOrder, setConfirmationOrder] = useState<ShopOrder | null>(null);
@@ -147,6 +148,10 @@ export default function ShopOrdersPage() {
   }, [statusFilter]);
 
   const filteredOrders = getFilteredOrders();
+
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
+    return <div>Please login to view this page</div>;
+  }
 
   if (loading) {
     return (

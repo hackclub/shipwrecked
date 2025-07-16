@@ -42,6 +42,7 @@ export default function ShopItemsPage() {
     minPercent: '90',
     maxPercent: '110'
   });
+  const [dollarsPerHour, setDollarsPerHour] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -96,6 +97,9 @@ export default function ShopItemsPage() {
           minPercent: configData.config.price_random_min_percent || '90',
           maxPercent: configData.config.price_random_max_percent || '110'
         });
+        
+        // Initialize dollars per hour state
+        setDollarsPerHour(configData.config.dollars_per_hour || '');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -104,34 +108,28 @@ export default function ShopItemsPage() {
     }
   };
 
-  const updateGlobalConfig = async (key: string, value: string) => {
-    try {
-      console.log(`Updating ${key} to ${value}`); // Debug log
-      const response = await fetch('/api/admin/global-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, value }),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update global config');
-      }
-
-      await fetchData();
-      console.log(`Successfully updated ${key} to ${value}`); // Debug log
-      setSuccessMessage(`Updated ${key.replace('_', ' ')} successfully`);
-      setTimeout(() => setSuccessMessage(null), 3000); // Clear after 3 seconds
-    } catch (err) {
-      console.error('Config update error:', err); // Debug log
-      setError(err instanceof Error ? err.message : 'Failed to update config');
-    }
-  };
 
   const savePricingConfig = async () => {
     try {
       setError(null);
       console.log('Saving pricing config:', pricingConfig);
+      
+      // Update dollars per hour
+      if (dollarsPerHour !== (globalConfig.dollars_per_hour || '')) {
+        const dollarsResponse = await fetch('/api/admin/global-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'dollars_per_hour', value: dollarsPerHour }),
+        });
+        
+        const dollarsResult = await dollarsResponse.json();
+        console.log('Dollars per hour response:', dollarsResult);
+        
+        if (!dollarsResponse.ok) {
+          throw new Error(dollarsResult.error || 'Failed to update dollars per hour');
+        }
+      }
       
       // Update min percent
       const minResponse = await fetch('/api/admin/global-config', {
@@ -164,16 +162,17 @@ export default function ShopItemsPage() {
       // Update the global config state to reflect the new values
       setGlobalConfig(prev => ({
         ...prev,
+        dollars_per_hour: dollarsPerHour,
         price_random_min_percent: pricingConfig.minPercent,
         price_random_max_percent: pricingConfig.maxPercent
       }));
       
-      console.log('Successfully saved pricing config');
-      setSuccessMessage('Pricing configuration saved successfully!');
+      console.log('Successfully saved configuration');
+      setSuccessMessage('Global configuration saved successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('Save error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save pricing config');
+      setError(err instanceof Error ? err.message : 'Failed to save configuration');
     }
   };
 
@@ -294,6 +293,10 @@ export default function ShopItemsPage() {
     return name.toLowerCase().includes('travel stipend') || name.toLowerCase().includes('progress');
   };
 
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
+    return <div>Please login to view this page</div>;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -328,8 +331,8 @@ export default function ShopItemsPage() {
               type="number"
               min="0"
               step="0.01"
-              value={globalConfig.dollars_per_hour || ''}
-              onChange={(e) => updateGlobalConfig('dollars_per_hour', e.target.value)}
+              value={dollarsPerHour}
+              onChange={(e) => setDollarsPerHour(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Set global rate"
             />
@@ -378,7 +381,7 @@ export default function ShopItemsPage() {
                 onClick={savePricingConfig}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium"
               >
-                Save Pricing Config
+                Save Global Config
               </button>
             </div>
           </div>
