@@ -3,7 +3,10 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 
-export async function GET(request: Request) {
+// Whitelist of admin users who can access shop orders
+const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '').split(',').map(e => e.trim()).filter(Boolean);
+
+export async function GET() {
   // Check authentication
   const session = await getServerSession(opts);
   if (!session?.user) {
@@ -41,7 +44,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Add isShopOrdersAdmin to the response
+    const isShopOrdersAdmin = user.email && SHOP_ORDERS_ADMIN_WHITELIST.includes(user.email);
+
+    return NextResponse.json({ ...user, isShopOrdersAdmin });
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json(

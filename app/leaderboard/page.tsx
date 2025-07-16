@@ -39,6 +39,8 @@ interface User {
   } | null;
   projects: ProjectType[],
   identityToken?: string;
+  purchasedProgressHours?: number;
+  totalShellsSpent?: number;
 }
 
 // Sorting types
@@ -103,7 +105,8 @@ function LeaderboardContent() {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 const usersWithMetrics = users.map(user => {
-  const metrics = calculateProgressMetrics(user.projects);
+  const purchasedProgressHours = user.purchasedProgressHours || 0;
+  const metrics = calculateProgressMetrics(user.projects, purchasedProgressHours);
   return {
     ...user,
     metrics,
@@ -115,7 +118,8 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
     (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   ).map(user => {
     try {
-      return { ...user, stats: calculateProgressMetrics(user.projects || []) };
+      const purchasedProgressHours = user.purchasedProgressHours || 0;
+      return { ...user, stats: calculateProgressMetrics(user.projects || [], purchasedProgressHours) };
     } catch (error) {
       console.error('Error calculating progress metrics for user:', user.id, error);
       return { 
@@ -126,8 +130,11 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
           otherHours: 0,
           totalHours: 0,
           totalPercentage: 0,
+          totalPercentageWithPurchased: 0,
           rawHours: 0,
-          currency: 0
+          currency: 0,
+          purchasedProgressHours: 0,
+          totalProgressWithPurchased: 0
         }
       };
     }
@@ -137,7 +144,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
     try {
       switch (sortField) {
         case 'progress':
-          result = b.stats.totalPercentage - a.stats.totalPercentage;
+          result = b.stats.totalPercentageWithPurchased - a.stats.totalPercentageWithPurchased;
           if (result === 0) {
             // Secondary sort by viral status
             result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
@@ -168,9 +175,9 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
   });
 
     // Calculate total hours from shipped, viral, and other projects
-    const calculateProgressSegments = (projects: ProjectType[]): ProgressSegment[] => {
-        // Use centralized metrics
-        const metrics = calculateProgressMetrics(projects);
+    const calculateProgressSegments = (projects: ProjectType[], purchasedProgressHours: number = 0): ProgressSegment[] => {
+        // Use centralized metrics with purchased progress
+        const metrics = calculateProgressMetrics(projects, purchasedProgressHours);
         
         if (!projects || !Array.isArray(projects)) {
           return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
@@ -180,6 +187,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
         const shippedPercentage = (metrics.shippedHours / 60) * 100;
         const viralPercentage = (metrics.viralHours / 60) * 100;
         const otherPercentage = (metrics.otherHours / 60) * 100;
+        const purchasedPercentage = (metrics.purchasedProgressHours / 60) * 100;
         
         // Create segments array
         const segments: ProgressSegment[] = [];
@@ -220,10 +228,22 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
           });
         }
         
-        // Add remaining segment if total < 100%
-        if (metrics.totalPercentage < 100) {
+        // Add purchased progress segment if there are purchased hours
+        if (purchasedPercentage > 0) {
           segments.push({
-            value: 100 - metrics.totalPercentage,
+            value: purchasedPercentage,
+            color: '#ec4899', // Pink
+            label: 'Purchased',
+            tooltip: `${metrics.purchasedProgressHours.toFixed(1)} hours purchased from shop`,
+            animated: false,
+            status: 'completed'
+          });
+        }
+        
+        // Add remaining segment if total < 100%
+        if (metrics.totalPercentageWithPurchased < 100) {
+          segments.push({
+            value: 100 - metrics.totalPercentageWithPurchased,
             color: '#e5e7eb', // Light gray
             tooltip: 'Remaining progress needed',
             status: 'pending'
@@ -235,7 +255,8 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
 
   const getProgressBadge = (user: User, projects: ProjectType[]) => {
     try {
-      const progressMetrics = calculateProgressMetrics(projects);
+      const purchasedProgressHours = user.purchasedProgressHours || 0;
+      const progressMetrics = calculateProgressMetrics(projects, purchasedProgressHours);
 
       return (
         <div style={{ width: '150px' }}>
@@ -251,7 +272,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
                 >
                   <MultiPartProgressBar 
-                    segments={calculateProgressSegments(projects)}
+                    segments={calculateProgressSegments(projects, purchasedProgressHours)}
                     max={100}
                     height={10}
                     rounded={true}
@@ -398,7 +419,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 flex items-center gap-4">
                               {user.name || 'Unknown'}
-                              {user.stats?.totalPercentage === 100 && (
+                              {user.stats?.totalPercentageWithPurchased === 100 && (
                                 <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
                                   <span>Invited</span>
                                 </div>
@@ -431,7 +452,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {calculateProgressMetrics(user.projects).currency}
+                          {Math.max(0, calculateProgressMetrics(user.projects).currency - (user.totalShellsSpent || 0))}
                         </div>
                       </td>
                     </tr>
@@ -498,7 +519,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                         <div>
                           <div className="text-base font-medium text-gray-900 flex items-center gap-1">
                             {user.name || 'Unknown'}
-                            {user.stats?.totalPercentage === 100 && (
+                            {user.stats?.totalPercentageWithPurchased === 100 && (
                                 <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
                                   <span>Invited</span>
                                 </div>
@@ -522,6 +543,12 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                           <span className="text-gray-500 block"># In Review</span>
                           <span className="text-gray-800">
                             {user.projects.filter(project => project.in_review).length}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Clamshells</span>
+                          <span className="text-gray-800">
+                            {Math.max(0, calculateProgressMetrics(user.projects).currency - (user.totalShellsSpent || 0))}
                           </span>
                         </div>
                         <div>
@@ -571,6 +598,10 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
               <li>
                 <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#3b82f6' }}></span>
                 <strong>Blue:</strong> Hours from in-progress projects (not yet shipped or viral)
+              </li>
+              <li>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#ec4899' }}></span>
+                <strong>Pink:</strong> Hours purchased from the shop
               </li>
               <li>
                 <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#e5e7eb' }}></span>

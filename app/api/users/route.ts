@@ -9,6 +9,8 @@ export async function GET() {
                 name: true,
                 image: true,
                 createdAt: true,
+                purchasedProgressHours: true,
+                totalShellsSpent: true,
                 projects: {
                     include: {
                         hackatimeLinks: true,

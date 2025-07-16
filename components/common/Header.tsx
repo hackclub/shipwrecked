@@ -16,15 +16,32 @@ export default function Header({ session, status }: HeaderProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+    const [isShopOrdersAdmin, setIsShopOrdersAdmin] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const adminMenuRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
     
+    // Fetch isShopOrdersAdmin on mount
+    useEffect(() => {
+        if (status === 'authenticated') {
+            fetch('/api/users/me').then(async (res) => {
+                if (res.ok) {
+                    const data = await res.json();
+                    setIsShopOrdersAdmin(!!data.isShopOrdersAdmin);
+                }
+            });
+        }
+    }, [status]);
+
     // More robust role checking - explicitly check for roles, don't show admin/review for regular users 
     const userRole = session?.user?.role || 'User';
     const isUserAdmin = userRole === 'Admin' || (session?.user?.isAdmin === true && userRole !== 'User');
     const isUserReviewer = userRole === 'Admin' || userRole === 'Reviewer';
+
+    // Eligibility for shop
+    const userStatus = session && session.user && typeof session.user.status === 'string' ? session.user.status : 'Unknown';
+    const canAccessShop = isUserAdmin || (userStatus !== 'FraudSuspect' && userStatus !== 'Unknown');
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -112,6 +129,15 @@ export default function Header({ session, status }: HeaderProps) {
                             Review
                         </Link>
                     )}
+                    {/* Eligible users can access Shop */}
+                    {canAccessShop && (
+                        <Link 
+                            href="/bay/shop" 
+                            className={`transition-colors ${isActive('/bay/shop') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                        >
+                            Shop
+                        </Link>
+                    )}
                     {/* Admin section with dropdown for admin users */}
                     {isUserAdmin && (
                         <div className="relative" ref={adminMenuRef}>
@@ -182,6 +208,19 @@ export default function Header({ session, status }: HeaderProps) {
                                     >
                                         Referrals
                                     </Link>
+                                    {isShopOrdersAdmin && (
+                                        <Link 
+                                            href="/admin/shop-orders" 
+                                            className={`block px-3 py-2 rounded transition-colors ${
+                                                isActive('/admin/shop-orders') || pathname.startsWith('/admin/shop-orders') 
+                                                    ? 'font-semibold text-[#47D1F6] bg-blue-50 border-l-4 border-[#47D1F6]' 
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-[#47D1F6] border-l-4 border-transparent'
+                                            }`}
+                                            onClick={() => setAdminMenuOpen(false)}
+                                        >
+                                            Shop Orders
+                                        </Link>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -234,70 +273,57 @@ export default function Header({ session, status }: HeaderProps) {
                             >
                                 Settings
                             </Link>
-                            {/* Show Review tab for reviewers and admins in mobile menu */}
-                            {isUserReviewer && (
+                            {/* Eligible users can access Shop in mobile menu */}
+                            {canAccessShop && (
                                 <Link 
-                                    href="/review" 
-                                    className={`block transition-colors ${isActive('/review') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                    href="/bay/shop" 
+                                    className={`block transition-colors ${isActive('/bay/shop') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
-                                    Review
+                                    Shop
                                 </Link>
                             )}
                             {/* Admin section with submenu for mobile */}
                             {isUserAdmin && (
-                                <div className="pt-2">
-                                    <div 
-                                        className={`block transition-colors font-medium ${isAdminActive() ? 'font-semibold text-[#47D1F6]' : 'text-gray-700'}`}
+                                <div className="space-y-2">
+                                    <div className="font-semibold text-gray-900">Admin</div>
+                                    <Link 
+                                        href="/admin" 
+                                        className={`block pl-4 transition-colors ${isActive('/admin') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
                                     >
-                                        Admin
-                                    </div>
-                                    <div className="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-2">
+                                        Dashboard
+                                    </Link>
+                                    <Link 
+                                        href="/admin/users" 
+                                        className={`block pl-4 transition-colors ${isActive('/admin/users') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Users
+                                    </Link>
+                                    <Link 
+                                        href="/admin/projects" 
+                                        className={`block pl-4 transition-colors ${isActive('/admin/projects') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Projects
+                                    </Link>
+                                    <Link 
+                                        href="/admin/audit-logs" 
+                                        className={`block pl-4 transition-colors ${isActive('/admin/audit-logs') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Audit Logs
+                                    </Link>
+                                    {isShopOrdersAdmin && (
                                         <Link 
-                                            href="/admin" 
-                                            className={`block text-sm transition-colors pl-2 py-1 ${
-                                                isActive('/admin') 
-                                                    ? 'font-semibold text-[#47D1F6] bg-blue-50 border-l-2 border-[#47D1F6]' 
-                                                    : 'text-gray-700 hover:text-[#47D1F6] border-l-2 border-transparent'
-                                            }`}
+                                            href="/admin/shop-orders" 
+                                            className={`block pl-4 transition-colors ${isActive('/admin/shop-orders') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
-                                            Dashboard
+                                            Shop Orders
                                         </Link>
-                                        <Link 
-                                            href="/admin/users" 
-                                            className={`block text-sm transition-colors pl-2 py-1 ${
-                                                isActive('/admin/users') || pathname.startsWith('/admin/users/') 
-                                                    ? 'font-semibold text-[#47D1F6] bg-blue-50 border-l-2 border-[#47D1F6]' 
-                                                    : 'text-gray-700 hover:text-[#47D1F6] border-l-2 border-transparent'
-                                            }`}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                        >
-                                            Users
-                                        </Link>
-                                        <Link 
-                                            href="/admin/projects" 
-                                            className={`block text-sm transition-colors pl-2 py-1 ${
-                                                isActive('/admin/projects') || pathname.startsWith('/admin/projects/') 
-                                                    ? 'font-semibold text-[#47D1F6] bg-blue-50 border-l-2 border-[#47D1F6]' 
-                                                    : 'text-gray-700 hover:text-[#47D1F6] border-l-2 border-transparent'
-                                            }`}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                        >
-                                            Projects
-                                        </Link>
-                                        <Link 
-                                            href="/admin/audit-logs" 
-                                            className={`block text-sm transition-colors pl-2 py-1 ${
-                                                isActive('/admin/audit-logs') || pathname.startsWith('/admin/audit-logs/') 
-                                                    ? 'font-semibold text-[#47D1F6] bg-blue-50 border-l-2 border-[#47D1F6]' 
-                                                    : 'text-gray-700 hover:text-[#47D1F6] border-l-2 border-transparent'
-                                            }`}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                        >
-                                            Audit Logs
-                                        </Link>
-                                    </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -309,11 +335,11 @@ export default function Header({ session, status }: HeaderProps) {
                 {status === "authenticated" && (
                     <>
                         <img
-                            src={session?.user.image ? session.user.image : createAvatar(thumbs, { seed: session?.user.id }).toDataUri()}
-                            alt={session?.user.email!}
+                            src={session?.user.image ? session.user.image : createAvatar(thumbs, { seed: session?.user.id || 'default' }).toDataUri()}
+                            alt={session?.user.email || 'User avatar'}
                             className="w-10 h-10 rounded-full border-2 border-white shadow"
                         />
- 
+
                         <span className="text-white font-semibold hidden lg:inline text-sm xl:text-base">{session?.user.name ? session?.user?.name : session?.user.email?.slice(0, 13) + "..."}</span>
                         <button
                             onClick={() => setDropdownOpen((prev) => !prev)}
@@ -338,12 +364,12 @@ export default function Header({ session, status }: HeaderProps) {
                     </>
                 )}
                 {status !== "authenticated" && (
-                    <a
+                    <Link
                         href="/api/auth/signin"
                         className="bg-white text-[#47D1F6] font-bold px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition"
                     >
-                        Sign in
-                    </a>
+                        Sign In
+                    </Link>
                 )}
             </div>
         </nav>

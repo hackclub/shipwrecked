@@ -1,56 +1,79 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import styles from './ProgressBar.module.css';
+import React from 'react';
 
 interface ProgressBarProps {
-  value: number;  // Current value (0-100)
-  max?: number;   // Maximum value (defaults to 100)
-  variant?: 'default' | 'success' | 'warning' | 'error';
-  height?: number; // Height in pixels
-  animated?: boolean;
+  earnedProgress: number; // Progress earned from projects (0-100)
+  purchasedProgress?: number; // Progress purchased from shop (0-100)
+  totalProgress?: number; // Total progress including purchased (0-100)
   className?: string;
-  barClassName?: string;
-  label?: string | null;
+  showLabels?: boolean;
 }
 
-export default function ProgressBar({
-  value,
-  max = 100,
-  variant = 'default',
-  height = 4,
-  animated = true,
-  className = '',
-  barClassName = '',
-  label = null
+export default function ProgressBar({ 
+  earnedProgress, 
+  purchasedProgress = 0, 
+  totalProgress,
+  className = "",
+  showLabels = true 
 }: ProgressBarProps) {
-  const [progress, setProgress] = useState(0);
-
-  // Smooth animation effect
-  useEffect(() => {
-    setProgress((value / max) * 100);
-  }, [value, max]);
+  // Calculate total progress if not provided
+  const calculatedTotal = totalProgress ?? Math.min(earnedProgress + purchasedProgress, 100);
+  
+  // Ensure values are within bounds
+  const earned = Math.max(0, Math.min(100, earnedProgress));
+  const purchased = Math.max(0, Math.min(100, purchasedProgress));
+  const total = Math.max(0, Math.min(100, calculatedTotal));
 
   return (
-    <div className={`${styles.container} ${className}`}>
-      {label && <div className={styles.label}>{label}</div>}
-      <div 
-        className={styles.track} 
-        style={{ height: `${height}px` }}
-      >
-        <div
-          className={`
-            ${styles.bar} 
-            ${styles[variant]} 
-            ${animated ? styles.animated : ''} 
-            ${barClassName}
-          `}
-          style={{ 
-            width: `${progress}%`,
-            height: '100%'
-          }}
+    <div className={`w-full ${className}`}>
+      {showLabels && (
+        <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <span>Progress to Island</span>
+          <span>{total.toFixed(1)}%</span>
+        </div>
+      )}
+      
+      <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+        {/* Earned progress (blue) */}
+        <div 
+          className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300 ease-out"
+          style={{ width: `${earned}%` }}
         />
+        
+        {/* Purchased progress (green) - only show if there's purchased progress */}
+        {purchased > 0 && (
+          <div 
+            className="absolute top-0 h-full bg-green-500 transition-all duration-300 ease-out"
+            style={{ 
+              left: `${earned}%`,
+              width: `${Math.min(purchased, 100 - earned)}%`
+            }}
+          />
+        )}
+        
+        {/* Progress text overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-semibold text-white drop-shadow-sm">
+            {earned.toFixed(1)}% earned
+            {purchased > 0 && ` + ${purchased.toFixed(1)}% purchased`}
+          </span>
+        </div>
       </div>
+      
+      {/* Legend */}
+      {showLabels && purchased > 0 && (
+        <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-blue-600 rounded"></div>
+            <span className="text-gray-600">Earned</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <span className="text-gray-600">Purchased</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
