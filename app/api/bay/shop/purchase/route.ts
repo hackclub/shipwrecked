@@ -4,6 +4,7 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
 import { calculateProgressMetrics } from '@/lib/project-client';
+import { calculateRandomizedPrice } from '@/lib/shop-utils';
 
 async function getUserShellBalance(userId: string): Promise<number> {
   // Get user with totalShellsSpent
@@ -70,7 +71,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    const totalPrice = item.price * quantity;
+    // Get pricing bounds from global config
+    const globalConfigs = await prisma.globalConfig.findMany({
+      where: {
+        key: {
+          in: ['price_random_min_percent', 'price_random_max_percent']
+        }
+      }
+    });
+
+    const configMap = globalConfigs.reduce((acc, config) => {
+      acc[config.key] = config.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const minPercent = parseFloat(configMap.price_random_min_percent || '90');
+    const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
+
+    // Calculate randomized price (same as displayed to user)
+    const randomizedPrice = calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent);
+    const totalPrice = randomizedPrice * quantity;
 
     // Check if user has enough shells
     const userShells = await getUserShellBalance(user.id);

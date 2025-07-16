@@ -20,6 +20,13 @@ interface ShopItem {
 
 interface GlobalConfig {
   dollars_per_hour?: string;
+  price_random_min_percent?: string;
+  price_random_max_percent?: string;
+}
+
+interface PricingConfig {
+  minPercent: string;
+  maxPercent: string;
 }
 
 export default function ShopItemsPage() {
@@ -28,8 +35,13 @@ export default function ShopItemsPage() {
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
+    minPercent: '90',
+    maxPercent: '110'
+  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -78,6 +90,12 @@ export default function ShopItemsPage() {
       if (configResponse.ok) {
         const configData = await configResponse.json();
         setGlobalConfig(configData.config);
+        
+        // Initialize pricing config state
+        setPricingConfig({
+          minPercent: configData.config.price_random_min_percent || '90',
+          maxPercent: configData.config.price_random_max_percent || '110'
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -88,6 +106,7 @@ export default function ShopItemsPage() {
 
   const updateGlobalConfig = async (key: string, value: string) => {
     try {
+      console.log(`Updating ${key} to ${value}`); // Debug log
       const response = await fetch('/api/admin/global-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,12 +114,66 @@ export default function ShopItemsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update global config');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update global config');
       }
 
       await fetchData();
+      console.log(`Successfully updated ${key} to ${value}`); // Debug log
+      setSuccessMessage(`Updated ${key.replace('_', ' ')} successfully`);
+      setTimeout(() => setSuccessMessage(null), 3000); // Clear after 3 seconds
     } catch (err) {
+      console.error('Config update error:', err); // Debug log
       setError(err instanceof Error ? err.message : 'Failed to update config');
+    }
+  };
+
+  const savePricingConfig = async () => {
+    try {
+      setError(null);
+      console.log('Saving pricing config:', pricingConfig);
+      
+      // Update min percent
+      const minResponse = await fetch('/api/admin/global-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'price_random_min_percent', value: pricingConfig.minPercent }),
+      });
+      
+      const minResult = await minResponse.json();
+      console.log('Min percent response:', minResult);
+      
+      if (!minResponse.ok) {
+        throw new Error(minResult.error || 'Failed to update min percent');
+      }
+      
+      // Update max percent
+      const maxResponse = await fetch('/api/admin/global-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'price_random_max_percent', value: pricingConfig.maxPercent }),
+      });
+      
+      const maxResult = await maxResponse.json();
+      console.log('Max percent response:', maxResult);
+      
+      if (!maxResponse.ok) {
+        throw new Error(maxResult.error || 'Failed to update max percent');
+      }
+      
+      // Update the global config state to reflect the new values
+      setGlobalConfig(prev => ({
+        ...prev,
+        price_random_min_percent: pricingConfig.minPercent,
+        price_random_max_percent: pricingConfig.maxPercent
+      }));
+      
+      console.log('Successfully saved pricing config');
+      setSuccessMessage('Pricing configuration saved successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Save error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save pricing config');
     }
   };
 
@@ -248,26 +321,79 @@ export default function ShopItemsPage() {
       {/* Global Config Section */}
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Global Configuration</h2>
-        <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">Dollars per Hour:</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={globalConfig.dollars_per_hour || ''}
-            onChange={(e) => updateGlobalConfig('dollars_per_hour', e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Set global rate"
-          />
-          <span className="text-sm text-gray-500">
-            Used to auto-calculate shell prices for non-special items
-          </span>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4">
+            <label className="text-sm font-medium text-gray-700">Dollars per Hour:</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={globalConfig.dollars_per_hour || ''}
+              onChange={(e) => updateGlobalConfig('dollars_per_hour', e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Set global rate"
+            />
+            <span className="text-sm text-gray-500">
+              Used to auto-calculate shell prices for non-special items
+            </span>
+          </div>
+          
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Randomized Pricing</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Min Percent:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  value={pricingConfig.minPercent}
+                  onChange={(e) => setPricingConfig({ ...pricingConfig, minPercent: e.target.value })}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 w-20"
+                  placeholder="90"
+                />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Max Percent:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  step="1"
+                  value={pricingConfig.maxPercent}
+                  onChange={(e) => setPricingConfig({ ...pricingConfig, maxPercent: e.target.value })}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 w-20"
+                  placeholder="110"
+                />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-3">
+              Each user gets randomized pricing hourly within this range. For example, 90-110% means 10% off to 10% more expensive.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={savePricingConfig}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium"
+              >
+                Save Pricing Config
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-green-800">{successMessage}</p>
         </div>
       )}
 
