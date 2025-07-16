@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { calculateShellPrice } from '@/lib/shop-utils';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
+import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
 
 // POST - Recalculate prices for fixed shop items
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    
+    const user = authResult.user;
 
     const { dollarsPerHour } = await request.json();
 

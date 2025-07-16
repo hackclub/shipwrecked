@@ -43,6 +43,7 @@ export default function ShopItemsPage() {
     maxPercent: '110'
   });
   const [dollarsPerHour, setDollarsPerHour] = useState<string>('');
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -56,6 +57,18 @@ export default function ShopItemsPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch shop admin status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/users/me').then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setIsShopAdmin(!!data.isShopAdmin);
+        }
+      });
+    }
+  }, [status]);
 
   // Add effect to auto-calculate price for config items
   useEffect(() => {
@@ -333,8 +346,8 @@ export default function ShopItemsPage() {
     return name.toLowerCase().includes('travel stipend') || name.toLowerCase().includes('progress');
   };
 
-  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
-    return <div>Please login to view this page</div>;
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin' || !isShopAdmin) {
+    return <div>Access denied. Only authorized shop administrators can access this page.</div>;
   }
 
   if (loading) {

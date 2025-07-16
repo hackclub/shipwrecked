@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { computeOrderUsdValue } from '@/lib/shop-utils';
+import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const { searchParams } = new URL(request.url);

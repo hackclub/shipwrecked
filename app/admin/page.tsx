@@ -322,6 +322,7 @@ function ShopAnalyticsWidget({ timeRange }: { timeRange: string }) {
 
 export default function AdminDashboard() {
   const { status } = useSession();
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProjects: 0,
@@ -381,6 +382,18 @@ export default function AdminDashboard() {
     
     if (status === 'authenticated') {
       fetchStats();
+    }
+  }, [status]);
+
+  // Fetch shop admin status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/users/me').then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setIsShopAdmin(!!data.isShopAdmin);
+        }
+      });
     }
   }, [status]);
 
@@ -446,25 +459,27 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="mb-10">
-        <h2 className="text-xl font-semibold mb-4">Shop Management</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard 
-            title="Shop Items" 
-            value="Manage" 
-            icon="🛍️" 
-            linkTo="/admin/shop-items" 
-            description="Add, edit, and manage shop items"
-          />
-          <StatCard 
-            title="Shop Orders" 
-            value="View" 
-            icon="📦" 
-            linkTo="/admin/shop-orders" 
-            description="Review and fulfill shop orders"
-          />
+      {isShopAdmin && (
+        <div className="mb-10">
+          <h2 className="text-xl font-semibold mb-4">Shop Management</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StatCard 
+              title="Shop Items" 
+              value="Manage" 
+              icon="🛍️" 
+              linkTo="/admin/shop-items" 
+              description="Add, edit, and manage shop items"
+            />
+            <StatCard 
+              title="Shop Orders" 
+              value="View" 
+              icon="📦" 
+              linkTo="/admin/shop-orders" 
+              description="Review and fulfill shop orders"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mb-10">
         <h2 className="text-xl font-semibold mb-4">Project Hours</h2>
@@ -556,47 +571,49 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="mb-10">
-        <h2 className="text-xl font-semibold mb-4">Shop Analytics</h2>
-        <div className="flex items-center space-x-4 mb-4">
-          <span className="text-sm text-gray-500">Time Range:</span>
-          <div className="flex space-x-2">
-            {['1h', '24h', '7d', 'all'].map((range) => (
-              <button
-                key={range}
-                onClick={() => setShopTimeRange(range)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  shopTimeRange === range 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {range === 'all' ? 'All Time' : range}
-              </button>
-            ))}
+      {isShopAdmin && (
+        <div className="mb-10">
+          <h2 className="text-xl font-semibold mb-4">Shop Analytics</h2>
+          <div className="flex items-center space-x-4 mb-4">
+            <span className="text-sm text-gray-500">Time Range:</span>
+            <div className="flex space-x-2">
+              {['1h', '24h', '7d', 'all'].map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setShopTimeRange(range)}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    shopTimeRange === range 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {range === 'all' ? 'All Time' : range}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ShopAnalyticsWidget timeRange={shopTimeRange} />
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <Link 
-                href="/admin/shop-items"
-                className="block w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
-              >
-                Manage Shop Items
-              </Link>
-              <Link 
-                href="/admin/shop-orders"
-                className="block w-full text-left px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
-              >
-                View Shop Orders
-              </Link>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ShopAnalyticsWidget timeRange={shopTimeRange} />
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <Link 
+                  href="/admin/shop-items"
+                  className="block w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
+                >
+                  Manage Shop Items
+                </Link>
+                <Link 
+                  href="/admin/shop-orders"
+                  className="block w-full text-left px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+                >
+                  View Shop Orders
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 } 

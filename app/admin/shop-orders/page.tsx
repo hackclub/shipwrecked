@@ -32,6 +32,7 @@ export default function ShopOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const { data: session, status } = useSession();
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
   // Confirmation modal state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationOrder, setConfirmationOrder] = useState<ShopOrder | null>(null);
@@ -147,10 +148,22 @@ export default function ShopOrdersPage() {
     fetchOrders(statusFilter);
   }, [statusFilter]);
 
+  // Fetch shop admin status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/users/me').then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setIsShopAdmin(!!data.isShopAdmin);
+        }
+      });
+    }
+  }, [status]);
+
   const filteredOrders = getFilteredOrders();
 
-  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
-    return <div>Please login to view this page</div>;
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin' || !isShopAdmin) {
+    return <div>Access denied. Only authorized shop administrators can access this page.</div>;
   }
 
   if (loading) {

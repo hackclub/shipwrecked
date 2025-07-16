@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
+import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
 
 // PUT - Update shop item
 export async function PUT(
@@ -10,18 +9,12 @@ export async function PUT(
   { params }: { params: { itemId: string } }
 ) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    
+    const user = authResult.user;
 
     const { itemId } = params;
     const { name, description, image, price, usdCost, costType, config, active } = await request.json();
@@ -80,18 +73,12 @@ export async function DELETE(
   { params }: { params: { itemId: string } }
 ) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    
+    const user = authResult.user;
 
     const { itemId } = params;
 
