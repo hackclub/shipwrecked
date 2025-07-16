@@ -8,10 +8,7 @@ interface ShopItem {
   description: string;
   image?: string;
   price: number;
-  config?: {
-    progress_per_hour?: number;
-    dollars_per_hour?: number;
-  };
+  
 }
 
 interface ShellBalance {

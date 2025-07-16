@@ -187,7 +187,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
         const shippedPercentage = (metrics.shippedHours / 60) * 100;
         const viralPercentage = (metrics.viralHours / 60) * 100;
         const otherPercentage = (metrics.otherHours / 60) * 100;
-        const purchasedPercentage = (metrics.purchasedProgressHours / 60) * 100;
+        const purchasedPercentage = metrics.purchasedProgressHours;
         
         // Create segments array
         const segments: ProgressSegment[] = [];
@@ -234,7 +234,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
             value: purchasedPercentage,
             color: '#ec4899', // Pink
             label: 'Purchased',
-            tooltip: `${metrics.purchasedProgressHours.toFixed(1)} hours purchased from shop`,
+            tooltip: `${metrics.purchasedProgressHours.toFixed(1)}% purchased from shop`,
             animated: false,
             status: 'completed'
           });

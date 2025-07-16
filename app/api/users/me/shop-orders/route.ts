@@ -20,6 +20,15 @@ export async function GET() {
     // Get user's shop orders
     const orders = await prisma.shopOrder.findMany({
       where: { userId },
+      select: {
+        id: true,
+        itemId: true,
+        itemName: true,
+        price: true,
+        quantity: true,
+        status: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
 

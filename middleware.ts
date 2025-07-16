@@ -22,6 +22,6 @@ export const config = {
 };
 
 export default async function middleware(request: NextRequest) {
-  // Let everything pass through - internal auth checks in the admin pages will handle protection
+
   return NextResponse.next();
 }

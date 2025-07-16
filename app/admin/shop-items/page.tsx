@@ -43,6 +43,7 @@ export default function ShopItemsPage() {
     maxPercent: '110'
   });
   const [dollarsPerHour, setDollarsPerHour] = useState<string>('');
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -57,6 +58,18 @@ export default function ShopItemsPage() {
     fetchData();
   }, []);
 
+  // Fetch shop admin status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/users/me').then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setIsShopAdmin(!!data.isShopAdmin);
+        }
+      });
+    }
+  }, [status]);
+
   // Add effect to auto-calculate price for config items
   useEffect(() => {
     if (formData.costType === 'config') {
@@ -65,11 +78,10 @@ export default function ShopItemsPage() {
         configObj = formData.config ? JSON.parse(formData.config) : {};
       } catch {}
       const usdCost = parseFloat(formData.usdCost);
-      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+      const phi = (1 + Math.sqrt(5)) / 2;
       
       if (configObj.dollars_per_hour && !isNaN(usdCost)) {
-        // For travel stipend items with dollars_per_hour
-        // Use the item's own dollars_per_hour rate: (usdCost / item_dollars_per_hour) * phi * 10
+
         const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
         const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
         const shells = Math.round(hours * phi * 10);
@@ -78,7 +90,7 @@ export default function ShopItemsPage() {
         }
       } else if (configObj.progress_per_hour) {
         // For island progress items with progress_per_hour
-        // Formula: progress_per_hour × (usdCost ÷ $10/hr) × φ × 10
+
         const islandProgressRate = 10; // Fixed $10/hr rate for island progress
         const hours = usdCost / islandProgressRate; // Convert USD to hours using $10/hr
         const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
@@ -333,8 +345,8 @@ export default function ShopItemsPage() {
     return name.toLowerCase().includes('travel stipend') || name.toLowerCase().includes('progress');
   };
 
-  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
-    return <div>Please login to view this page</div>;
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin' || !isShopAdmin) {
+    return <div>Access denied. Only authorized shop administrators can access this page.</div>;
   }
 
   if (loading) {
@@ -637,9 +649,8 @@ export default function ShopItemsPage() {
                     const configObj = JSON.parse(formData.config || '{}');
                     
                     if (configObj.dollars_per_hour && formData.usdCost) {
-                      // Travel stipend calculation
                       const usdCost = parseFloat(formData.usdCost);
-                      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+                      const phi = (1 + Math.sqrt(5)) / 2;
                       const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
                       const hours = usdCost / itemDollarsPerHour;
                       const shells = Math.round(hours * phi * 10);
@@ -648,15 +659,14 @@ export default function ShopItemsPage() {
                           <p className="text-sm text-green-800">
                             <strong>Auto-calculated shell price (Travel Stipend):</strong> {shells} shells
                             <br />
-                            <span className="text-xs">Formula: (${usdCost} ÷ {itemDollarsPerHour}) × φ × 10 = {shells} shells</span>
+                            <span className="text-xs">Auto-calculated: {shells} shells</span>
                           </p>
                         </div>
                       );
                     } else if (configObj.progress_per_hour) {
-                      // Island progress calculation
                       const usdCost = parseFloat(formData.usdCost || '0');
-                      const islandProgressRate = 10; // Fixed $10/hr rate for island progress
-                      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+                      const islandProgressRate = 10;
+                      const phi = (1 + Math.sqrt(5)) / 2;
                       const hours = usdCost / islandProgressRate;
                       const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
                       return (
@@ -664,7 +674,7 @@ export default function ShopItemsPage() {
                           <p className="text-sm text-purple-800">
                             <strong>Auto-calculated shell price (Island Progress):</strong> {shells} shells
                             <br />
-                            <span className="text-xs">Formula: {configObj.progress_per_hour} × (${usdCost} ÷ $10/hr) × φ × 10 = {shells} shells</span>
+                            <span className="text-xs">Auto-calculated: {shells} shells</span>
                           </p>
                         </div>
                       );

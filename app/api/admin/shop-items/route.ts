@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
+import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
 
 // GET - Fetch all shop items
 export async function GET() {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const items = await prisma.shopItem.findMany({
@@ -34,18 +25,12 @@ export async function GET() {
 // POST - Create new shop item
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    
+    const user = authResult.user;
 
     const { name, description, image, price, usdCost, costType, config } = await request.json();
 

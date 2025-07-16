@@ -14,6 +14,8 @@ interface ShopOrder {
   config?: {
     progress_per_hour?: number;
     dollars_per_hour?: number;
+    percent?: number;
+    hours?: number;
   };
   user: {
     id: string;
@@ -32,10 +34,11 @@ export default function ShopOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const { data: session, status } = useSession();
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
   // Confirmation modal state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationOrder, setConfirmationOrder] = useState<ShopOrder | null>(null);
-  const [confirmationAction, setConfirmationAction] = useState<'fulfill' | 'reject' | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<'fulfill' | 'reject' | 'refund' | null>(null);
 
   const fetchOrders = async (filter?: string) => {
     try {
@@ -80,7 +83,7 @@ export default function ShopOrdersPage() {
     return filtered;
   };
 
-  const showConfirmationDialog = (order: ShopOrder, action: 'fulfill' | 'reject') => {
+  const showConfirmationDialog = (order: ShopOrder, action: 'fulfill' | 'reject' | 'refund') => {
     setConfirmationOrder(order);
     setConfirmationAction(action);
     setShowConfirmation(true);
@@ -96,7 +99,12 @@ export default function ShopOrdersPage() {
     if (!confirmationOrder || !confirmationAction) return;
     
     hideConfirmationDialog();
-    await updateOrderStatus(confirmationOrder.id, confirmationAction === 'fulfill' ? 'fulfilled' : 'rejected');
+    let status = 'pending';
+    if (confirmationAction === 'fulfill') status = 'fulfilled';
+    else if (confirmationAction === 'reject') status = 'rejected';
+    else if (confirmationAction === 'refund') status = 'refunded';
+    
+    await updateOrderStatus(confirmationOrder.id, status);
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -134,6 +142,20 @@ export default function ShopOrdersPage() {
         }, 5000);
       }
 
+      // Show success message for refunds
+      if (status === 'refunded') {
+        let message = `Order refunded! ${data.shellsReimbursed} shells have been reimbursed to the user.`;
+        if (data.progressRemoved) {
+          message += ` ${data.progressRemoved} hours of progress have been removed.`;
+        }
+        setSuccessMessage(message);
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setSuccessMessage('');
+        }, 5000);
+      }
+
       // Refresh the orders list to show updated status
       fetchOrders(statusFilter);
     } catch (err) {
@@ -147,10 +169,22 @@ export default function ShopOrdersPage() {
     fetchOrders(statusFilter);
   }, [statusFilter]);
 
+  // Fetch shop admin status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/users/me').then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setIsShopAdmin(!!data.isShopAdmin);
+        }
+      });
+    }
+  }, [status]);
+
   const filteredOrders = getFilteredOrders();
 
-  if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
-    return <div>Please login to view this page</div>;
+  if (status === 'unauthenticated' || session?.user?.role !== 'Admin' || !isShopAdmin) {
+    return <div>Access denied. Only authorized shop administrators can access this page.</div>;
   }
 
   if (loading) {
@@ -198,21 +232,25 @@ export default function ShopOrdersPage() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                confirmationAction === 'fulfill' ? 'bg-green-100' : 'bg-red-100'
+                confirmationAction === 'fulfill' ? 'bg-green-100' : 
+                confirmationAction === 'reject' ? 'bg-red-100' : 'bg-yellow-100'
               }`}>
                 <span className="text-xl">
-                  {confirmationAction === 'fulfill' ? '✅' : '❌'}
+                  {confirmationAction === 'fulfill' ? '✅' : 
+                   confirmationAction === 'reject' ? '❌' : '💰'}
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Confirm {confirmationAction === 'fulfill' ? 'Fulfillment' : 'Rejection'}
+                Confirm {confirmationAction === 'fulfill' ? 'Fulfillment' : 
+                         confirmationAction === 'reject' ? 'Rejection' : 'Refund'}
               </h3>
             </div>
             
             <p className="text-gray-600 mb-6">
               Are you sure you want to{' '}
               <span className="font-semibold">
-                {confirmationAction === 'fulfill' ? 'fulfill' : 'reject'}
+                {confirmationAction === 'fulfill' ? 'fulfill' : 
+                 confirmationAction === 'reject' ? 'reject' : 'refund'}
               </span>{' '}
               this order?
             </p>
@@ -224,11 +262,19 @@ export default function ShopOrdersPage() {
                 <div><span className="font-medium">Customer:</span> {confirmationOrder.user.name} ({confirmationOrder.user.email})</div>
                 <div><span className="font-medium">Quantity:</span> {confirmationOrder.quantity}</div>
                 <div><span className="font-medium">Price:</span> {confirmationOrder.price} shells</div>
-                {confirmationAction === 'fulfill' && confirmationOrder.config?.progress_per_hour && (
-                  <div><span className="font-medium">Progress to apply:</span> {confirmationOrder.config.progress_per_hour * confirmationOrder.quantity} hours</div>
+                {confirmationAction === 'fulfill' && confirmationOrder.itemName.toLowerCase().includes('progress') && (
+                  <div><span className="font-medium">Progress to apply:</span> {confirmationOrder.quantity}%</div>
                 )}
                 {confirmationAction === 'reject' && (
                   <div><span className="font-medium">Shells to reimburse:</span> {confirmationOrder.price}</div>
+                )}
+                {confirmationAction === 'refund' && (
+                  <>
+                    <div><span className="font-medium">Shells to reimburse:</span> {confirmationOrder.price}</div>
+                    {confirmationOrder.itemName.toLowerCase().includes('progress') && (
+                      <div><span className="font-medium">Progress to remove:</span> {confirmationOrder.quantity}%</div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -243,12 +289,13 @@ export default function ShopOrdersPage() {
               <button
                 onClick={confirmAction}
                 className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition ${
-                  confirmationAction === 'fulfill' 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-red-600 hover:bg-red-700'
+                  confirmationAction === 'fulfill' ? 'bg-green-600 hover:bg-green-700' : 
+                  confirmationAction === 'reject' ? 'bg-red-600 hover:bg-red-700' :
+                  'bg-yellow-600 hover:bg-yellow-700'
                 }`}
               >
-                {confirmationAction === 'fulfill' ? 'Fulfill Order' : 'Reject Order'}
+                {confirmationAction === 'fulfill' ? 'Fulfill Order' : 
+                 confirmationAction === 'reject' ? 'Reject Order' : 'Refund Order'}
               </button>
             </div>
           </div>
@@ -280,6 +327,7 @@ export default function ShopOrdersPage() {
                     <option value="pending">Pending</option>
                     <option value="fulfilled">Fulfilled</option>
                     <option value="rejected">Rejected</option>
+                    <option value="refunded">Refunded</option>
                     <option value="all">All Orders</option>
                   </select>
                 </div>
@@ -353,10 +401,10 @@ export default function ShopOrdersPage() {
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span className="flex items-center">
                               <img src="/shell_720.png" alt="Shell" className="w-4 h-4 mr-1" />
-                              {order.price} shells
+                              {Math.round(order.price / order.quantity)} shells each
                             </span>
                             <span>Qty: {order.quantity}</span>
-                            <span>Total: {order.price * order.quantity} shells</span>
+                            <span>Total: {order.price} shells</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -370,7 +418,9 @@ export default function ShopOrdersPage() {
                             order.status === 'pending' 
                               ? 'bg-yellow-100 text-yellow-800' 
                               : order.status === 'fulfilled' 
-                              ? 'bg-green-100 text-green-800' 
+                              ? 'bg-green-100 text-green-800'
+                              : order.status === 'refunded'
+                              ? 'bg-orange-100 text-orange-800'
                               : 'bg-red-100 text-red-800'
                           }`}>
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -394,7 +444,7 @@ export default function ShopOrdersPage() {
                       </div>
                     </div>
 
-                    {/* Action Buttons - Only show for pending orders */}
+                    {/* Action Buttons - Show different buttons based on order status */}
                     {order.status === 'pending' && (
                       <div className="flex flex-col gap-3 lg:w-48">
                         <button
@@ -437,6 +487,33 @@ export default function ShopOrdersPage() {
                             <>
                               <span>❌</span>
                               Reject Order
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Refund Button - Only show for fulfilled orders */}
+                    {order.status === 'fulfilled' && (
+                      <div className="flex flex-col gap-3 lg:w-48">
+                        <button
+                          onClick={() => showConfirmationDialog(order, 'refund')}
+                          disabled={updatingOrder === order.id}
+                          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-white transition-all ${
+                            updatingOrder === order.id
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-yellow-600 hover:bg-yellow-700 hover:shadow-md'
+                          }`}
+                        >
+                          {updatingOrder === order.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <span>💰</span>
+                              Refund Order
                             </>
                           )}
                         </button>

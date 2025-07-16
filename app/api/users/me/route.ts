@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { isShopAdminWhitelisted } from '@/lib/shop-admin-auth';
 
-// Whitelist of admin users who can access shop orders
+// Whitelist of admin users who can access shop orders (legacy)
 const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '').split(',').map(e => e.trim()).filter(Boolean);
 
 export async function GET() {
@@ -44,10 +45,11 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Add isShopOrdersAdmin to the response
+    // Add shop admin status to the response
     const isShopOrdersAdmin = user.email && SHOP_ORDERS_ADMIN_WHITELIST.includes(user.email);
+    const isShopAdmin = user.email && isShopAdminWhitelisted(user.email);
 
-    return NextResponse.json({ ...user, isShopOrdersAdmin });
+    return NextResponse.json({ ...user, isShopOrdersAdmin, isShopAdmin });
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json(

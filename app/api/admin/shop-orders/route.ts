@@ -87,7 +87,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    if (existingOrder.status !== 'pending') {
+    if (status === 'refunded' && existingOrder.status !== 'fulfilled') {
+      return NextResponse.json({ error: 'Only fulfilled orders can be refunded' }, { status: 400 });
+    } else if (status !== 'refunded' && existingOrder.status !== 'pending') {
       return NextResponse.json({ error: 'Order is not pending' }, { status: 400 });
     }
 
@@ -101,13 +103,11 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    // Get config for progress calculations
-    const config = existingOrder.config as { progress_per_hour?: number };
-
     // If fulfilling, apply the purchased progress
     if (status === 'fulfilled') {
-      if (config?.progress_per_hour) {
-        const progressToApply = config.progress_per_hour * existingOrder.quantity;
+      // Check if this is a progress item by name (case-insensitive)
+      if (existingOrder.itemName.toLowerCase().includes('progress')) {
+        const progressToApply = existingOrder.quantity;
         await prisma.user.update({
           where: { id: existingOrder.userId },
           data: {
@@ -130,9 +130,8 @@ export async function PATCH(request: NextRequest) {
         }
       };
 
-      // Reimburse purchased progress if this was a progress item
-      if (config?.progress_per_hour) {
-        const progressToReimburse = config.progress_per_hour * existingOrder.quantity;
+      if (existingOrder.itemName.toLowerCase().includes('progress')) {
+        const progressToReimburse = existingOrder.quantity;
         updateData.purchasedProgressHours = {
           decrement: progressToReimburse
         };
@@ -144,13 +143,46 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    // If refunding, reimburse the shells and remove applied progress
+    if (status === 'refunded') {
+      const updateData: {
+        totalShellsSpent: { decrement: number };
+        purchasedProgressHours?: { decrement: number };
+      } = {
+        totalShellsSpent: {
+          decrement: existingOrder.price
+        }
+      };
+
+      if (existingOrder.itemName.toLowerCase().includes('progress')) {
+        const progressToRemove = existingOrder.quantity;
+        updateData.purchasedProgressHours = {
+          decrement: progressToRemove
+        };
+      }
+
+      await prisma.user.update({
+        where: { id: existingOrder.userId },
+        data: updateData
+      });
+    }
+
     // Log audit event
-    if (status === 'fulfilled' || status === 'rejected') {
+    if (status === 'fulfilled' || status === 'rejected' || status === 'refunded') {
       const userDisplay = existingOrder.user?.name || existingOrder.user?.email || existingOrder.userId;
-      const eventType = status === 'fulfilled' ? AuditLogEventType.ShopOrderFulfilled : AuditLogEventType.ShopOrderRejected;
-      const description = status === 'rejected' 
-        ? `Order for ${order.itemName} by ${userDisplay} rejected and ${existingOrder.price} shells reimbursed.`
-        : `Order for ${order.itemName} by ${userDisplay} marked as fulfilled and progress applied.`;
+      let eventType: AuditLogEventType;
+      let description: string;
+      
+      if (status === 'fulfilled') {
+        eventType = AuditLogEventType.ShopOrderFulfilled;
+        description = `Order for ${order.itemName} by ${userDisplay} marked as fulfilled and progress applied.`;
+      } else if (status === 'rejected') {
+        eventType = AuditLogEventType.ShopOrderRejected;
+        description = `Order for ${order.itemName} by ${userDisplay} rejected and ${existingOrder.price} shells reimbursed.`;
+      } else { // status === 'refunded'
+        eventType = AuditLogEventType.ShopOrderRejected; // Reusing rejected event type for refunds
+        description = `Order for ${order.itemName} by ${userDisplay} refunded and ${existingOrder.price} shells reimbursed.`;
+      }
       
       await createAuditLog({
         eventType,
@@ -163,8 +195,9 @@ export async function PATCH(request: NextRequest) {
           itemName: order.itemName,
           price: existingOrder.price,
           quantity: order.quantity,
-          shellsReimbursed: status === 'rejected' ? existingOrder.price : 0,
-          progressApplied: status === 'fulfilled' ? (config?.progress_per_hour ? config.progress_per_hour * existingOrder.quantity : 0) : 0,
+          shellsReimbursed: (status === 'rejected' || status === 'refunded') ? existingOrder.price : 0,
+          progressApplied: status === 'fulfilled' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
+          progressRemoved: status === 'refunded' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
         },
       });
     }
@@ -172,8 +205,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       order,
-      shellsReimbursed: status === 'rejected' ? existingOrder.price : 0,
-      progressApplied: status === 'fulfilled' ? (config?.progress_per_hour ? config.progress_per_hour * existingOrder.quantity : 0) : 0
+      shellsReimbursed: (status === 'rejected' || status === 'refunded') ? existingOrder.price : 0,
+      progressApplied: status === 'fulfilled' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
+      progressRemoved: status === 'refunded' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0
     });
   } catch (error) {
     console.error('Update order error:', error);

@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { computeOrderUsdValue } from '@/lib/shop-utils';
+import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(opts);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user.role !== 'Admin' && !user.isAdmin)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const authResult = await verifyShopAdminAccess();
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const { searchParams } = new URL(request.url);
@@ -42,7 +33,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const whereClause: any = {
+    const whereClause: {
+      status: string;
+      fulfilledAt?: { gte: Date };
+      itemId?: string;
+    } = {
       status: 'fulfilled' // Only count fulfilled orders
     };
 
@@ -72,7 +67,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get all shop items for USD calculation
+
     const shopItems = await prisma.shopItem.findMany();
     const itemMap = new Map(shopItems.map(item => [item.id, item]));
 
@@ -99,19 +94,24 @@ export async function GET(request: NextRequest) {
       itemBreakdown[order.itemId].count += 1;
     }
 
-    // Calculate payout rate
-    const payoutRate = totalShells > 0 ? totalUsd / totalShells : 0;
+
+    const phi = (1 + Math.sqrt(5)) / 2; 
+    const shellsPerHour = phi * 10;
+    const payoutRatePerShell = totalShells > 0 ? totalUsd / totalShells : 0;
+    const payoutRate = payoutRatePerShell * shellsPerHour; // Convert to $ / hr
 
     // Get item details for breakdown
     const itemAnalytics = Object.entries(itemBreakdown).map(([itemId, data]) => {
       const item = itemMap.get(itemId);
+      const itemPayoutRatePerShell = data.shells > 0 ? data.usd / data.shells : 0;
+      const itemPayoutRate = itemPayoutRatePerShell * shellsPerHour; // Convert to $ / hr
       return {
         itemId,
         itemName: item?.name || 'Unknown Item',
         shells: data.shells,
         usd: data.usd,
         count: data.count,
-        payoutRate: data.shells > 0 ? data.usd / data.shells : 0
+        payoutRate: itemPayoutRate
       };
     });
 
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       payoutRate,
       orderCount: orders.length,
       itemAnalytics,
-      recentOrders: orders.slice(0, 10) // Last 10 orders
+      recentOrders: orders.slice(0, 10) 
     });
 
   } catch (error) {
