@@ -12,23 +12,57 @@ export type HeaderProps = {
     status: "authenticated" | "unauthenticated" | "loading";
 };
 
+interface TravelStipend {
+    totalHours: number;
+    totalAmount: number;
+}
+
+interface ShopOrder {
+    id: string;
+    itemName: string;
+    quantity: number;
+    status: string;
+}
+
 export default function Header({ session, status }: HeaderProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [adminMenuOpen, setAdminMenuOpen] = useState(false);
     const [isShopOrdersAdmin, setIsShopOrdersAdmin] = useState(false);
+    const [travelStipends, setTravelStipends] = useState<TravelStipend | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const adminMenuRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
     
-    // Fetch isShopOrdersAdmin on mount
+    // Fetch isShopOrdersAdmin and travel stipends on mount
     useEffect(() => {
         if (status === 'authenticated') {
+            // Fetch user data
             fetch('/api/users/me').then(async (res) => {
                 if (res.ok) {
                     const data = await res.json();
                     setIsShopOrdersAdmin(!!data.isShopOrdersAdmin);
+                }
+            });
+
+            // Fetch travel stipends
+            fetch('/api/users/me/shop-orders').then(async (res) => {
+                if (res.ok) {
+                    const ordersData = await res.json();
+                    
+                    // Calculate travel stipend total from fulfilled orders
+                    let totalHours = 0;
+                    ordersData.orders.forEach((order: ShopOrder) => {
+                        if (order.status === 'fulfilled' && order.itemName.toLowerCase().includes('travel stipend')) {
+                            totalHours += order.quantity; // Each quantity represents 1 hour
+                        }
+                    });
+                    
+                    setTravelStipends({
+                        totalHours,
+                        totalAmount: totalHours * 10 // $10 per hour
+                    });
                 }
             });
         }
@@ -341,6 +375,17 @@ export default function Header({ session, status }: HeaderProps) {
                         />
 
                         <span className="text-white font-semibold hidden lg:inline text-sm xl:text-base">{session?.user.name ? session?.user?.name : session?.user.email?.slice(0, 13) + "..."}</span>
+                        
+                        {/* Travel Stipend Piggy Bank */}
+                        {travelStipends && travelStipends.totalAmount > 0 && (
+                            <div 
+                                className="flex items-center bg-white bg-opacity-90 text-[#47D1F6] font-bold px-2 sm:px-3 py-2 rounded-lg shadow hover:bg-opacity-100 transition-all cursor-pointer"
+                                title={`Travel Stipend: $${travelStipends.totalAmount}`}
+                            >
+                                <img src="/piggy.png" alt="Travel Stipend" className="w-5 h-5 mr-1" />
+                                <span className="text-sm font-bold">${travelStipends.totalAmount}</span>
+                            </div>
+                        )}
                         <button
                             onClick={() => setDropdownOpen((prev) => !prev)}
                             className="bg-white text-[#47D1F6] font-bold px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-[#f9e9c7] hover:text-[#3B2715] transition text-sm whitespace-nowrap"
