@@ -57,7 +57,7 @@ export default function ShopItemsPage() {
     fetchData();
   }, []);
 
-  // Add effect to auto-calculate price for config items with dollars_per_hour
+  // Add effect to auto-calculate price for config items
   useEffect(() => {
     if (formData.costType === 'config') {
       let configObj: any = {};
@@ -65,9 +65,23 @@ export default function ShopItemsPage() {
         configObj = formData.config ? JSON.parse(formData.config) : {};
       } catch {}
       const usdCost = parseFloat(formData.usdCost);
+      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+      
       if (configObj.dollars_per_hour && !isNaN(usdCost)) {
-        // Use the formula: shells = usdCost * 16
-        const shells = Math.round(usdCost * 16);
+        // For travel stipend items with dollars_per_hour
+        // Use the item's own dollars_per_hour rate: (usdCost / item_dollars_per_hour) * phi * 10
+        const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
+        const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
+        const shells = Math.round(hours * phi * 10);
+        if (formData.price !== shells.toString()) {
+          setFormData((prev) => ({ ...prev, price: shells.toString() }));
+        }
+      } else if (configObj.progress_per_hour) {
+        // For island progress items with progress_per_hour
+        // Formula: progress_per_hour × (usdCost ÷ $10/hr) × φ × 10
+        const islandProgressRate = 10; // Fixed $10/hr rate for island progress
+        const hours = usdCost / islandProgressRate; // Convert USD to hours using $10/hr
+        const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -115,6 +129,9 @@ export default function ShopItemsPage() {
       setError(null);
       console.log('Saving pricing config:', pricingConfig);
       
+      const oldDollarsPerHour = parseFloat(globalConfig.dollars_per_hour || '0');
+      const newDollarsPerHour = parseFloat(dollarsPerHour || '0');
+      
       // Update dollars per hour
       if (dollarsPerHour !== (globalConfig.dollars_per_hour || '')) {
         const dollarsResponse = await fetch('/api/admin/global-config', {
@@ -128,6 +145,26 @@ export default function ShopItemsPage() {
         
         if (!dollarsResponse.ok) {
           throw new Error(dollarsResult.error || 'Failed to update dollars per hour');
+        }
+        
+        // Recalculate prices for fixed items when dollars per hour changes
+        if (oldDollarsPerHour !== newDollarsPerHour && newDollarsPerHour > 0) {
+          console.log('Recalculating prices for fixed items...');
+          
+          const recalculateResponse = await fetch('/api/admin/shop-items/recalculate-prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dollarsPerHour: newDollarsPerHour }),
+          });
+          
+          if (!recalculateResponse.ok) {
+            const recalculateResult = await recalculateResponse.json();
+            console.warn('Price recalculation failed:', recalculateResult.error);
+            // Don't fail the whole operation, just warn
+          } else {
+            const recalculateResult = await recalculateResponse.json();
+            console.log('Price recalculation result:', recalculateResult);
+          }
         }
       }
       
@@ -170,6 +207,9 @@ export default function ShopItemsPage() {
       console.log('Successfully saved configuration');
       setSuccessMessage('Global configuration saved successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
+      
+      // Refresh items to show updated prices
+      await fetchData();
     } catch (err) {
       console.error('Save error:', err);
       setError(err instanceof Error ? err.message : 'Failed to save configuration');
@@ -578,8 +618,8 @@ export default function ShopItemsPage() {
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code><br/>
-                      For island progress: <code>{'{"progress_per_hour": 0.8}'}</code> (1% = $14)
+                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (uses item&apos;s own rate)<br/>
+                      For island progress: <code>{'{"progress_per_hour": 0.8}'}</code> (multiplier × fixed $10/hr rate)
                     </p>
                   </div>
                 )}
@@ -587,9 +627,53 @@ export default function ShopItemsPage() {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p className="text-sm text-blue-800">
                       <strong>Auto-calculated shell price:</strong> {calculateShellPrice(parseFloat(formData.usdCost), parseFloat(globalConfig.dollars_per_hour))} shells
+                      <br />
+                      <span className="text-xs">Formula: (${parseFloat(formData.usdCost)} ÷ {parseFloat(globalConfig.dollars_per_hour)}) × φ × 10 = {calculateShellPrice(parseFloat(formData.usdCost), parseFloat(globalConfig.dollars_per_hour))} shells</span>
                     </p>
                   </div>
                 )}
+                {formData.costType === 'config' && formData.config && (() => {
+                  try {
+                    const configObj = JSON.parse(formData.config || '{}');
+                    
+                    if (configObj.dollars_per_hour && formData.usdCost) {
+                      // Travel stipend calculation
+                      const usdCost = parseFloat(formData.usdCost);
+                      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+                      const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
+                      const hours = usdCost / itemDollarsPerHour;
+                      const shells = Math.round(hours * phi * 10);
+                      return (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800">
+                            <strong>Auto-calculated shell price (Travel Stipend):</strong> {shells} shells
+                            <br />
+                            <span className="text-xs">Formula: (${usdCost} ÷ {itemDollarsPerHour}) × φ × 10 = {shells} shells</span>
+                          </p>
+                        </div>
+                      );
+                    } else if (configObj.progress_per_hour) {
+                      // Island progress calculation
+                      const usdCost = parseFloat(formData.usdCost || '0');
+                      const islandProgressRate = 10; // Fixed $10/hr rate for island progress
+                      const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+                      const hours = usdCost / islandProgressRate;
+                      const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
+                      return (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                          <p className="text-sm text-purple-800">
+                            <strong>Auto-calculated shell price (Island Progress):</strong> {shells} shells
+                            <br />
+                            <span className="text-xs">Formula: {configObj.progress_per_hour} × (${usdCost} ÷ $10/hr) × φ × 10 = {shells} shells</span>
+                          </p>
+                        </div>
+                      );
+                    }
+                  } catch {
+                    // Invalid JSON, don't show anything
+                  }
+                  return null;
+                })()}
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"

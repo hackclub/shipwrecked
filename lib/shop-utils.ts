@@ -81,10 +81,10 @@ export function computeOrderUsdValue(item: ShopItem, order: ShopOrder): number {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((item.config as any)?.progress_per_hour) {
-      // Island progress: USD = percent * $14 (or use progress_per_hour as percent per unit)
+      // Island progress: USD = percent * $10 (or use progress_per_hour as percent per unit)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const percent = (order.config as any)?.percent || (order.quantity * (item.config as any).progress_per_hour);
-      return percent * 14;
+      return percent * 10;
     }
     // For other config items, use usdCost if present
     if (item.usdCost && item.usdCost > 0) {
@@ -98,12 +98,14 @@ export function computeOrderUsdValue(item: ShopItem, order: ShopOrder): number {
 
 /**
  * Calculate shell price based on USD cost and global dollars per hour rate
- * Formula: shells = usdCost * 10 * hours
+ * Formula: shells = (usdCost / dollarsPerHour) * phi * 10
  * @param usdCost USD cost of the item
  * @param dollarsPerHour Global dollars per hour rate
  * @returns Shell price
  */
 export function calculateShellPrice(usdCost: number, dollarsPerHour: number): number {
   if (dollarsPerHour <= 0) return 0;
-  return Math.round(usdCost * 10 * dollarsPerHour);
+  const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+  const hours = usdCost / dollarsPerHour; // Convert USD to hours
+  return Math.round(hours * phi * 10);
 } 
