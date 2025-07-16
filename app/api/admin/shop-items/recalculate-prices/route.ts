@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get all fixed shop items that have a USD cost
+  
     const fixedItems = await prisma.shopItem.findMany({
       where: { 
         costType: 'fixed',

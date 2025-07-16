@@ -1022,7 +1022,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         value: purchasedPercentage,
         color: '#ec4899',
         label: 'Purchased',
-        tooltip: `${progressData?.purchased?.hours?.toFixed(1) || 0} hours purchased from shop`,
+        tooltip: `${progressData?.purchased?.percentage?.toFixed(1) || 0}% purchased from shop`,
         animated: false,
         status: 'completed'
       });

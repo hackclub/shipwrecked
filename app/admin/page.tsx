@@ -232,8 +232,25 @@ function AuditLogTimeSeriesChart({ data, title }: { data: AuditLogDay[], title: 
 }
 
 // Shop Analytics Widget Component
+interface ShopAnalytics {
+  timeRange: string;
+  totalShells: number;
+  totalUsd: number;
+  payoutRate: number;
+  orderCount: number;
+  itemAnalytics: Array<{
+    itemId: string;
+    itemName: string;
+    shells: number;
+    usd: number;
+    count: number;
+    payoutRate: number;
+  }>;
+  recentOrders: unknown[];
+}
+
 function ShopAnalyticsWidget({ timeRange }: { timeRange: string }) {
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<ShopAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -291,7 +308,7 @@ function ShopAnalyticsWidget({ timeRange }: { timeRange: string }) {
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-500">Payout Rate</p>
-          <p className="text-2xl font-bold text-purple-600">${analytics.payoutRate.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-purple-600">${analytics.payoutRate.toFixed(2)}/hr</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-500">Orders</p>
@@ -303,13 +320,13 @@ function ShopAnalyticsWidget({ timeRange }: { timeRange: string }) {
         <div className="mt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-2">Item Breakdown</h4>
           <div className="space-y-2">
-            {analytics.itemAnalytics.map((item: any) => (
+            {analytics.itemAnalytics.map((item) => (
               <div key={item.itemId} className="flex justify-between text-sm">
                 <span className="text-gray-600">{item.itemName}</span>
                 <div className="flex space-x-4">
                   <span className="text-blue-600">{item.shells} shells</span>
                   <span className="text-green-600">${item.usd.toFixed(2)}</span>
-                  <span className="text-purple-600">${item.payoutRate.toFixed(2)}</span>
+                  <span className="text-purple-600">${item.payoutRate.toFixed(2)}/hr</span>
                 </div>
               </div>
             ))}

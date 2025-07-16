@@ -442,10 +442,10 @@ model ShopItem {
   description String
   image       String?
   price       Int
-  usdCost     Float    @default(0) // USD cost per unit (required for all items)
+  usdCost     Float    @default(0)
   costType    ShopItemCostType @default(fixed) // 'fixed' or 'config'
   active      Boolean  @default(true)
-  config      Json?    // Item-specific configuration (progress_per_hour, dollars_per_hour, etc.)
+  config      Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

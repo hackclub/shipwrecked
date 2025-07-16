@@ -48,7 +48,7 @@ export async function fetchHackatimeProjects(
       name: p.name, 
       hours: p.hours, 
       total_seconds: p.total_seconds,
-      precise_hours: p.total_seconds / 3600 // Show the precise calculation
+      precise_hours: p.total_seconds / 3600
     })));
 
     metrics.increment("success.fetch_hackatime", 1);

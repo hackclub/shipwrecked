@@ -10,10 +10,6 @@ interface ShopOrder {
   quantity: number;
   status: string;
   createdAt: string;
-  config?: {
-    progress_per_hour?: number;
-    dollars_per_hour?: number;
-  };
 }
 
 export default function PendingOrders() {
@@ -78,9 +74,9 @@ export default function PendingOrders() {
                 Pending
               </div>
             </div>
-            {order.config?.progress_per_hour && (
+            {order.itemName.toLowerCase().includes('progress') && (
               <div className="text-xs text-gray-500 mt-1">
-                Will add {(order.config.progress_per_hour * order.quantity).toFixed(1)} hours of progress when fulfilled
+                Will add {order.quantity}% progress when fulfilled
               </div>
             )}
           </div>

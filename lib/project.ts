@@ -276,7 +276,7 @@ export function getProjectHackatimeHours(project: any): number {
   return project?.rawHours || 0;
 }
 
-// Helper to get ONLY approved hours (for clamshell calculation)
+
 export function getProjectApprovedHours(project: any): number {
   // Safety check for null/undefined project
   if (!project) return 0;
@@ -317,7 +317,7 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
   let rawHours = 0;
   let currency = 0;
 
-  // Get all projects sorted by hours for both calculations
+  // Get all projects sorted by hours
   const allProjectsWithHours = projects
     .map(project => ({
       project,
@@ -325,7 +325,7 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
     }))
     .sort((a, b) => b.hours - a.hours);
 
-  // Get top 4 projects for island percentage calculation
+  // Get top 4 projects
   const top4Projects = allProjectsWithHours.slice(0, 4);
   
   // Calculate island percentage from only top 4 projects
@@ -348,26 +348,26 @@ export function calculateProgressMetrics(projects: any[]): ProgressMetrics {
     }
   });
 
-  // Calculate clamshells from all projects using ONLY approved hours
-  const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
+
+  const phi = (1 + Math.sqrt(5)) / 2;
   const top4ProjectIds = new Set(top4Projects.map(({ project }) => project.projectID));
   
   allProjectsWithHours.forEach(({ project, hours }) => {
     rawHours += hours;
     
-    // Only generate clamshells for shipped projects using APPROVED hours only
+  
     if (project?.shipped === true) {
       const approvedHours = getProjectApprovedHours(project);
       
-      // Only generate clamshells if there are actually approved hours
+  
       if (approvedHours > 0) {
         if (top4ProjectIds.has(project.projectID)) {
-          // Top 4 projects: clamshells for approved hours beyond 15 (no cap)
+          // Top 4 projects: beyond 15 hours
           if (approvedHours > 15) {
             currency += (approvedHours - 15) * (phi * 10);
           }
         } else {
-          // All other shipped projects: clamshells for ALL approved hours
+          // All other shipped projects
           currency += approvedHours * (phi * 10);
         }
       }

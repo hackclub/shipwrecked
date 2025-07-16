@@ -18,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User ID not found in session' }, { status: 400 });
     }
 
-    // Get user with totalShellsSpent and purchasedProgressHours
+  
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { totalShellsSpent: true, purchasedProgressHours: true }
@@ -55,7 +55,7 @@ export async function GET() {
         },
         purchased: {
           hours: metrics.purchasedProgressHours,
-          percentage: (metrics.purchasedProgressHours / 60) * 100
+          percentage: metrics.purchasedProgressHours
         },
         total: {
           hours: metrics.totalProgressWithPurchased,

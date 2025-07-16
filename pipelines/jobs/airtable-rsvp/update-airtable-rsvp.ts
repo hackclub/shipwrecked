@@ -906,7 +906,7 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     hoursToIslandViral: Math.round(progressMetrics.viralHours * 10) / 10,
     hoursToIslandShipped: Math.round(progressMetrics.shippedHours * 10) / 10,
     hoursToIslandUnapproved: Math.round(progressMetrics.otherHours * 10) / 10,
-    shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10 // Convert clamshells back to hours
+            shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10
   };
 }
 

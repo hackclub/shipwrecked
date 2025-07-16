@@ -66,34 +66,9 @@ export function getCurrentHour(): number {
  * @returns USD value (number)
  */
 export function computeOrderUsdValue(item: ShopItem, order: ShopOrder): number {
-  if (item.costType === 'fixed') {
-    return item.usdCost * order.quantity;
-  }
-  if (item.costType === 'config') {
-    // Config-driven logic
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((item.config as any)?.dollars_per_hour) {
-      // Travel stipend: USD = hours * dollars_per_hour
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const hours = (order.config as any)?.hours || order.quantity;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return hours * (item.config as any).dollars_per_hour;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((item.config as any)?.progress_per_hour) {
-      // Island progress: USD = percent * $10 (or use progress_per_hour as percent per unit)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const percent = (order.config as any)?.percent || (order.quantity * (item.config as any).progress_per_hour);
-      return percent * 10;
-    }
-    // For other config items, use usdCost if present
-    if (item.usdCost && item.usdCost > 0) {
-      return item.usdCost * order.quantity;
-    }
-    return 0;
-  }
-  // Fallback
-  return 0;
+
+  // The config determines what the user gets (hours, progress, etc.), but not the cost
+  return item.usdCost * order.quantity;
 }
 
 /**
@@ -105,7 +80,7 @@ export function computeOrderUsdValue(item: ShopItem, order: ShopOrder): number {
  */
 export function calculateShellPrice(usdCost: number, dollarsPerHour: number): number {
   if (dollarsPerHour <= 0) return 0;
-  const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio ≈ 1.618
-  const hours = usdCost / dollarsPerHour; // Convert USD to hours
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const hours = usdCost / dollarsPerHour;
   return Math.round(hours * phi * 10);
 } 

@@ -43,14 +43,16 @@ export async function GET() {
     const minPercent = parseFloat(configMap.price_random_min_percent || '90');
     const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
 
-    // Apply randomized pricing to each item
-    const itemsWithRandomizedPricing = items.map(item => ({
-      ...item,
+    // Apply randomized pricing to each item and filter to only public fields
+    const publicItems = items.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      image: item.image,
       price: calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent),
-      originalPrice: item.price, // Keep original price for reference
     }));
 
-    return NextResponse.json({ items: itemsWithRandomizedPricing });
+    return NextResponse.json({ items: publicItems });
   } catch (error) {
     console.error('Error loading shop items:', error);
     return NextResponse.json({ error: 'Failed to load shop items' }, { status: 500 });
