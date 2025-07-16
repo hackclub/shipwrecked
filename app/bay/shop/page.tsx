@@ -239,9 +239,13 @@ export default function ShopPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all border border-gray-200">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Purchase</h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 mb-3">
                 Are you sure you want to purchase <strong>{selectedItem.name}</strong>?
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <h4 className="font-medium text-blue-900 mb-2">Item Description:</h4>
+                <p className="text-blue-800 text-sm">{selectedItem.description}</p>
+              </div>
             </div>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
