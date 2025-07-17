@@ -92,7 +92,7 @@ export default function ShopItemsPage() {
 
         const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
         const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
-        const shells = Math.round(hours * phi * 10);
+        const shells = Math.ceil(hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -659,7 +659,7 @@ export default function ShopItemsPage() {
                       const phi = (1 + Math.sqrt(5)) / 2;
                       const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
                       const hours = usdCost / itemDollarsPerHour;
-                      const shells = Math.round(hours * phi * 10);
+                      const shells = Math.ceil(hours * phi * 10);
                       return (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <p className="text-sm text-green-800">
