@@ -44,13 +44,21 @@ export default function ShopItemsPage() {
   });
   const [dollarsPerHour, setDollarsPerHour] = useState<string>('');
   const [isShopAdmin, setIsShopAdmin] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    image: string;
+    price: string;
+    usdCost: string;
+    costType: 'fixed' | 'config';
+    config: string;
+  }>({
     name: '',
     description: '',
     image: '',
     price: '',
     usdCost: '',
-    costType: 'fixed' as 'fixed' | 'config',
+    costType: 'fixed',
     config: '',
   });
 
@@ -73,7 +81,7 @@ export default function ShopItemsPage() {
   // Add effect to auto-calculate price for config items
   useEffect(() => {
     if (formData.costType === 'config') {
-      let configObj: any = {};
+      let configObj: Record<string, unknown> = {};
       try {
         configObj = formData.config ? JSON.parse(formData.config) : {};
       } catch {}
@@ -82,18 +90,18 @@ export default function ShopItemsPage() {
       
       if (configObj.dollars_per_hour && !isNaN(usdCost)) {
 
-        const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
+        const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
         const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
         const shells = Math.round(hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
-      } else if (configObj.progress_per_hour) {
-        // For island progress items with progress_per_hour
+      } else if (configObj.hours_equal_to_one_percent_progress) {
+        // For island progress items with hours_equal_to_one_percent_progress
 
         const islandProgressRate = 10; // Fixed $10/hr rate for island progress
         const hours = usdCost / islandProgressRate; // Convert USD to hours using $10/hr
-        const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
+        const shells = Math.round(configObj.hours_equal_to_one_percent_progress as number * hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -339,10 +347,6 @@ export default function ShopItemsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update item');
     }
-  };
-
-  const isSpecialItem = (name: string) => {
-    return name.toLowerCase().includes('travel stipend') || name.toLowerCase().includes('progress');
   };
 
   if (status === 'unauthenticated' || session?.user?.role !== 'Admin' || !isShopAdmin) {
@@ -605,6 +609,9 @@ export default function ShopItemsPage() {
                     onChange={(e) => setFormData({ ...formData, usdCost: e.target.value })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This is the base USD price for one unit of this item. This includes manual fullfillment costs (e.g shipping).
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Cost Type</label>
@@ -626,12 +633,12 @@ export default function ShopItemsPage() {
                       value={formData.config}
                       onChange={(e) => setFormData({ ...formData, config: e.target.value })}
                       rows={4}
-                      placeholder='{"progress_per_hour": 0.8} or {"dollars_per_hour": 10}'
+                      placeholder='{"hours_equal_to_one_percent_progress": 0.8} or {"dollars_per_hour": 10}'
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (uses item&apos;s own rate)<br/>
-                      For island progress: <code>{'{"progress_per_hour": 0.8}'}</code> (multiplier × fixed $10/hr rate)
+                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.8}'}</code> (number of hours that equals 1% progress, × fixed $10/hr rate)
                     </p>
                   </div>
                 )}
@@ -651,7 +658,7 @@ export default function ShopItemsPage() {
                     if (configObj.dollars_per_hour && formData.usdCost) {
                       const usdCost = parseFloat(formData.usdCost);
                       const phi = (1 + Math.sqrt(5)) / 2;
-                      const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour);
+                      const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
                       const hours = usdCost / itemDollarsPerHour;
                       const shells = Math.round(hours * phi * 10);
                       return (
@@ -663,12 +670,13 @@ export default function ShopItemsPage() {
                           </p>
                         </div>
                       );
-                    } else if (configObj.progress_per_hour) {
+                    }
+                    if (configObj.hours_equal_to_one_percent_progress && formData.usdCost) {
                       const usdCost = parseFloat(formData.usdCost || '0');
                       const islandProgressRate = 10;
                       const phi = (1 + Math.sqrt(5)) / 2;
                       const hours = usdCost / islandProgressRate;
-                      const shells = Math.round(configObj.progress_per_hour * hours * phi * 10);
+                      const shells = Math.round(configObj.hours_equal_to_one_percent_progress as number * hours * phi * 10);
                       return (
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                           <p className="text-sm text-purple-800">
