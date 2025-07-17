@@ -194,6 +194,15 @@ function wouldCompleteGoal(project: Project): boolean {
   return ownerHasEnoughHours && projectIsSignificant;
 }
 
+// Helper function to check if a project owner has ≥75 approved+viral hours
+function hasHighHours(project: Project): boolean {
+  // Get the project owner's current approved hours (already calculated in API using the same 15-hour capping system as progress bar)
+  const ownerCurrentHours = project.ownerApprovedHours || 0;
+  
+  // Return true if the user has 75 or more approved hours
+  return ownerCurrentHours >= 75;
+}
+
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
   const reviewTypeLabels: Record<string, { label: string, color: string }> = {
     ShippedApproval: { label: 'Shipped', color: 'blue' },
@@ -219,6 +228,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   };
 
   const daysInReview = calculateDaysInReview();
+  const userHasHighHours = hasHighHours(project);
 
   return (
     <div 
@@ -307,6 +317,13 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                   {daysInReview === 0 ? 'Today' : 
                    daysInReview === 1 ? '1 day' : 
                    `${daysInReview} days`}
+                </span>
+              </div>
+            )}
+            {userHasHighHours && (
+              <div className="flex items-center gap-1">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  75+ hours
                 </span>
               </div>
             )}
@@ -471,6 +488,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
   };
 
   const daysInReview = calculateDaysInReview();
+  const userHasHighHours = hasHighHours(project);
   
   const [projectFlags, setProjectFlags] = useState({
     shipped: !!project.shipped,
@@ -583,6 +601,13 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                   🕒 {daysInReview === 0 ? 'Submitted today' : 
                       daysInReview === 1 ? 'In review for 1 day' : 
                       `In review for ${daysInReview} days`}
+                </span>
+              </div>
+            )}
+            {userHasHighHours && (
+              <div className="mt-3 flex justify-center">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  ⭐ Project owner has 75+ approved hours
                 </span>
               </div>
             )}
