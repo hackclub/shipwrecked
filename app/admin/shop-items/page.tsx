@@ -98,10 +98,9 @@ export default function ShopItemsPage() {
         }
       } else if (configObj.hours_equal_to_one_percent_progress) {
         // For island progress items with hours_equal_to_one_percent_progress
-
-        const islandProgressRate = 10; // Fixed $10/hr rate for island progress
-        const hours = usdCost / islandProgressRate; // Convert USD to hours using $10/hr
-        const shells = Math.round(configObj.hours_equal_to_one_percent_progress as number * hours * phi * 10);
+        // Calculate shells directly from hours, not from USD cost
+        const hours = configObj.hours_equal_to_one_percent_progress as number;
+        const shells = Math.ceil(hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -563,7 +562,7 @@ export default function ShopItemsPage() {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-[95vw] sm:max-w-2xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingItem ? 'Edit Shop Item' : 'Add New Shop Item'}
@@ -637,8 +636,8 @@ export default function ShopItemsPage() {
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (uses item&apos;s own rate)<br/>
-                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.8}'}</code> (number of hours that equals 1% progress, × fixed $10/hr rate)
+                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (custom hourly rate for this item)<br/>
+                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.6}'}</code> (hours per 1% progress, price = ceil(hours × φ × 10))
                     </p>
                   </div>
                 )}
@@ -672,17 +671,15 @@ export default function ShopItemsPage() {
                       );
                     }
                     if (configObj.hours_equal_to_one_percent_progress && formData.usdCost) {
-                      const usdCost = parseFloat(formData.usdCost || '0');
-                      const islandProgressRate = 10;
+                      const hours = configObj.hours_equal_to_one_percent_progress as number;
                       const phi = (1 + Math.sqrt(5)) / 2;
-                      const hours = usdCost / islandProgressRate;
-                      const shells = Math.round(configObj.hours_equal_to_one_percent_progress as number * hours * phi * 10);
+                      const shells = Math.ceil(hours * phi * 10);
                       return (
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                           <p className="text-sm text-purple-800">
                             <strong>Auto-calculated shell price (Island Progress):</strong> {shells} shells
                             <br />
-                            <span className="text-xs">Auto-calculated: {shells} shells</span>
+                            <span className="text-xs">Formula: {hours} hours × φ × 10 = {(hours * phi * 10).toFixed(1)} → ceil = {shells} shells</span>
                           </p>
                         </div>
                       );
