@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
 
     const { itemId, quantity = 1 } = await request.json();
 
+    if (quantity <= 0 || isNaN(quantity)) {
+      return NextResponse.json({ error: 'Quantity must be greater than 0' }, { status: 400 });
+    }
+
     // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
