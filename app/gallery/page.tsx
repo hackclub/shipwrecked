@@ -7,7 +7,6 @@ import ImageWithFallback from '@/components/common/ImageWithFallback';
 import Icon from '@hackclub/icons';
 import dynamic from 'next/dynamic';
 import Toast from '@/components/common/Toast';
-import TrustStats from '@/components/common/TrustStats';
 import Image from 'next/image';
 import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
@@ -38,7 +37,6 @@ interface Project {
     name: string | null;
     slack: string | null;
     image: string | null;
-    hackatimeId: string | null;
   };
   hackatimeLinks: {
     id: string;
@@ -495,14 +493,7 @@ export default function Gallery() {
                               project.user.name || 'Anonymous'
                             )}
                           </span>
-                          {project.user.hackatimeId && (
-                            <TrustStats 
-                              hackatimeId={project.user.hackatimeId} 
-                              userName={project.user.name || 'User'} 
-                              size="sm" 
-                              showStats={false} 
-                            />
-                          )}
+                          
                       </div>
                       <div className="flex items-center gap-2">
                         {/* Upvote button */}
