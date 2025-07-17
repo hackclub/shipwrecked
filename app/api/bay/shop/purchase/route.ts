@@ -4,7 +4,7 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
 import { calculateProgressMetrics } from '@/lib/project-client';
-import { calculateRandomizedPrice } from '@/lib/shop-utils';
+import { calculateRandomizedPrice, calculateShellPrice } from '@/lib/shop-utils';
 
 async function getUserShellBalance(userId: string): Promise<number> {
   // Get user with totalShellsSpent
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const globalConfigs = await prisma.globalConfig.findMany({
       where: {
         key: {
-          in: ['price_random_min_percent', 'price_random_max_percent']
+          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour']
         }
       }
     });
@@ -87,10 +87,21 @@ export async function POST(request: NextRequest) {
 
     const minPercent = parseFloat(configMap.price_random_min_percent || '90');
     const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
+    const globalDollarsPerHour = parseFloat(configMap.dollars_per_hour || '10');
 
-    // Calculate randomized price (same as displayed to user)
-    const randomizedPrice = calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent);
-    const totalPrice = randomizedPrice * quantity;
+    // Calculate price
+    let unitPrice: number;
+    if (
+      item.name.toLowerCase().includes('travel stipend') &&
+      item.costType === 'config' &&
+      item.config && typeof item.config === 'object' && 'dollars_per_hour' in item.config
+    ) {
+      const dollarsPerHour = parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
+      unitPrice = calculateShellPrice(item.usdCost, dollarsPerHour);
+    } else {
+      unitPrice = calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent);
+    }
+    const totalPrice = unitPrice * quantity;
 
     // Check if user has enough shells
     const userShells = await getUserShellBalance(user.id);
@@ -103,19 +114,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare order config for dynamic items
-    function safeConfigObject(config: any) {
+    function safeConfigObject(config: unknown) {
       return (config && typeof config === 'object' && !Array.isArray(config)) ? config : {};
     }
     let orderConfig = item.config || undefined;
     if (item.costType === 'config') {
       if (item.name.toLowerCase().includes('travel stipend')) {
         // For travel stipend, store hours (default to quantity)
-        orderConfig = { ...safeConfigObject(item.config), hours: quantity };
+        orderConfig = { ...safeConfigObject(item.config as unknown), hours: quantity };
       } else if (item.name.toLowerCase().includes('progress')) {
-        // For island progress, store percent (quantity * progress_per_hour)
-        const progressPerHour = (safeConfigObject(item.config).progress_per_hour ?? 0);
-        const percent = quantity * progressPerHour;
-        orderConfig = { ...safeConfigObject(item.config), percent };
+        // For island progress, store percent (quantity * hours_equal_to_one_percent_progress)
+        const configObj = safeConfigObject(item.config as unknown) as Record<string, unknown>;
+        const hoursEqualToOnePercentRaw = configObj.hours_equal_to_one_percent_progress;
+        const hoursEqualToOnePercent = typeof hoursEqualToOnePercentRaw === 'number' ? hoursEqualToOnePercentRaw : 0;
+        const percent = quantity * hoursEqualToOnePercent;
+        orderConfig = { ...configObj, percent };
       }
       // Add more dynamic item types as needed
     }

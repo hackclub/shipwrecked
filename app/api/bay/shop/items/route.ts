@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { calculateRandomizedPrice } from '@/lib/shop-utils';
+import { calculateRandomizedPrice, calculateShellPrice } from '@/lib/shop-utils';
 
 export async function GET() {
   const session = await getServerSession(opts);
@@ -30,7 +30,7 @@ export async function GET() {
     const globalConfigs = await prisma.globalConfig.findMany({
       where: {
         key: {
-          in: ['price_random_min_percent', 'price_random_max_percent']
+          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour']
         }
       }
     });
@@ -42,15 +42,34 @@ export async function GET() {
 
     const minPercent = parseFloat(configMap.price_random_min_percent || '90');
     const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
+    const globalDollarsPerHour = parseFloat(configMap.dollars_per_hour || '10');
 
-    // Apply randomized pricing to each item and filter to only public fields
-    const publicItems = items.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      image: item.image,
-      price: calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent),
-    }));
+    // Apply correct pricing logic
+    const publicItems = items.map(item => {
+      // If travel stipend, use calculateShellPrice with dollars_per_hour from config or global
+      if (
+        item.name.toLowerCase().includes('travel stipend') &&
+        item.costType === 'config' &&
+        item.config && typeof item.config === 'object' && 'dollars_per_hour' in item.config
+      ) {
+        const dollarsPerHour = parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: calculateShellPrice(item.usdCost, dollarsPerHour),
+        };
+      }
+      // Otherwise, use randomized pricing
+      return {
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        image: item.image,
+        price: calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent),
+      };
+    });
 
     return NextResponse.json({ items: publicItems });
   } catch (error) {

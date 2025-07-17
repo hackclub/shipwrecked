@@ -152,7 +152,7 @@ export default function ShopPage() {
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Shell Shop</h1>
             </div>
             <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
-              Exchange your hard-earned shells for amazing rewards and opportunities
+              Exchanged your shells for some rewards. Prices are subject to change. 👀
             </p>
             
             {/* Shell Balance Display */}
