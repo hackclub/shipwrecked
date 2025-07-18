@@ -29,6 +29,28 @@ interface PricingConfig {
   maxPercent: string;
 }
 
+interface ShopOrder {
+  id: string;
+  itemId: string;
+  itemName: string;
+  price: number;
+  quantity: number;
+  status: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+const TIME_RANGES = [
+  { label: '1h', value: '1h', ms: 60 * 60 * 1000 },
+  { label: '24h', value: '24h', ms: 24 * 60 * 60 * 1000 },
+  { label: '7d', value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
+  { label: 'All Time', value: 'all', ms: null },
+];
+
 export default function ShopItemsPage() {
   const { data: session, status } = useSession();
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -61,6 +83,15 @@ export default function ShopItemsPage() {
     costType: 'fixed',
     config: '',
   });
+  const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[3]);
+  const [itemStats, setItemStats] = useState<Record<string, {
+    unitsSold: number;
+    totalRevenue: number;
+    avgPrice: number;
+  }>>({});
 
   useEffect(() => {
     fetchData();
@@ -110,6 +141,51 @@ export default function ShopItemsPage() {
     // For other config types, do not auto-calculate
     // eslint-disable-next-line
   }, [formData.config, formData.usdCost, formData.costType]);
+
+  // Fetch fulfilled orders for analytics
+  useEffect(() => {
+    async function fetchOrders() {
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+      try {
+        const res = await fetch('/api/admin/shop-orders?status=fulfilled');
+        if (!res.ok) throw new Error('Failed to fetch orders');
+        const data = await res.json();
+        setOrders(data.orders || []);
+      } catch (err) {
+        setAnalyticsError(err instanceof Error ? err.message : 'Failed to fetch orders');
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    }
+    fetchOrders();
+  }, []);
+
+  // Compute item stats for selected time range
+  useEffect(() => {
+    if (!orders.length || !items.length) {
+      setItemStats({});
+      return;
+    }
+    const now = Date.now();
+    const rangeMs = selectedRange.ms;
+    const stats: Record<string, { unitsSold: number; totalRevenue: number; avgPrice: number }> = {};
+    for (const item of items) {
+      stats[item.id] = { unitsSold: 0, totalRevenue: 0, avgPrice: 0 };
+    }
+    for (const order of orders) {
+      const orderTime = new Date(order.createdAt).getTime();
+      if (rangeMs && now - orderTime > rangeMs) continue;
+      if (!order.itemId || !stats[order.itemId]) continue;
+      stats[order.itemId].unitsSold += order.quantity;
+      stats[order.itemId].totalRevenue += order.price;
+    }
+    for (const itemId in stats) {
+      const s = stats[itemId];
+      s.avgPrice = s.unitsSold > 0 ? Math.round(s.totalRevenue / s.unitsSold) : 0;
+    }
+    setItemStats(stats);
+  }, [orders, items, selectedRange]);
 
   const fetchData = async () => {
     try {
@@ -442,6 +518,59 @@ export default function ShopItemsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Shop Item Analytics Section */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Shop Item Analytics</h2>
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            {TIME_RANGES.map((range) => (
+              <button
+                key={range.value}
+                onClick={() => setSelectedRange(range)}
+                className={`px-4 py-2 text-sm font-medium ${range.value === selectedRange.value ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} border border-gray-200 first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {analyticsLoading ? (
+          <div className="text-gray-500">Loading analytics...</div>
+        ) : analyticsError ? (
+          <div className="text-red-600">Error: {analyticsError}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue (Shells)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Price/Unit</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="w-8 h-8 rounded-lg object-cover mr-2" />
+                        )}
+                        <span className="font-medium text-gray-900">{item.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">{itemStats[item.id]?.unitsSold || 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">{itemStats[item.id]?.totalRevenue || 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">{itemStats[item.id]?.avgPrice || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {error && (

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateShellPrice } from '@/lib/shop-utils';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
-import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
+import { verifyShopItemAdminAccess } from '@/lib/shop-admin-auth';
 
 // POST - Recalculate prices for fixed shop items
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyShopAdminAccess();
+    const authResult = await verifyShopItemAdminAccess();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
@@ -52,6 +52,21 @@ export async function POST(request: NextRequest) {
           oldPrice,
           newPrice,
           usdCost: item.usdCost
+        });
+
+        await createAuditLog({
+          eventType: AuditLogEventType.OtherEvent,
+          description: `Admin updated shop item price: ${item.name} from ${oldPrice} to ${newPrice}`,
+          targetUserId: user.id,
+          actorUserId: user.id,
+          metadata: {
+            itemId: item.id,
+            itemName: item.name,
+            oldPrice,
+            newPrice,
+            usdCost: item.usdCost,
+            reason: `Recalculated with dollarsPerHour=${dollarsPerHour}`
+          },
         });
       }
     }

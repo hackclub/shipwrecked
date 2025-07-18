@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
-import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
+import { verifyShopItemAdminAccess } from '@/lib/shop-admin-auth';
 
 // PUT - Update shop item
 export async function PUT(
@@ -9,7 +9,7 @@ export async function PUT(
   { params }: { params: { itemId: string } }
 ) {
   try {
-    const authResult = await verifyShopAdminAccess();
+    const authResult = await verifyShopItemAdminAccess();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
@@ -32,6 +32,9 @@ export async function PUT(
       }, { status: 400 });
     }
 
+    // Fetch previous item state for audit log
+    const previousItem = await prisma.shopItem.findUnique({ where: { id: itemId } });
+
     const item = await prisma.shopItem.update({
       where: { id: itemId },
       data: {
@@ -46,17 +49,29 @@ export async function PUT(
       },
     });
 
-    // Log audit event
+    const changedFields: Record<string, { old: unknown, new: unknown }> = {};
+    if (previousItem) {
+      if (previousItem.name !== name) changedFields.name = { old: previousItem.name, new: name };
+      if (previousItem.description !== description) changedFields.description = { old: previousItem.description, new: description };
+      if (previousItem.image !== image) changedFields.image = { old: previousItem.image, new: image };
+      if (previousItem.price !== price) changedFields.price = { old: previousItem.price, new: price };
+      if (previousItem.usdCost !== usdCost) changedFields.usdCost = { old: previousItem.usdCost, new: usdCost };
+      if (previousItem.costType !== costType) changedFields.costType = { old: previousItem.costType, new: costType };
+      if (JSON.stringify(previousItem.config) !== JSON.stringify(config)) changedFields.config = { old: previousItem.config, new: config };
+      if (previousItem.active !== active) changedFields.active = { old: previousItem.active, new: active };
+    }
+
     await createAuditLog({
       eventType: AuditLogEventType.OtherEvent,
-      description: `Admin updated shop item: ${name}`,
+      description: `Admin updated shop item: ${name}. Old price: ${previousItem?.price}, new price: ${item.price}`,
       targetUserId: user.id,
       actorUserId: user.id,
       metadata: {
         itemId: item.id,
         itemName: item.name,
-        price: item.price,
-        active: item.active,
+        changedFields,
+        previous: previousItem,
+        updated: item,
       },
     });
 
@@ -73,7 +88,7 @@ export async function DELETE(
   { params }: { params: { itemId: string } }
 ) {
   try {
-    const authResult = await verifyShopAdminAccess();
+    const authResult = await verifyShopItemAdminAccess();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }

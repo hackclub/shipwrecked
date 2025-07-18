@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
-import { verifyShopAdminAccess } from '@/lib/shop-admin-auth';
+import { verifyShopItemAdminAccess } from '@/lib/shop-admin-auth';
 
 // GET - Fetch all shop items
 export async function GET() {
   try {
-    const authResult = await verifyShopAdminAccess();
+    const authResult = await verifyShopItemAdminAccess();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
@@ -25,7 +25,7 @@ export async function GET() {
 // POST - Create new shop item
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyShopAdminAccess();
+    const authResult = await verifyShopItemAdminAccess();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
