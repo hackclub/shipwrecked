@@ -111,83 +111,34 @@ export async function GET() {
           .sort((a, b) => b.hours - a.hours)
           .slice(0, 4); // Top 4 projects only
 
-        console.log(`\n=== CALCULATING APPROVED HOURS FOR USER ${userId} ===`);
-        console.log(`Total projects: ${userProjects.length}, Top 4 projects: ${projectsWithHours.length}`);
-
-        projectsWithHours.forEach(({ project, hours }, index) => {
+        projectsWithHours.forEach(({ project }) => {
           // Use the same getProjectApprovedHours logic as progress bar
           const projectApprovedHours = getProjectApprovedHours(project);
-
-          console.log(`\nProject ${index + 1}: ${project.name}`);
-          console.log(`  - Project ID: ${project.projectID}`);
-          console.log(`  - Effective Hours: ${hours}`);
-          console.log(`  - Approved Hours: ${projectApprovedHours}`);
-          console.log(`  - Viral: ${project.viral}`);
-          console.log(`  - Shipped: ${project.shipped}`);
-          console.log(`  - Hackatime Links: ${project.hackatimeLinks?.length || 0}`);
-          
-          if (project.hackatimeLinks?.length > 0) {
-            project.hackatimeLinks.forEach((link, linkIndex) => {
-              console.log(`    Link ${linkIndex + 1}: rawHours=${link.rawHours}, hoursOverride=${link.hoursOverride}`);
-            });
-          }
 
           let contributedHours = 0;
 
           if (project.viral === true && projectApprovedHours > 0) {
             // Cap contribution at 15 for viral projects with approved hours
             contributedHours = Math.min(projectApprovedHours, 15);
-            console.log(`  - VIRAL PROJECT: Contributing ${contributedHours} hours (approved hours: ${projectApprovedHours}, capped at 15)`);
             userApprovedHours += contributedHours;
           } else if (project.shipped === true && projectApprovedHours > 0) {
             // Cap contribution at 15 for shipped projects with approved hours
             contributedHours = Math.min(projectApprovedHours, 15);
-            console.log(`  - SHIPPED PROJECT: Contributing ${contributedHours} hours (approved hours: ${projectApprovedHours}, capped at 15)`);
             userApprovedHours += contributedHours;
           } else if (!project.shipped && !project.viral) {
             // For unshipped projects, only count if they have approved hours
             if (projectApprovedHours > 0) {
               // Has approved hours - cap at 15
               contributedHours = Math.min(projectApprovedHours, 15);
-              console.log(`  - UNSHIPPED PROJECT (with approved hours): Contributing ${contributedHours} hours (approved hours: ${projectApprovedHours}, capped at 15)`);
               userApprovedHours += contributedHours;
             } else {
-              // No approved hours - NO CONTRIBUTION for 75+ hour calculation
+              // No approved hours - NO CONTRIBUTION
               contributedHours = 0;
-              console.log(`  - UNSHIPPED PROJECT (no approved hours): Contributing 0 hours (for 75+ hour calculation, only approved hours count)`);
             }
-          } else {
-            console.log(`  - SKIPPED: No contribution (shipped/viral but no approved hours)`);
-          }
-
-          console.log(`  - Running total: ${userApprovedHours} hours`);
-        });
-
-        // Calculate potential hours if all unshipped projects get approved
-        let potentialHours = 0;
-        projectsWithHours.forEach(({ project, hours }) => {
-          const projectApprovedHours = getProjectApprovedHours(project);
-          
-          if (project.viral === true && projectApprovedHours > 0) {
-            potentialHours += Math.min(projectApprovedHours, 15);
-          } else if (project.shipped === true && projectApprovedHours > 0) {
-            potentialHours += Math.min(projectApprovedHours, 15);
-          } else if (!project.shipped && !project.viral) {
-            // For unshipped projects, use effective hours (what they'd get if approved)
-            potentialHours += Math.min(hours, 15);
           }
         });
 
         const finalHours = Math.min(userApprovedHours, 60);
-        const potentialFinalHours = Math.min(potentialHours, 60);
-        
-        console.log(`\nFINAL CALCULATION FOR USER ${userId}:`);
-        console.log(`  - Current total (approved only): ${userApprovedHours} hours`);
-        console.log(`  - Current after 60-hour cap: ${finalHours} hours`);
-        console.log(`  - Potential total (if all unshipped approved): ${potentialHours} hours`);
-        console.log(`  - Potential after 60-hour cap: ${potentialFinalHours} hours`);
-        console.log(`  - Would hit 60-hour cap: ${potentialFinalHours >= 60 ? 'YES' : 'NO'}`);
-        console.log(`=== END CALCULATION ===\n`);
 
         userProjectsMap[userId] = finalHours;
       } catch (error) {
