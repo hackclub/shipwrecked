@@ -44,8 +44,8 @@ export function calculateRandomizedPrice(
   const percentRange = maxPercent - minPercent;
   const priceMultiplier = (minPercent + (random * percentRange)) / 100;
   
-  // Calculate final price and round to nearest integer
-  const randomizedPrice = Math.round(basePrice * priceMultiplier);
+  // Calculate final price and round up to nearest integer
+  const randomizedPrice = Math.ceil(basePrice * priceMultiplier);
   
   // Ensure price is at least 1
   return Math.max(1, randomizedPrice);
@@ -73,14 +73,14 @@ export function computeOrderUsdValue(item: ShopItem, order: ShopOrder): number {
 
 /**
  * Calculate shell price based on USD cost and global dollars per hour rate
- * Formula: shells = (usdCost / dollarsPerHour) * phi * 10
+ * Formula: shells = ceil((usdCost / dollarsPerHour) * phi * 10)
  * @param usdCost USD cost of the item
  * @param dollarsPerHour Global dollars per hour rate
- * @returns Shell price
+ * @returns Shell price (always rounded up)
  */
 export function calculateShellPrice(usdCost: number, dollarsPerHour: number): number {
   if (dollarsPerHour <= 0) return 0;
   const phi = (1 + Math.sqrt(5)) / 2;
   const hours = usdCost / dollarsPerHour;
-  return Math.round(hours * phi * 10);
+  return Math.ceil(hours * phi * 10);
 } 
