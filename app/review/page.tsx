@@ -194,13 +194,14 @@ function wouldCompleteGoal(project: Project): boolean {
   return ownerHasEnoughHours && projectIsSignificant;
 }
 
-// Helper function to check if a project owner has ≥75 approved+viral hours
+// Helper function to check if a project owner would hit the 60-hour cap if their pending projects get approved
 function hasHighHours(project: Project): boolean {
-  // Get the project owner's current approved hours (already calculated in API using the same 15-hour capping system as progress bar)
+  // Get the project owner's current approved hours (calculated in API using identical logic as progress bar)
   const ownerCurrentHours = project.ownerApprovedHours || 0;
   
-  // Return true if the user has 75 or more approved hours
-  return ownerCurrentHours >= 75;
+  // Check if they would hit the 60-hour cap (this requires additional calculation)
+  // For now, we'll flag users with 45+ current hours as they're close to the cap
+  return ownerCurrentHours >= 45;
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
@@ -322,8 +323,8 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
             )}
             {userHasHighHours && (
               <div className="flex items-center gap-1">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  75+ hours
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Last project
                 </span>
               </div>
             )}
@@ -606,8 +607,8 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             )}
             {userHasHighHours && (
               <div className="mt-3 flex justify-center">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                  ⭐ Project owner has 75+ approved hours
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                  ⭐ Last project for this user
                 </span>
               </div>
             )}
