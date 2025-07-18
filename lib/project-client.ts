@@ -108,8 +108,20 @@ export function calculateProgressMetrics(projects: any[], purchasedProgressHours
   });
 
 
+  // Get top 4 approved projects for currency calculation
+  const top4ApprovedProjects = top4Projects.filter(({project}) => getProjectApprovedHours(project) > 0).slice(0, 4);
+  const top4ApprovedProjectIds = new Set(top4ApprovedProjects.map(({project}) => project.projectID));
+
+  // Calculate how many approved hours the user is missing from their top 4 projects
+  let missingApprovedHours = 0;
+  top4Projects.forEach(({project}) => {
+    const approvedHours = getProjectApprovedHours(project);
+    if (approvedHours < 15) {
+      missingApprovedHours += (15 - approvedHours);
+    }
+  });
+
   const phi = (1 + Math.sqrt(5)) / 2;
-  const top4ProjectIds = new Set(top4Projects.map(({ project }) => project.projectID));
   
   allProjectsWithHours.forEach(({ project, hours }) => {
     rawHours += hours;
@@ -120,14 +132,24 @@ export function calculateProgressMetrics(projects: any[], purchasedProgressHours
       
   
       if (approvedHours > 0) {
-        if (top4ProjectIds.has(project.projectID)) {
+        if (top4ApprovedProjectIds.has(project.projectID)) {
           // Top 4 projects: beyond 15 hours
           if (approvedHours > 15) {
             currency += (approvedHours - 15) * (phi * 10);
           }
         } else {
           // All other shipped projects
-          currency += approvedHours * (phi * 10);
+          let validProjectHours;
+          // If the user is missing approved hours from their top 4 approved projects
+          if (missingApprovedHours > 0) {
+            // Add any overflow to the currency
+            validProjectHours = Math.min(approvedHours - missingApprovedHours, 0);
+            // Reduce missing approved hours by the project hours
+            missingApprovedHours = Math.max(0, missingApprovedHours - approvedHours);
+          } else {
+            validProjectHours = approvedHours;
+          }
+          currency += validProjectHours * (phi * 10);
         }
       }
     }
