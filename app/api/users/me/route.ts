@@ -38,6 +38,8 @@ export async function GET() {
         hackatimeId: true,
         slack: true,
         identityToken: true,
+        purchasedProgressHours: true,
+        totalShellsSpent: true,
       },
     });
 

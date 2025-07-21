@@ -527,12 +527,15 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const isMobile = useIsMobile();
   const { isReviewMode } = useReviewMode();
   const [showIdentityPopup, setShowIdentityPopup] = useState(false);
+  const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
     const getIdentity = async () => {
       const response = await fetch('/api/identity/me');
-      const user = await fetch('/api/users/me');
-      const userData = await user.json();
+      const userResponse = impersonationData ? await fetch(`/api/users/${impersonationData.userId}`) : await fetch('/api/users/me');
+      const userData = await userResponse.json();
+      console.log('userData', userData);
+      setUser(userData);
       const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
       if (userData?.identityToken || isAdmin) {
         if (!response.ok) {
@@ -571,8 +574,8 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
   // Calculate all progress metrics using centralized function
   const progressMetrics = useMemo(() => {
-    return calculateProgressMetrics(projects);
-  }, [projects]);
+    return calculateProgressMetrics(projects, user?.purchasedProgressHours);
+  }, [projects, user?.purchasedProgressHours]);
   
   // Extract currency separately to avoid object reference issues
   const currency = useMemo(() => progressMetrics.currency, [progressMetrics.currency]);
@@ -581,11 +584,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const percentage = useMemo(() => progressMetrics.totalPercentage, [progressMetrics.totalPercentage]);
 
   // Shell balance state
-  const [shellBalance, setShellBalance] = useState<number | null>(null);
-  const [shellBalanceLoading, setShellBalanceLoading] = useState(true);
+  const [shellBalance, setShellBalance] = useState<number | null>(progressMetrics.currency - user?.totalShellsSpent);
   
-  // Progress data state
-  const [progressData, setProgressData] = useState<any>(null);
+  const [shellBalanceLoading, setShellBalanceLoading] = useState(false);
 
   // Animation state for clamshell value and percentage
   const [animatedClamshells, setAnimatedClamshells] = useState(0);
@@ -597,6 +598,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const lastPercentage = useRef<number>(0);
   const currentPercentage = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    setShellBalance(progressMetrics.currency - user?.totalShellsSpent);
+  }, [progressMetrics.currency, user?.totalShellsSpent]);
 
   // Simple animation function that doesn't depend on React state
   const startAnimation = useCallback((targetCurrency: number, targetPercentage: number) => {
@@ -647,33 +652,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
     animationRef.current = requestAnimationFrame(animateValue);
   }, []);
-
-  // Fetch shell balance and progress data
-  useEffect(() => {
-    const fetchShellBalance = async () => {
-      if (!session?.user?.id) {
-        setShellBalanceLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/users/me/shells');
-        if (response.ok) {
-          const data = await response.json();
-          setShellBalance(data.shells);
-          setProgressData(data.progress);
-        } else {
-          console.error('Failed to fetch shell balance');
-        }
-      } catch (error) {
-        console.error('Error fetching shell balance:', error);
-      } finally {
-        setShellBalanceLoading(false);
-      }
-    };
-
-    fetchShellBalance();
-  }, [session?.user?.id]);
 
   // Watch for currency and percentage changes and trigger animation
   useEffect(() => {
@@ -960,105 +938,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
     setTotalHours(percentage);
   }, [projects, projectHours]);
 
-  // Calculate total hours from shipped, viral, and other projects
-  const calculateProgressSegments = (): ProgressSegment[] => {
-    // Use centralized metrics
-    const metrics = progressMetrics;
-    
-    if (!projects || !Array.isArray(projects)) {
-      return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
-    }
-
-    // Convert hours to percentages (based on 60-hour goal)
-    const shippedPercentage = (metrics.shippedHours / 60) * 100;
-    const viralPercentage = (metrics.viralHours / 60) * 100;
-    const otherPercentage = (metrics.otherHours / 60) * 100;
-    
-    // Get purchased progress percentage
-    const purchasedPercentage = progressData?.purchased?.percentage || 0;
-    
-    // Create segments array
-    const segments: ProgressSegment[] = [];
-    
-    // Add shipped segment if there are hours
-    if (metrics.shippedHours > 0) {
-      segments.push({
-        value: shippedPercentage,
-        color: '#10b981', // Green
-        label: 'Shipped',
-        tooltip: `${metrics.shippedHours.toFixed(1)} hours from shipped projects`,
-        animated: false,
-        status: 'completed'
-      });
-    }
-    
-    // Add viral segment if there are hours
-    if (metrics.viralHours > 0) {
-      segments.push({
-        value: viralPercentage,
-        color: '#f59e0b', // Gold/Yellow
-        label: 'Viral',
-        tooltip: `${metrics.viralHours.toFixed(1)} hours from viral projects`,
-        animated: false,
-        status: 'completed'
-      });
-    }
-    
-    // Add other segment if there are hours
-    if (metrics.otherHours > 0) {
-      segments.push({
-        value: otherPercentage,
-        color: '#3b82f6', // Blue
-        label: 'In Progress',
-        tooltip: `${metrics.otherHours.toFixed(1)} hours from in-progress projects`,
-        animated: true,
-        status: 'in-progress'
-      });
-    }
-    
-    // Add purchased progress segment if there are purchased hours
-    if (purchasedPercentage > 0) {
-      segments.push({
-        value: purchasedPercentage,
-        color: '#ec4899',
-        label: 'Purchased',
-        tooltip: `${progressData?.purchased?.percentage?.toFixed(1) || 0}% purchased from shop`,
-        animated: false,
-        status: 'completed'
-      });
-    }
-    
-    // Calculate total progress including purchased
-    const totalProgressWithPurchased = Math.min(metrics.totalPercentage + purchasedPercentage, 100);
-    
-    // Add remaining segment if total < 100%
-    if (totalProgressWithPurchased < 100) {
-      segments.push({
-        value: 100 - totalProgressWithPurchased,
-        color: '#e5e7eb', // Light gray
-        tooltip: 'Remaining progress needed',
-        status: 'pending'
-      });
-    }
-    
-    return segments;
-  };
-
-  // Add a function to calculate the total raw hours before component return
-  const calculateTotalRawHours = () => {
-    if (!projects || !Array.isArray(projects)) {
-      return 0;
-    }
-    
-    return projects.reduce((sum, project) => {
-      // Skip null or undefined projects
-      if (!project) return sum;
-      
-      // Get the raw hours before any capping using our helper
-      const hours = getProjectHackatimeHours(project);
-      return Math.round(sum + hours);
-    }, 0);
-  };
 
   return (
     <div className={styles.container}>
@@ -1111,7 +990,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   <MultiPartProgressBar 
                     projects={projects}
                     progressMetrics={progressMetrics}
-                    progressData={progressData}
                     max={100}
                     height={10}
                     rounded={true}
@@ -1129,10 +1007,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           {/* Progress + Clamshells Section */}
           <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6 mt-4">
             {/* Progress representation */}
-            <Tooltip content={`Believe it or not, you are ${Math.round(progressData?.total?.percentage || progressMetrics.totalPercentage)}% of the way to the Island!!!`}>
+            <Tooltip content={`Believe it or not, you are ${Math.round(progressMetrics.totalPercentageWithPurchased)}% of the way to the Island!!!`}>
               <div className="flex flex-col items-center justify-center w-24 sm:w-28 md:w-32 bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 h-[90px] sm:h-[100px] md:h-[108px]">
                 <div className={`text-xl sm:text-2xl md:text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>
-                  {progressData?.total?.percentage ? Math.round(progressData.total.percentage) : animatedPercentage}%
+                  {Math.round(progressMetrics.totalPercentageWithPurchased)}%
                 </div>
                 <div className={`text-[10px] sm:text-xs text-gray-500 text-center ${isGlowing ? 'percentage-animated' : ''}`}>Island Progress</div>
               </div>
@@ -1191,7 +1069,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#3b82f6' }}></span>
                 <strong>Blue:</strong> Hours from in-progress projects (not yet shipped or viral)
               </li>
-              {progressData?.purchased?.hours > 0 && (
+              {progressMetrics.purchasedProgressHours > 0 && (
                 <li>
                   <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#ec4899' }}></span>
                   <strong>Pink:</strong> Hours purchased from the shop
@@ -1220,7 +1098,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           </div>
           
           <p>
-            Your current progress: <span className="font-bold">{Math.round(progressMetrics.totalPercentage)}%</span> toward the 60-hour requirement
+            Your current progress: <span className="font-bold">{Math.round(progressMetrics.totalPercentageWithPurchased)}%</span> toward the 60-hour requirement
           </p>
         </div>
       </Modal>
