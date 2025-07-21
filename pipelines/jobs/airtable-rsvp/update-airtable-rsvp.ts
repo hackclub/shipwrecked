@@ -113,6 +113,14 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
     options: {
       precision: 1 // 1 decimal place for hours
     }
+  },
+  // Add purchased hours field
+  {
+    name: 'purchasedHours',
+    type: 'number',
+    options: {
+      precision: 1 // 1 decimal place
+    }
   }
 ];
 
@@ -142,7 +150,9 @@ const FIELD_MAPPING: Record<string, string> = {
   hoursToIslandViral: 'hoursToIslandViral',
   hoursToIslandShipped: 'hoursToIslandShipped',
   hoursToIslandUnapproved: 'hoursToIslandUnapproved',
-  shellHours: 'shellHours'
+  shellHours: 'shellHours',
+  // Add mapping for purchased hours
+  purchasedHours: 'purchasedHours'
 };
 
 // Interface for our metrics data
@@ -172,6 +182,7 @@ interface UserMetrics {
   hoursToIslandShipped: number;
   hoursToIslandUnapproved: number;
   shellHours: number;
+  purchasedHours: number;
 }
 
 // Type for Airtable record
@@ -237,6 +248,7 @@ type UserWithProjects = User & {
   fourthProjectApproved?: boolean;
   userExistsInBay?: boolean;
   hackatimeId?: string | null;
+  purchasedProgressHours?: number;
 }
 
 // Improved field validation to handle duplicate fields
@@ -552,7 +564,8 @@ async function updateAirtableRSVPs(): Promise<void> {
       firstProjectApproved: 0,
       submittedSecondProject: 0,
       totalRawHours: 0,
-      totalApprovedHours: 0
+      totalApprovedHours: 0,
+      totalPurchasedHours: 0
     };
     
     // For records with matching Bay users
@@ -577,7 +590,7 @@ async function updateAirtableRSVPs(): Promise<void> {
         if (userData.submittedSecondProject) userStats.submittedSecondProject++;
         userStats.totalRawHours += userData.totalRawHackatimeHours;
         userStats.totalApprovedHours += userData.totalApprovedHackatimeHours;
-        
+        userStats.totalPurchasedHours += userData.purchasedHours;
         // Prepare update object for Airtable
         const fieldsToUpdate: { [key: string]: any } = {};
         
@@ -623,7 +636,7 @@ async function updateAirtableRSVPs(): Promise<void> {
     console.log(`- Total raw Hackatime hours: ${Math.round(userStats.totalRawHours)} hours`);
     console.log(`- Total approved Hackatime hours: ${Math.round(userStats.totalApprovedHours)} hours`);
     console.log(`- Average raw hours per user: ${Math.round(userStats.totalRawHours/userStats.totalUsers * 10) / 10} hours`);
-    
+    console.log(`- Total purchased hours: ${Math.round(userStats.totalPurchasedHours)} hours`);
     // Find Airtable records with no matching Bay user
     console.log('\nFinding RSVP records with no matching Bay user...');
     const unmatchedRecords = airtableRecords.filter(record => {
@@ -906,7 +919,8 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     hoursToIslandViral: Math.round(progressMetrics.viralHours * 10) / 10,
     hoursToIslandShipped: Math.round(progressMetrics.shippedHours * 10) / 10,
     hoursToIslandUnapproved: Math.round(progressMetrics.otherHours * 10) / 10,
-            shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10
+    shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10,
+    purchasedHours: typeof user.purchasedProgressHours === 'number' ? Math.round(user.purchasedProgressHours * 10) / 10 : 0
   };
 }
 

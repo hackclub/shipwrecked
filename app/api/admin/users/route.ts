@@ -32,6 +32,7 @@ export async function GET() {
         status: true,
         hackatimeId: true,
         identityToken: true,
+        purchasedProgressHours: true,
         userTags: {
           include: {
             tag: true,
