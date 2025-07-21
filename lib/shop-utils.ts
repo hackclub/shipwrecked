@@ -36,12 +36,13 @@ function createHourlyRandom(userId: string, itemId: string, hour: number): numbe
 /**
  * Calculate randomized price for a user based on hourly rotation
  * Uses improved hash distribution to ensure fair pricing across all users
+ * Final price is clamped between floor(basePrice * minPercent/100) and ceil(basePrice * maxPercent/100)
  * @param userId User ID for deterministic randomization
  * @param itemId Item ID for deterministic randomization  
  * @param basePrice Base price in shells
  * @param minPercent Minimum percentage (e.g., 90 for 10% off)
  * @param maxPercent Maximum percentage (e.g., 110 for 10% more)
- * @returns Randomized price in shells
+ * @returns Randomized price in shells, clamped to percentage bounds
  */
 export function calculateRandomizedPrice(
   userId: string,
@@ -60,16 +61,21 @@ export function calculateRandomizedPrice(
   const safeMinPercent = Math.max(1, minPercent);
   const safeMaxPercent = Math.max(safeMinPercent + 1, maxPercent);
   
+  // Calculate price bounds from percentages
+  const minPrice = Math.floor(basePrice * safeMinPercent / 100);
+  const maxPrice = Math.ceil(basePrice * safeMaxPercent / 100);
+  
   // Calculate percentage multiplier - this ensures full sliding scale from min to max
   const percentRange = safeMaxPercent - safeMinPercent;
   const randomPercent = safeMinPercent + (random * percentRange);
   const priceMultiplier = randomPercent / 100;
   
-  // Calculate final price and round to nearest integer
+  // Calculate randomized price and clamp between min/max bounds
   const randomizedPrice = Math.round(basePrice * priceMultiplier);
+  const clampedPrice = Math.max(minPrice, Math.min(maxPrice, randomizedPrice));
   
   // Ensure price is at least 1
-  const finalPrice = Math.max(1, randomizedPrice);
+  const finalPrice = Math.max(1, clampedPrice);
   
   // Optional: Add debug logging (remove in production)
   // console.log(`User ${userId.slice(0,8)}..., Item ${itemId}, Hour ${currentHour}: random=${random.toFixed(4)}, percent=${randomPercent.toFixed(1)}%, price=${basePrice}->${finalPrice}`);
