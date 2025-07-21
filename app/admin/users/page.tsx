@@ -215,7 +215,7 @@ function AdminUsersContent() {
     return matchesSearch && matchesTags;
   }).map(user => {
     try {
-      return { ...user, stats: calculateProgressMetrics(user.projects || []) };
+      return { ...user, stats: calculateProgressMetrics(user.projects || [], user.purchasedProgressHours || 0) };
     } catch (error) {
       console.error('Error calculating progress metrics for user:', user.id, error);
       return { 
@@ -339,7 +339,7 @@ function AdminUsersContent() {
     
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-        {user.stats.totalPercentage.toFixed(1)}%{label.length ? " - " + label : ""}
+        {user.stats.totalPercentageWithPurchased.toFixed(1)}%{label.length ? " - " + label : ""}
       </span>
     );
   };

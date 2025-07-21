@@ -156,7 +156,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
   };
 
   // Calculate progress metrics
-  const progressMetrics: ProgressMetrics = user?.projects ? calculateProgressMetrics(user.projects) : {
+  const progressMetrics: ProgressMetrics = user?.projects ? calculateProgressMetrics(user.projects, user.purchasedProgressHours || 0) : {
     shippedHours: 0,
     viralHours: 0,
     otherHours: 0,
@@ -302,22 +302,23 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
               <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 rounded-lg border border-blue-200">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-blue-600 mb-1">
-                    {Math.round(progressMetrics.totalPercentage)}%
+                    {Math.round(progressMetrics.totalPercentageWithPurchased)}%
                   </div>
                   <div className="text-sm text-blue-800 mb-2">Progress to Island</div>
                   <div className="text-xs text-gray-600">
-                    {progressMetrics.totalHours.toFixed(1)} / 60 hours • {user.projects?.length || 0} projects
+                    {progressMetrics.totalPercentageWithPurchased.toFixed(1)} / 60 hours • {user.projects?.length || 0} projects
                   </div>
                 </div>
                 <div className="mt-3 bg-white rounded-full p-1">
                   <div 
                     className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(progressMetrics.totalPercentage, 100)}%` }}
+                    style={{ width: `${Math.min(progressMetrics.totalPercentageWithPurchased, 100)}%` }}
                   ></div>
                 </div>
                 <div className="mt-2 flex justify-between text-xs text-gray-600">
                   <span>Shipped: {progressMetrics.shippedHours.toFixed(1)}h</span>
                   <span>Viral: {progressMetrics.viralHours.toFixed(1)}h</span>
+                  <span>Purchased: {progressMetrics.purchasedProgressHours.toFixed(1)}h</span>
                   <span>Other: {progressMetrics.otherHours.toFixed(1)}h</span>
                 </div>
               </div>
