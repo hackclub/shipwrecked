@@ -39,6 +39,7 @@ export async function GET() {
         slack: true,
         identityToken: true,
         purchasedProgressHours: true,
+        totalShellsSpent: true,
       },
     });
 
