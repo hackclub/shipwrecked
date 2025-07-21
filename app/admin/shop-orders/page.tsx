@@ -401,7 +401,7 @@ export default function ShopOrdersPage() {
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span className="flex items-center">
                               <img src="/shell_720.png" alt="Shell" className="w-4 h-4 mr-1" />
-                              {Math.ceil(order.price / order.quantity)} shells each
+                              {Math.round(order.price / order.quantity)} shells each
                             </span>
                             <span>Qty: {order.quantity}</span>
                             <span>Total: {order.price} shells</span>
