@@ -1109,7 +1109,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
                 >
                   <MultiPartProgressBar 
-                    segments={calculateProgressSegments()}
+                    projects={projects}
+                    progressMetrics={progressMetrics}
+                    progressData={progressData}
                     max={100}
                     height={10}
                     rounded={true}
