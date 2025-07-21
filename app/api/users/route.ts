@@ -14,6 +14,7 @@ export async function GET() {
                         hackatimeLinks: true,
                     },
                 },
+                purchasedProgressHours: true,
             },
             orderBy: {
                 createdAt: 'desc',

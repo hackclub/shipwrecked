@@ -32,12 +32,10 @@ interface MultiPartProgressBarProps {
 // Calculate progress segments from raw data
 export function calculateProgressSegmentsFromData({
   projects,
-  progressMetrics,
-  progressData
+  progressMetrics
 }: {
   projects?: ProjectType[];
   progressMetrics?: ProgressMetrics;
-  progressData?: Record<string, unknown>;
 }): ProgressSegment[] {
   // Use centralized metrics
   const metrics = progressMetrics || { shippedHours: 0, viralHours: 0, otherHours: 0, totalHours: 0, totalPercentage: 0, rawHours: 0, currency: 0, purchasedProgressHours: 0, totalProgressWithPurchased: 0, totalPercentageWithPurchased: 0 };
@@ -48,17 +46,8 @@ export function calculateProgressSegmentsFromData({
   const shippedPercentage = (metrics.shippedHours / 60) * 100;
   const viralPercentage = (metrics.viralHours / 60) * 100;
   const otherPercentage = (metrics.otherHours / 60) * 100;
-  // Get purchased progress percentage
-  let purchasedPercentage = metrics.purchasedProgressHours || 0;
-  if (progressData && typeof progressData === 'object' && 'purchased' in progressData) {
-    const purchased = (progressData as Record<string, unknown>).purchased;
-    if (purchased && typeof purchased === 'object' && 'percentage' in purchased) {
-      const percent = (purchased as Record<string, unknown>).percentage;
-      if (typeof percent === 'number') {
-        purchasedPercentage = percent;
-      }
-    }
-  }
+  // Get purchased progress percentage from metrics only
+  const purchasedPercentage = metrics.purchasedProgressHours || 0;
   // Create segments array
   const segments: ProgressSegment[] = [];
   if (metrics.shippedHours > 0) {
@@ -81,6 +70,15 @@ export function calculateProgressSegmentsFromData({
       status: 'completed'
     });
   }
+  if (purchasedPercentage > 0) {
+    segments.push({
+      value: purchasedPercentage,
+      color: '#ec4899',
+      label: 'Purchased',
+      tooltip: `${purchasedPercentage.toFixed(1)}% purchased from shop`,
+      animated: false,
+      status: 'completed'
+    });
   if (metrics.otherHours > 0) {
     segments.push({
       value: otherPercentage,
@@ -91,15 +89,7 @@ export function calculateProgressSegmentsFromData({
       status: 'in-progress'
     });
   }
-  if (purchasedPercentage > 0) {
-    segments.push({
-      value: purchasedPercentage,
-      color: '#ec4899',
-      label: 'Purchased',
-      tooltip: `${purchasedPercentage.toFixed(1)}% purchased from shop`,
-      animated: false,
-      status: 'completed'
-    });
+
   }
   // Calculate total progress including purchased
   const totalProgressWithPurchased = Math.min((metrics.totalPercentage || 0) + purchasedPercentage, 100);
@@ -118,7 +108,6 @@ export default function MultiPartProgressBar({
   segments,
   projects,
   progressMetrics,
-  progressData,
   max,
   height = 8,
   className = '',
@@ -130,8 +119,8 @@ export default function MultiPartProgressBar({
 }: MultiPartProgressBarProps) {
   // Memoize computedSegments to avoid infinite update loop
   const computedSegments = useMemo(
-    () => segments || calculateProgressSegmentsFromData({ projects, progressMetrics, progressData }),
-    [segments, projects, progressMetrics, progressData]
+    () => segments || calculateProgressSegmentsFromData({ projects, progressMetrics }),
+    [segments, projects, progressMetrics]
   );
   const [processedSegments, setProcessedSegments] = useState<Array<ProgressSegment & { width: string; actualWidth: number }>>([]); 
   const [totalValue, setTotalValue] = useState(0);

@@ -527,12 +527,14 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const isMobile = useIsMobile();
   const { isReviewMode } = useReviewMode();
   const [showIdentityPopup, setShowIdentityPopup] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const getIdentity = async () => {
       const response = await fetch('/api/identity/me');
-      const user = await fetch('/api/users/me');
-      const userData = await user.json();
+      const userResponse = await fetch('/api/users/me');
+      const userData = await userResponse.json();
+      setUser(userData);
       const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
       if (userData?.identityToken || isAdmin) {
         if (!response.ok) {
@@ -571,7 +573,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
   // Calculate all progress metrics using centralized function
   const progressMetrics = useMemo(() => {
-    return calculateProgressMetrics(projects);
+    return calculateProgressMetrics(projects, user?.purchasedProgressHours);
   }, [projects]);
   
   // Extract currency separately to avoid object reference issues
@@ -1003,6 +1005,18 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         status: 'completed'
       });
     }
+
+    // Add purchased progress segment if there are purchased hours
+    if (purchasedPercentage > 0) {
+      segments.push({
+        value: purchasedPercentage,
+        color: '#ec4899',
+        label: 'Purchased',
+        tooltip: `${progressData?.purchased?.percentage?.toFixed(1) || 0}% purchased from shop`,
+        animated: false,
+        status: 'completed'
+      });
+    }
     
     // Add other segment if there are hours
     if (metrics.otherHours > 0) {
@@ -1013,18 +1027,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         tooltip: `${metrics.otherHours.toFixed(1)} hours from in-progress projects`,
         animated: true,
         status: 'in-progress'
-      });
-    }
-    
-    // Add purchased progress segment if there are purchased hours
-    if (purchasedPercentage > 0) {
-      segments.push({
-        value: purchasedPercentage,
-        color: '#ec4899',
-        label: 'Purchased',
-        tooltip: `${progressData?.purchased?.percentage?.toFixed(1) || 0}% purchased from shop`,
-        animated: false,
-        status: 'completed'
       });
     }
     
@@ -1111,7 +1113,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   <MultiPartProgressBar 
                     projects={projects}
                     progressMetrics={progressMetrics}
-                    progressData={progressData}
                     max={100}
                     height={10}
                     rounded={true}
@@ -1129,7 +1130,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           {/* Progress + Clamshells Section */}
           <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6 mt-4">
             {/* Progress representation */}
-            <Tooltip content={`Believe it or not, you are ${Math.round(progressData?.total?.percentage || progressMetrics.totalPercentage)}% of the way to the Island!!!`}>
+            <Tooltip content={`Believe it or not, you are ${Math.round(progressData?.total?.percentage || progressMetrics.tot)}% of the way to the Island!!!`}>
               <div className="flex flex-col items-center justify-center w-24 sm:w-28 md:w-32 bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4 h-[90px] sm:h-[100px] md:h-[108px]">
                 <div className={`text-xl sm:text-2xl md:text-3xl font-bold text-gray-700 ${isGlowing ? 'percentage-animated' : ''}`}>
                   {progressData?.total?.percentage ? Math.round(progressData.total.percentage) : animatedPercentage}%
@@ -1220,7 +1221,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           </div>
           
           <p>
-            Your current progress: <span className="font-bold">{Math.round(progressMetrics.totalPercentage)}%</span> toward the 60-hour requirement
+            Your current progress: <span className="font-bold">{Math.round(progressMetrics.totalPercentageWithPurchased)}%</span> toward the 60-hour requirement
           </p>
         </div>
       </Modal>

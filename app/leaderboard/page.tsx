@@ -220,7 +220,6 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                   <MultiPartProgressBar 
                     projects={projects}
                     progressMetrics={progressMetrics}
-                    progressData={progressData}
                     max={100}
                     height={10}
                     rounded={true}
