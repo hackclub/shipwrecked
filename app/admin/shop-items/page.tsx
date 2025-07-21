@@ -123,7 +123,7 @@ export default function ShopItemsPage() {
 
         const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
         const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
-        const shells = Math.ceil(hours * phi * 10);
+        const shells = Math.round(hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -131,7 +131,7 @@ export default function ShopItemsPage() {
         // For island progress items with hours_equal_to_one_percent_progress
         // Calculate shells directly from hours, not from USD cost
         const hours = configObj.hours_equal_to_one_percent_progress as number;
-        const shells = Math.ceil(hours * phi * 10);
+        const shells = Math.round(hours * phi * 10);
         if (formData.price !== shells.toString()) {
           setFormData((prev) => ({ ...prev, price: shells.toString() }));
         }
@@ -713,7 +713,7 @@ export default function ShopItemsPage() {
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (custom hourly rate for this item)<br/>
-                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.6}'}</code> (hours per 1% progress, price = ceil(hours × φ × 10))
+                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.6}'}</code> (hours per 1% progress, price = round(hours × φ × 10))
                     </p>
                   </div>
                 )}
@@ -735,7 +735,7 @@ export default function ShopItemsPage() {
                       const phi = (1 + Math.sqrt(5)) / 2;
                       const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
                       const hours = usdCost / itemDollarsPerHour;
-                      const shells = Math.ceil(hours * phi * 10);
+                      const shells = Math.round(hours * phi * 10);
                       return (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <p className="text-sm text-green-800">
@@ -749,13 +749,13 @@ export default function ShopItemsPage() {
                     if (configObj.hours_equal_to_one_percent_progress && formData.usdCost) {
                       const hours = configObj.hours_equal_to_one_percent_progress as number;
                       const phi = (1 + Math.sqrt(5)) / 2;
-                      const shells = Math.ceil(hours * phi * 10);
+                      const shells = Math.round(hours * phi * 10);
                       return (
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                           <p className="text-sm text-purple-800">
                             <strong>Auto-calculated shell price (Island Progress):</strong> {shells} shells
                             <br />
-                            <span className="text-xs">Formula: {hours} hours × φ × 10 = {(hours * phi * 10).toFixed(1)} → ceil = {shells} shells</span>
+                            <span className="text-xs">Formula: {hours} hours × φ × 10 = {(hours * phi * 10).toFixed(1)} → round = {shells} shells</span>
                           </p>
                         </div>
                       );
