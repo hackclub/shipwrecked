@@ -165,7 +165,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
           break;
         default:
           // sort by most overrided hours
-          result = (b.metrics.shippedHours + b.metrics.viralHours) - (a.metrics.shippedHours + a.metrics.viralHours);
+          result = (b.metrics.shippedHours + b.metrics.viralHours + b.metrics.purchasedProgressHours) - (a.metrics.shippedHours + a.metrics.viralHours + a.metrics.purchasedProgressHours);
           break;
       }
       
