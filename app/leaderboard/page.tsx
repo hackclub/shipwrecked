@@ -55,6 +55,8 @@ function LeaderboardContent() {
   const [sortField, setSortField] = useState<SortField>('default');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [progressData, setProgressData] = useState<Record<string, unknown>>({});
+  const { data: session } = useSession();
   
   useEffect(() => {
     async function fetchUsers() {
@@ -174,84 +176,28 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
     }
   });
 
-    // Calculate total hours from shipped, viral, and other projects
-    const calculateProgressSegments = (projects: ProjectType[], purchasedProgressHours: number = 0): ProgressSegment[] => {
-        // Use centralized metrics with purchased progress
-        const metrics = calculateProgressMetrics(projects, purchasedProgressHours);
-        
-        if (!projects || !Array.isArray(projects)) {
-          return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
+   // Fetch shell balance and progress data
+   useEffect(() => {
+    const fetchShellBalance = async () => {
+      if (!session?.user?.id) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users/me/shells');
+        if (response.ok) {
+          const data = await response.json();
+          setProgressData(data.progress);
+        } else {
+          console.error('Failed to fetch shell balance');
         }
-    
-        // Convert hours to percentages (based on 60-hour goal)
-        const shippedPercentage = (metrics.shippedHours / 60) * 100;
-        const viralPercentage = (metrics.viralHours / 60) * 100;
-        const otherPercentage = (metrics.otherHours / 60) * 100;
-        const purchasedPercentage = metrics.purchasedProgressHours;
-        
-        // Create segments array
-        const segments: ProgressSegment[] = [];
-        
-        // Add shipped segment if there are hours
-        if (metrics.shippedHours > 0) {
-          segments.push({
-            value: shippedPercentage,
-            color: '#10b981', // Green
-            label: 'Shipped',
-            tooltip: `${metrics.shippedHours.toFixed(1)} hours from shipped projects`,
-            animated: false,
-            status: 'completed'
-          });
-        }
-        
-        // Add viral segment if there are hours
-        if (metrics.viralHours > 0) {
-          segments.push({
-            value: viralPercentage,
-            color: '#f59e0b', // Gold/Yellow
-            label: 'Viral',
-            tooltip: `${metrics.viralHours.toFixed(1)} hours from viral projects`,
-            animated: false,
-            status: 'completed'
-          });
-        }
-        
-        // Add other segment if there are hours
-        if (metrics.otherHours > 0) {
-          segments.push({
-            value: otherPercentage,
-            color: '#3b82f6', // Blue
-            label: 'In Progress',
-            tooltip: `${metrics.otherHours.toFixed(1)} hours from in-progress projects`,
-            animated: true,
-            status: 'in-progress'
-          });
-        }
-        
-        // Add purchased progress segment if there are purchased hours
-        if (purchasedPercentage > 0) {
-          segments.push({
-            value: purchasedPercentage,
-            color: '#ec4899', // Pink
-            label: 'Purchased',
-            tooltip: `${metrics.purchasedProgressHours.toFixed(1)}% purchased from shop`,
-            animated: false,
-            status: 'completed'
-          });
-        }
-        
-        // Add remaining segment if total < 100%
-        if (metrics.totalPercentageWithPurchased < 100) {
-          segments.push({
-            value: 100 - metrics.totalPercentageWithPurchased,
-            color: '#e5e7eb', // Light gray
-            tooltip: 'Remaining progress needed',
-            status: 'pending'
-          });
-        }
-        
-        return segments;
-      };
+      } catch (error) {
+        console.error('Error fetching shell balance:', error);
+      }
+    };
+
+    fetchShellBalance();
+  }, [session?.user?.id]);
 
   const getProgressBadge = (user: User, projects: ProjectType[]) => {
     try {
@@ -272,7 +218,9 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
                 >
                   <MultiPartProgressBar 
-                    segments={calculateProgressSegments(projects, purchasedProgressHours)}
+                    projects={projects}
+                    progressMetrics={progressMetrics}
+                    progressData={progressData}
                     max={100}
                     height={10}
                     rounded={true}
