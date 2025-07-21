@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     
     const user = authResult.user;
 
-    const { name, description, image, price, usdCost, costType, config } = await request.json();
+    const { name, description, image, price, usdCost, costType, config, useRandomizedPricing } = await request.json();
 
     // Validate required fields
     if (!name || !description || price === undefined || price === null) {
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
         usdCost: usdCost !== undefined ? usdCost : 0,
         costType: costType || 'fixed',
         config: config || null,
+        useRandomizedPricing: useRandomizedPricing !== undefined ? useRandomizedPricing : true,
       },
     });
 

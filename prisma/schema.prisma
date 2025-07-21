@@ -445,6 +445,7 @@ model ShopItem {
   usdCost     Float    @default(0)
   costType    ShopItemCostType @default(fixed) // 'fixed' or 'config'
   active      Boolean  @default(true)
+  useRandomizedPricing Boolean @default(true) // whether to apply price randomization
   config      Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

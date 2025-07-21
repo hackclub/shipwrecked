@@ -17,7 +17,7 @@ export async function PUT(
     const user = authResult.user;
 
     const { itemId } = params;
-    const { name, description, image, price, usdCost, costType, config, active } = await request.json();
+    const { name, description, image, price, usdCost, costType, config, active, useRandomizedPricing } = await request.json();
 
     // Validate required fields
     if (!name || !description || price === undefined || price === null) {
@@ -46,6 +46,7 @@ export async function PUT(
         costType: costType || 'fixed',
         config: config || null,
         active: active !== undefined ? active : true,
+        useRandomizedPricing: useRandomizedPricing !== undefined ? useRandomizedPricing : true,
       },
     });
 
