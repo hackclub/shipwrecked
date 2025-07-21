@@ -1,36 +1,22 @@
 import { ShopItem, ShopOrder } from '../app/generated/prisma/client';
+import { createHash } from 'crypto';
 
 /**
  * Create a high-quality deterministic random number based on user ID, item ID, and hour
- * Uses a better hash function to ensure even distribution across all possible values
+ * Uses SHA256 for a high-quality hash (evenly-distributed and has the avalanche effect)
  */
 function createHourlyRandom(userId: string, itemId: string, hour: number): number {
   // Create a combined seed string
   const combined = `${userId}-${itemId}-${hour}`;
-  
-  // Use a better hash function (similar to Java's String.hashCode but with better distribution)
-  let hash1 = 0;
-  let hash2 = 0;
-  
-  for (let i = 0; i < combined.length; i++) {
-    const char = combined.charCodeAt(i);
-    hash1 = ((hash1 << 5) - hash1) + char;
-    hash1 = hash1 & hash1; // Convert to 32-bit integer
-    
-    // Second hash with different multiplier for better distribution
-    hash2 = ((hash2 << 7) - hash2) + char * 31;
-    hash2 = hash2 & hash2;
-  }
-  
-  // Combine both hashes and ensure positive
-  const combinedHash = Math.abs(hash1 ^ hash2);
-  
-  // Use modulo with a large prime to get better distribution
-  const largestPrime = 2147483647; // Largest 32-bit prime
-  const normalizedHash = combinedHash % largestPrime;
-  
-  // Convert to a number between 0 and 1 with high precision
-  return normalizedHash / largestPrime;
+
+  // Use SHA256 for a high-quality hash
+  // We could use crypto.subtle.digest without importing Node.js 'crypto', but that's async
+  const hash = createHash('sha256').update(combined).digest('hex');
+
+  // Convert the first 8 characters of the hash (32 bits) to a number between 0 and 1
+  const subHash = hash.substring(0, 8);
+  const intHash = parseInt(subHash, 16);
+  return intHash / 0xffffffff;
 }
 
 /**
