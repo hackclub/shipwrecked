@@ -61,14 +61,26 @@ export async function GET() {
           price: calculateShellPrice(item.usdCost, dollarsPerHour),
         };
       }
-      // Otherwise, use randomized pricing
-      return {
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        image: item.image,
-        price: calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent),
-      };
+      // Check if randomized pricing is enabled for this item
+      else if (item.useRandomizedPricing) {
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent),
+        };
+      }
+      // Otherwise, use static price
+      else {
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: item.price,
+        };
+      }
     });
 
     return NextResponse.json({ items: publicItems });

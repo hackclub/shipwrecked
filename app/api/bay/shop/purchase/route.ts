@@ -102,8 +102,10 @@ export async function POST(request: NextRequest) {
     ) {
       const dollarsPerHour = parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
       unitPrice = calculateShellPrice(item.usdCost, dollarsPerHour);
-    } else {
+    } else if (item.useRandomizedPricing) {
       unitPrice = calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent);
+    } else {
+      unitPrice = item.price;
     }
     const totalPrice = unitPrice * quantity;
 

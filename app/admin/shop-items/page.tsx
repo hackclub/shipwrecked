@@ -11,9 +11,10 @@ interface ShopItem {
   image?: string;
   price: number;
   active: boolean;
+  useRandomizedPricing: boolean;
   usdCost?: number;
   costType?: 'fixed' | 'config';
-  config?: any;
+  config?: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +75,7 @@ export default function ShopItemsPage() {
     usdCost: string;
     costType: 'fixed' | 'config';
     config: string;
+    useRandomizedPricing: boolean;
   }>({
     name: '',
     description: '',
@@ -82,6 +84,7 @@ export default function ShopItemsPage() {
     usdCost: '',
     costType: 'fixed',
     config: '',
+    useRandomizedPricing: true,
   });
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
@@ -334,6 +337,7 @@ export default function ShopItemsPage() {
         usdCost,
         costType: formData.costType,
         config,
+        useRandomizedPricing: formData.useRandomizedPricing,
       };
 
       const url = editingItem 
@@ -354,7 +358,7 @@ export default function ShopItemsPage() {
       }
 
       // Reset form and close modal
-      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '' });
+      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
       setEditingItem(null);
       setShowAddModal(false);
       
@@ -375,6 +379,7 @@ export default function ShopItemsPage() {
       usdCost: item.usdCost?.toString() || '',
       costType: item.costType || 'fixed',
       config: item.config ? JSON.stringify(item.config, null, 2) : '',
+      useRandomizedPricing: item.useRandomizedPricing ?? true,
     });
     setShowAddModal(true);
   };
@@ -443,7 +448,7 @@ export default function ShopItemsPage() {
         <button
           onClick={() => {
             setEditingItem(null);
-            setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '' });
+            setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
             setShowAddModal(true);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -549,6 +554,9 @@ export default function ShopItemsPage() {
                 Type
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pricing Mode
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -590,6 +598,15 @@ export default function ShopItemsPage() {
                       : 'bg-blue-100 text-blue-800'
                   }`}>
                     {item.costType === 'config' ? 'Special' : 'Auto-calculated'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    item.useRandomizedPricing
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {item.useRandomizedPricing ? 'Randomized' : 'Static'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -700,6 +717,23 @@ export default function ShopItemsPage() {
                     <option value="config">Config (dynamic)</option>
                   </select>
                 </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="useRandomizedPricing"
+                    checked={formData.useRandomizedPricing}
+                    onChange={(e) => setFormData({ ...formData, useRandomizedPricing: e.target.checked })}
+                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="useRandomizedPricing" className="text-sm font-medium text-gray-700">
+                    Use randomized pricing
+                  </label>
+                  <div className="ml-2">
+                    <span className="text-xs text-gray-500">
+                      (If unchecked, item will use static price)
+                    </span>
+                  </div>
+                </div>
                 {formData.costType === 'config' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Config (JSON, required for dynamic cost)</label>
@@ -771,7 +805,7 @@ export default function ShopItemsPage() {
                     onClick={() => {
                       setShowAddModal(false);
                       setEditingItem(null);
-                      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '' });
+                      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   >
