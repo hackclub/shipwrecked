@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import styles from './MultiPartProgressBar.module.css';
 import type { ProjectType } from '@/app/api/projects/route';
 import type { ProgressMetrics } from '@/lib/project-client';
@@ -128,8 +128,11 @@ export default function MultiPartProgressBar({
   showTotal = false,
   tooltipPosition = 'top'
 }: MultiPartProgressBarProps) {
-  // If segments are not provided, calculate them from data
-  const computedSegments = segments || calculateProgressSegmentsFromData({ projects, progressMetrics, progressData });
+  // Memoize computedSegments to avoid infinite update loop
+  const computedSegments = useMemo(
+    () => segments || calculateProgressSegmentsFromData({ projects, progressMetrics, progressData }),
+    [segments, projects, progressMetrics, progressData]
+  );
   const [processedSegments, setProcessedSegments] = useState<Array<ProgressSegment & { width: string; actualWidth: number }>>([]); 
   const [totalValue, setTotalValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
