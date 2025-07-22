@@ -79,7 +79,11 @@ export function calculateProgressSegmentsFromData({
       animated: false,
       status: 'completed'
     });
-  if (metrics.otherHours > 0) {
+  }
+
+  const totalCompletedProgress = shippedPercentage + viralPercentage + purchasedPercentage;
+  
+  if (metrics.otherHours > 0 && totalCompletedProgress < 100) {
     segments.push({
       value: otherPercentage,
       color: '#3b82f6', // Blue
@@ -90,8 +94,7 @@ export function calculateProgressSegmentsFromData({
     });
   }
 
-  }
-  // Calculate total progress including purchased
+  // Calculate total progress including purchased and in-progress (if shown)
   const totalProgressWithPurchased = Math.min((metrics.totalPercentage || 0) + purchasedPercentage, 100);
   if (totalProgressWithPurchased < 100) {
     segments.push({
