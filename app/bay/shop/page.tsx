@@ -176,7 +176,7 @@ export default function ShopPage() {
               className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
             >
               {/* Item Image */}
-              <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-6">
+              <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-12">
                 {item.image ? (
                   <img
                     src={item.image}
