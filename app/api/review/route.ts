@@ -87,6 +87,7 @@ export async function GET() {
 
     // Fetch all projects for these users to calculate their approved hours
     const userProjectsMap: Record<string, number> = {};
+    const userUncappedHoursMap: Record<string, number> = {};
 
     if (userIds.length === 0) {
       console.log('⚠️  No users have projects in review - skipping hour calculations');
@@ -100,7 +101,7 @@ export async function GET() {
           include: { hackatimeLinks: true }
         });
 
-        // Calculate approved hours using the same logic as project-client.ts
+        // Calculate approved hours using the same logic as project-client.ts (capped for progress system)
         let userApprovedHours = 0;
         const projectsWithHours = userProjects
           .map(project => {
@@ -139,11 +140,75 @@ export async function GET() {
         });
 
         const finalHours = Math.min(userApprovedHours, 60);
-
         userProjectsMap[userId] = finalHours;
+
+        // Calculate UNCAPPED total hours across ALL projects (for 66+ hour check)
+        let userUncappedTotalHours = 0;
+        userProjects.forEach(project => {
+          const projectApprovedHours = getProjectApprovedHours(project);
+          if ((project.viral === true || project.shipped === true) && projectApprovedHours > 0) {
+            // For shipped/viral projects, count the full approved hours (no 15-hour cap)
+            userUncappedTotalHours += projectApprovedHours;
+          } else if (!project.shipped && !project.viral && projectApprovedHours > 0) {
+            // For unshipped projects with approved hours, count the full hours (no 15-hour cap)
+            userUncappedTotalHours += projectApprovedHours;
+          }
+        });
+
+        userUncappedHoursMap[userId] = userUncappedTotalHours;
+        
+        // Log detailed user hour calculations
+        console.log(`� === START HOUR CALCULATION FOR USER ${userId} ===`);
+        console.log(`�👤 User has ${userProjects.length} total projects`);
+        console.log(`📋 Project breakdown:`);
+        
+        // Log each project's contribution
+        userProjects.forEach((project, index) => {
+          const projectHours = getProjectHackatimeHours(project);
+          const projectApprovedHours = getProjectApprovedHours(project);
+          console.log(`  ${index + 1}. "${project.name}"`);
+          console.log(`     Raw hours: ${projectHours}`);
+          console.log(`     Approved hours: ${projectApprovedHours}`);
+          console.log(`     Status: shipped=${project.shipped}, viral=${project.viral}`);
+        });
+        
+        console.log(`📊 CAPPED CALCULATION (for progress system):`);
+        console.log(`  - Taking top 4 projects by hours`);
+        projectsWithHours.forEach(({ project }, index) => {
+          const projectApprovedHours = getProjectApprovedHours(project);
+          let contributedHours = 0;
+          
+          if (project.viral === true && projectApprovedHours > 0) {
+            contributedHours = Math.min(projectApprovedHours, 15);
+          } else if (project.shipped === true && projectApprovedHours > 0) {
+            contributedHours = Math.min(projectApprovedHours, 15);
+          } else if (!project.shipped && !project.viral && projectApprovedHours > 0) {
+            contributedHours = Math.min(projectApprovedHours, 15);
+          }
+          
+          console.log(`  ${index + 1}. "${project.name}": ${projectApprovedHours}h approved → ${contributedHours}h (capped at 15)`);
+        });
+        console.log(`  Total before 60h cap: ${userApprovedHours}h`);
+        console.log(`  Final capped hours: ${finalHours}h`);
+        
+        console.log(`📈 UNCAPPED CALCULATION (for 66+ hour check):`);
+        userProjects.forEach((project, index) => {
+          const projectApprovedHours = getProjectApprovedHours(project);
+          if ((project.viral === true || project.shipped === true) && projectApprovedHours > 0) {
+            console.log(`  ${index + 1}. "${project.name}": ${projectApprovedHours}h (shipped/viral)`);
+          } else if (!project.shipped && !project.viral && projectApprovedHours > 0) {
+            console.log(`  ${index + 1}. "${project.name}": ${projectApprovedHours}h (unshipped but approved)`);
+          } else {
+            console.log(`  ${index + 1}. "${project.name}": 0h (no approved hours or no status)`);
+          }
+        });
+        console.log(`  Total uncapped hours: ${userUncappedTotalHours}h`);
+        console.log(`🏁 === END HOUR CALCULATION FOR USER ${userId} ===`);
+        console.log(``);
       } catch (error) {
         console.error(`Error calculating approved hours for user ${userId}:`, error);
         userProjectsMap[userId] = 0;
+        userUncappedHoursMap[userId] = 0;
       }
     }
 
@@ -157,6 +222,65 @@ export async function GET() {
         0
       );
 
+      // Get user's current approved hours
+      const ownerApprovedHours = userProjectsMap[project.userId] || 0;
+      
+      // Get user's current uncapped total hours
+      const ownerUncappedHours = userUncappedHoursMap[project.userId] || 0;
+
+      // Calculate if user has high hours (potential final project)
+      // Flag if any of these conditions are true:
+      // 1. User has 45+ approved hours (close to 60-hour cap)
+      // 2. Approving this project would get them to 66+ total UNCAPPED hours
+      // 3. Would complete their 60-hour goal (can reach exactly 60 with 4 projects of 15h each when capped)
+      const closeToGoal = ownerApprovedHours >= 45;
+      const wouldExceedExtendedGoal = (ownerUncappedHours + rawHours) >= 66;
+      
+      // For the "would complete goal" check, we need to verify they can actually reach 60h
+      // This means they need the potential for 4 projects that contribute 15h each when capped
+      // Current capped hours + this project (capped at 15) should be able to reach 60
+      const thisProjectCappedContribution = Math.min(rawHours, 15);
+      const potentialTotal = ownerApprovedHours + thisProjectCappedContribution;
+      const wouldCompleteGoal = ownerApprovedHours > 40 && ownerApprovedHours < 60 && rawHours >= 15 && potentialTotal >= 60;
+      
+      const hasHighHours = closeToGoal || wouldExceedExtendedGoal || wouldCompleteGoal;
+
+      // Debug logging for hasHighHours calculation
+      console.log(`🎯 === START hasHighHours CALCULATION ===`);
+      console.log(`📋 Project: "${project.name}" by ${project.user?.name} (ID: ${project.userId})`);
+      console.log(`⏱️  This project's raw hours: ${rawHours}h`);
+      console.log(``);
+      console.log(`📊 USER'S CURRENT HOURS:`);
+      console.log(`  Capped approved hours: ${ownerApprovedHours}h`);
+      console.log(`  Uncapped total hours: ${ownerUncappedHours}h`);
+      console.log(``);
+      console.log(`🔍 CONDITION CHECKS:`);
+      console.log(`  1️⃣ Close to goal (≥45 capped hours):`);
+      console.log(`     ${ownerApprovedHours} >= 45 = ${closeToGoal}`);
+      console.log(``);
+      console.log(`  2️⃣ Would exceed 66 uncapped hours:`);
+      console.log(`     Current uncapped: ${ownerUncappedHours}h`);
+      console.log(`     + This project: ${rawHours}h`);
+      console.log(`     = Total if approved: ${ownerUncappedHours + rawHours}h`);
+      console.log(`     ${ownerUncappedHours + rawHours} >= 66 = ${wouldExceedExtendedGoal}`);
+      console.log(``);
+      console.log(`  3️⃣ Would complete goal (can reach 60h with 4 capped projects):`);
+      console.log(`     Current capped hours: ${ownerApprovedHours}h`);
+      console.log(`     This project capped contribution: ${thisProjectCappedContribution}h (min(${rawHours}, 15))`);
+      console.log(`     Potential total: ${ownerApprovedHours} + ${thisProjectCappedContribution} = ${potentialTotal}h`);
+      console.log(`     Conditions:`);
+      console.log(`       ${ownerApprovedHours} > 40 = ${ownerApprovedHours > 40}`);
+      console.log(`       ${ownerApprovedHours} < 60 = ${ownerApprovedHours < 60}`);
+      console.log(`       ${rawHours} >= 15 = ${rawHours >= 15}`);
+      console.log(`       ${potentialTotal} >= 60 = ${potentialTotal >= 60}`);
+      console.log(`     All conditions: ${wouldCompleteGoal}`);
+      console.log(``);
+      console.log(`🏷️  FINAL RESULT:`);
+      console.log(`  hasHighHours = ${closeToGoal} || ${wouldExceedExtendedGoal} || ${wouldCompleteGoal} = ${hasHighHours}`);
+      console.log(`  Tag will ${hasHighHours ? 'SHOW' : 'NOT SHOW'} "Last project"`);
+      console.log(`🎯 === END hasHighHours CALCULATION ===`);
+      console.log(``);
+
       return {
         ...project,
         userName: project.user?.name || null,
@@ -166,7 +290,8 @@ export async function GET() {
         latestReview,
         reviewCount: project.reviews?.filter((review: { reviewerId: string }) => review.reviewerId === project.userId).length || 0,
         rawHours: rawHours,
-        ownerApprovedHours: userProjectsMap[project.userId] || 0,
+        ownerApprovedHours: ownerApprovedHours,
+        hasHighHours: hasHighHours,
       };
     });
 

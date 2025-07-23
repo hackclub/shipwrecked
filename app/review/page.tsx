@@ -164,6 +164,7 @@ interface Project {
   reviewCount: number;
   rawHours: number;
   ownerApprovedHours: number;
+  hasHighHours: boolean;
   hoursOverride?: number;
   hackatimeLinks?: {
     id: string;
@@ -194,16 +195,6 @@ function wouldCompleteGoal(project: Project): boolean {
   return ownerHasEnoughHours && projectIsSignificant;
 }
 
-// Helper function to check if a project owner would hit the 60-hour cap if their pending projects get approved
-function hasHighHours(project: Project): boolean {
-  // Get the project owner's current approved hours (calculated in API using identical logic as progress bar)
-  const ownerCurrentHours = project.ownerApprovedHours || 0;
-  
-  // Check if they would hit the 60-hour cap (this requires additional calculation)
-  // For now, we'll flag users with 45+ current hours as they're close to the cap
-  return ownerCurrentHours >= 45;
-}
-
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
   const reviewTypeLabels: Record<string, { label: string, color: string }> = {
     ShippedApproval: { label: 'Shipped', color: 'blue' },
@@ -229,7 +220,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   };
 
   const daysInReview = calculateDaysInReview();
-  const userHasHighHours = hasHighHours(project);
+  const userHasHighHours = project.hasHighHours;
 
   return (
     <div 
@@ -489,7 +480,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
   };
 
   const daysInReview = calculateDaysInReview();
-  const userHasHighHours = hasHighHours(project);
+  const userHasHighHours = project.hasHighHours;
   
   const [projectFlags, setProjectFlags] = useState({
     shipped: !!project.shipped,
