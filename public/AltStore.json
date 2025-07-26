@@ -59,6 +59,42 @@
           ],
           "privacy": {}
         }
+      },
+      {
+        "name": "Pachyderm",
+        "bundleIdentifier": "ca.bomberfish.Pachyderm",
+        "marketplaceID": "",
+        "developerName": "BomberFish",
+        "subtitle": "A beautiful Mastodon client for iOS.",
+        "localizedDescription": "A beautiful Mastodon client for iOS, written in SwiftUI.",
+        "iconURL": "https://github.com/BomberFish/Pachyderm/releases/download/0.1.1/icon.png",
+        "tintColor": "#b022e3",
+        "category": "social",
+        "screenshots": [],
+        "versions": [
+          {
+            "downloadURL": "https://github.com/BomberFish/Pachyderm/releases/download/0.1.1/Pachyderm.ipa",
+            "size": 1030000,
+            "version": "0.1.1",
+            "buildVersion": "1",
+            "date": "2025-07-25T00:00:00+00:00",
+            "localizedDescription": null,
+            "minOSVersion": "16.0"
+          },
+          {
+            "downloadURL": "https://github.com/BomberFish/Pachyderm/releases/download/0.1/Pachyderm.ipa",
+            "size": 1030000,
+            "version": "0.1",
+            "buildVersion": "1",
+            "date": "2025-07-25T00:00:00+00:00",
+            "localizedDescription": null,
+            "minOSVersion": "26.0"
+          }
+        ],
+        "appPermissions": {
+          "entitlements": [],
+          "privacy": {}
+        }
       }
     ]
   }
