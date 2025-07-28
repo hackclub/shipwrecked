@@ -169,7 +169,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["First Name"]}
               onChange={(e) => handleInputChange("First Name", e.target.value)}
-              disabled=true
+              disabled
             >
               First Name
             </FormInput>
@@ -180,7 +180,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Last Name"]}
               onChange={(e) => handleInputChange("Last Name", e.target.value)}
-              disabled=true
+              disabled
             >
               Last Name
             </FormInput>
@@ -195,7 +195,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Email"]}
               onChange={(e) => handleInputChange("Email", e.target.value)}
-              disabled=true
+              disabled
             >
               Email
             </FormInput>
@@ -207,7 +207,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Birthday"]}
               onChange={(e) => handleInputChange("Birthday", e.target.value)}
-              disabled=true
+              disabled
             >
               Birthday
             </FormInput>
@@ -216,7 +216,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
           <div className="flex justify-center mt-0 md:mt-2 pt-1 md:pt-5">
             <button
               className="py-1 md:py-2 md:px-4 px-2 uppercase disabled:bg-dark-blue/20 bg-dark-blue/60 text-sand border border-sand whitespace-nowrap text-xs md:text-base transition hover:not-disabled:border-yellow backdrop-blur-sm rounded-full cursor-pointer disabled:cursor-not-allowed transform-gpu hover:scale-105 focus:scale-105 duration-150"
-              disabled=true
+              disabled
               type="submit"
             >
               <span className="flex items-center gap-1 flex-nowrap">
