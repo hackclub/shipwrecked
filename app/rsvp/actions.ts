@@ -78,6 +78,13 @@ export async function save(state: FormSave, payload: FormData): Promise<FormSave
     console.log('Form Data:', Object.fromEntries(payload.entries()));
     
     try {
+        // Cancel and return error
+        return {
+            errors: { _form: ["We are no longet accepting RSVP's to Shipwrecked"] },
+            data: undefined,
+            valid: false
+        }
+        
         // Get Session
         const session = await getServerSession(opts);
         console.log('Session:', session ? 'Found' : 'Not found');
