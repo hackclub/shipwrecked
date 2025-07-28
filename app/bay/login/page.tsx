@@ -6,7 +6,14 @@ import { useRouter } from "next/navigation";
 // Login Page (/bay/login)
 export default function LoginPage() {
   const [visible, setVisible] = useState(false);
-
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  
+  if (status !== "unauthenticated" && status !== "loading") {
+    useEffect(() => {
+      router.push("/bay")
+    });
+  }
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 10);
     return () => clearTimeout(timer);
