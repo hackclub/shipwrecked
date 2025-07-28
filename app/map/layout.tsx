@@ -19,13 +19,11 @@ export default function MapLayout({ children }: { children: ReactNode }) {
 function SessionWrapper({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
 
-  // Check if user is authenticated and has received an invite
+  // Check if user is authenticated
   const isAuthenticated = status === "authenticated";
-  // TODO: Make sure the user has been invited
-  const hasInvite = true;
-
-  // Only show review content when authenticated AND user has invite
-  if (isAuthenticated && hasInvite) {
+  // Check for the attending tag will be handled by API
+  // Only show review content when authenticated
+  if (isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col">
         {<Header
@@ -50,7 +48,7 @@ function SessionWrapper({ children }: { children: ReactNode }) {
           <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-md">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
             <p className="text-gray-600 mb-6">
-              Only authenticated and invited users can access the flight map.
+              Only authenticated and attending users can access the flight map.
             </p>
             <Link
               href="/"
