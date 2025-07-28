@@ -883,14 +883,25 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
       return minimalProject;
     });
     
-    progressMetrics = calculateProgressMetrics(transformedProjects);
+    progressMetrics = calculateProgressMetrics(
+      transformedProjects,
+      user.purchasedProgressHours || 0,
+      user.totalShellsSpent || 0,
+      user.adminShellAdjustment || 0
+    );
   } catch (error) {
     console.error('Error calculating progress metrics for user:', user.email, error);
     progressMetrics = {
       viralHours: 0,
       shippedHours: 0,
-      otherHours: 0,
-      currency: 0
+      otherHours: 0,  
+      totalHours: 0,
+      totalPercentage: 0,
+      rawHours: 0,
+      availableShells: 0,
+      purchasedProgressHours: 0,
+      totalProgressWithPurchased: 0,
+      totalPercentageWithPurchased: 0
     };
   }
   
@@ -919,7 +930,7 @@ function calculateUserMetrics(user: UserWithProjects): UserMetrics {
     hoursToIslandViral: Math.round(progressMetrics.viralHours * 10) / 10,
     hoursToIslandShipped: Math.round(progressMetrics.shippedHours * 10) / 10,
     hoursToIslandUnapproved: Math.round(progressMetrics.otherHours * 10) / 10,
-    shellHours: Math.round((progressMetrics.currency / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10,
+    shellHours: Math.round((progressMetrics.availableShells / ((1 + Math.sqrt(5)) / 2 * 10)) * 10) / 10,
     purchasedHours: typeof user.purchasedProgressHours === 'number' ? Math.round(user.purchasedProgressHours * 10) / 10 : 0
   };
 }

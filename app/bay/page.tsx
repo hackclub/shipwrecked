@@ -572,20 +572,45 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
     );
   };
 
-  // Calculate all progress metrics using centralized function
+  // Calculate all progress metrics using centralized function with admin adjustments
   const progressMetrics = useMemo(() => {
-    return calculateProgressMetrics(projects, user?.purchasedProgressHours);
-  }, [projects, user?.purchasedProgressHours]);
+    // Don't calculate until user data is loaded
+    if (!user) {
+      return {
+        shippedHours: 0,
+        viralHours: 0,
+        otherHours: 0,
+        totalHours: 0,
+        totalPercentage: 0,
+        rawHours: 0,
+        availableShells: 0,
+        purchasedProgressHours: 0,
+        totalProgressWithPurchased: 0,
+        totalPercentageWithPurchased: 0
+      };
+    }
+    
+    console.log('🐚 BAY SHELL DEBUG:', {
+      projects: projects.length,
+      purchasedProgressHours: user?.purchasedProgressHours || 0,
+      totalShellsSpent: user?.totalShellsSpent || 0,
+      adminShellAdjustment: user?.adminShellAdjustment || 0,
+      userHasAdminField: user?.hasOwnProperty('adminShellAdjustment')
+    });
+    return calculateProgressMetrics(
+      projects, 
+      user.purchasedProgressHours || 0,
+      user.totalShellsSpent || 0,
+      user.adminShellAdjustment || 0
+    );
+  }, [projects, user]);
   
   // Extract currency separately to avoid object reference issues
-  const currency = useMemo(() => progressMetrics.currency, [progressMetrics.currency]);
+  const currency = useMemo(() => progressMetrics.availableShells, [progressMetrics.availableShells]);
   
   // Extract percentage separately to avoid object reference issues
   const percentage = useMemo(() => progressMetrics.totalPercentage, [progressMetrics.totalPercentage]);
 
-  // Shell balance state
-  const [shellBalance, setShellBalance] = useState<number | null>(progressMetrics.currency - user?.totalShellsSpent);
-  
   const [shellBalanceLoading, setShellBalanceLoading] = useState(false);
 
   // Animation state for clamshell value and percentage
@@ -599,9 +624,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const currentPercentage = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    setShellBalance(progressMetrics.currency - user?.totalShellsSpent);
-  }, [progressMetrics.currency, user?.totalShellsSpent]);
+
 
   // Simple animation function that doesn't depend on React state
   const startAnimation = useCallback((targetCurrency: number, targetPercentage: number) => {
@@ -1031,7 +1054,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="font-bold text-sm sm:text-base text-center text-black" style={{marginTop: '-2px'}}>
-                      {shellBalanceLoading ? '...' : (shellBalance !== null ? shellBalance : animatedClamshells)}
+                      {shellBalanceLoading ? '...' : animatedClamshells}
                     </span>
                   </div>
                 </div>
@@ -1878,24 +1901,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                 Cancel
               </button>
               
-              {/* <button
-                className="px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed font-medium rounded focus:outline-none transition-colors"
-                onClick={() => {
-                  // Don't proceed if no project is selected
-                  if (!projectToDelete) return;
-                  
-                  // Close the confirmation modal
-                  setIsDeleteConfirmModalOpen(false);
-                  
-                  // Close the edit modal if it's open
-                  setIsProjectEditModalOpen(false);
-                  
-                  // Show message that deletion is restricted
-                  toast.error("Sorry, you cannot unlink your hackatime project from Shipwrecked.");
-                }}
-              >
-                Delete Project
-              </button> */}
             </div>
           </div>
         </Modal>

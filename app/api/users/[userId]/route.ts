@@ -23,6 +23,7 @@ export async function GET(request: Request, { params }: { params: { userId: stri
         identityToken: true,
         purchasedProgressHours: true,
         totalShellsSpent: true,
+        adminShellAdjustment: true,
         projects: {
           include: {
             hackatimeLinks: true,

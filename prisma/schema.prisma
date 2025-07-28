@@ -47,6 +47,7 @@ enum AuditLogEventType {
   ShopOrderCreated
   ShopOrderFulfilled
   ShopOrderRejected
+  ShellModification
   OtherEvent
 }
 
@@ -113,6 +114,7 @@ model User {
   // Shop orders
   totalShellsSpent Int @default(0)
   purchasedProgressHours Float @default(0) // Progress purchased from shop
+  adminShellAdjustment Int @default(0) // Net admin shell adjustments (positive for added, negative for deducted)
   shopOrders ShopOrder[] @relation("user")
   fulfilledShopOrders ShopOrder[] @relation("fulfilledByUser")
 }

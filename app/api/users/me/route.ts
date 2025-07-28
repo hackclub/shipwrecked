@@ -40,6 +40,7 @@ export async function GET() {
         identityToken: true,
         purchasedProgressHours: true,
         totalShellsSpent: true,
+        adminShellAdjustment: true,
       },
     });
 
