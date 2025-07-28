@@ -9,7 +9,7 @@ export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  if (status !== "unauthenticated" && status !== "loading") {
+  if (status === "authenticated") {
     useEffect(() => {
       router.push("/bay")
     });
