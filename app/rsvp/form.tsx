@@ -153,7 +153,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
       )}
       <div className="text-dark-brown w-full max-w-4xl mb-1">
         <h1 className="text-2xl md:text-6xl font-bold mb-1 md:mb-4">
-          RSVP for Shipwrecked!
+          Sorry! Signups are closed now.
         </h1>
 
         <p className="text-center text-sm md:text-base mb-3 md:mb-6 text-dark-brown/80">
@@ -169,6 +169,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["First Name"]}
               onChange={(e) => handleInputChange("First Name", e.target.value)}
+              disabled=true
             >
               First Name
             </FormInput>
@@ -179,6 +180,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Last Name"]}
               onChange={(e) => handleInputChange("Last Name", e.target.value)}
+              disabled=true
             >
               Last Name
             </FormInput>
@@ -193,6 +195,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Email"]}
               onChange={(e) => handleInputChange("Email", e.target.value)}
+              disabled=true
             >
               Email
             </FormInput>
@@ -204,6 +207,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               required
               value={formData["Birthday"]}
               onChange={(e) => handleInputChange("Birthday", e.target.value)}
+              disabled=true
             >
               Birthday
             </FormInput>
@@ -212,7 +216,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
           <div className="flex justify-center mt-0 md:mt-2 pt-1 md:pt-5">
             <button
               className="py-1 md:py-2 md:px-4 px-2 uppercase disabled:bg-dark-blue/20 bg-dark-blue/60 text-sand border border-sand whitespace-nowrap text-xs md:text-base transition hover:not-disabled:border-yellow backdrop-blur-sm rounded-full cursor-pointer disabled:cursor-not-allowed transform-gpu hover:scale-105 focus:scale-105 duration-150"
-              disabled={isSubmitting}
+              disabled=true
               type="submit"
             >
               <span className="flex items-center gap-1 flex-nowrap">
@@ -231,4 +235,5 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
       </div>
     </>
   );
+  
 }
