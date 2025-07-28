@@ -18,12 +18,22 @@ export async function GET(request: Request) {
   if (!session?.user?.email) {
     return NextResponse.json({error: 'Unauthorized'}, {status: 401});
   }
-  // TODO: Make sure the user has been invited
-  const hasInvite = true;
-  if (!hasInvite) {
-    return NextResponse.json({error: 'Access Denied'}, {status: 403});
-  }
   try {
+    // Ensure the user is marked with the attending tag
+    const attendingTag = await prisma.userTag.findFirst({
+      where: {
+        userId: session?.user?.id,
+        tag: {
+          name: {
+            equals: 'attending',
+            mode: 'insensitive', // Case-insensitive match
+          },
+        },
+      },
+    });
+    if (!attendingTag) {
+      return NextResponse.json({error: 'User is not attending event'}, {status: 403});
+    }
     // If necessary, send cached reponse
     if (Date.now() - lastRequest < rateLimit && cache) {
       return NextResponse.json(cache, {status: 200});
