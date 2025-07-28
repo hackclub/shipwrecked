@@ -26,10 +26,6 @@ function SessionWrapper({ children }: { children: ReactNode }) {
   if (isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col">
-        {<Header
-          session={session}
-          status={status}
-        />}
         <main className="flex-grow">
           {children}
         </main>
