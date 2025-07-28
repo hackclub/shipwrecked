@@ -18,6 +18,12 @@ async function fetchFlights() {
   });
 
   if (!res.ok) {
+    if (res.headers.get('Content-Type')?.includes('application/json')) {
+      const errorData = await res.json();
+      if (errorData.error) {
+        throw new Error(`Failed to fetch flights: ${errorData.error}`);
+      }
+    }
     throw new Error('Failed to fetch flights');
   }
 
@@ -75,15 +81,14 @@ export default function MapPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {isLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 z-1500 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center">
-            <Icon glyph="refresh" size={48} className="animate-spin text-blue-500 mb-4"/>
             <span className="text-lg font-semibold">Loading flights...</span>
           </div>
         </div>
       )}
       {error && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 z-1500 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center">
             <Icon glyph="important" size={48} className="text-red-500 mb-4"/>
             <span className="text-lg font-semibold text-red-700 mb-2">{error}</span>
