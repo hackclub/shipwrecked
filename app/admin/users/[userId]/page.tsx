@@ -61,6 +61,9 @@ interface User {
   slack: string | null;
   projects?: AdminProjectType[];
   userTags?: UserTag[];
+  totalShellsSpent?: number;
+  adminShellAdjustment?: number;
+  purchasedProgressHours?: number;
 }
 
 
@@ -155,15 +158,23 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     }
   };
 
-  // Calculate progress metrics
-  const progressMetrics: ProgressMetrics = user?.projects ? calculateProgressMetrics(user.projects, user.purchasedProgressHours || 0) : {
+  // Calculate progress metrics with admin adjustments
+  const progressMetrics: ProgressMetrics = user?.projects ? calculateProgressMetrics(
+    user.projects, 
+    user.purchasedProgressHours || 0,
+    user.totalShellsSpent || 0,
+    user.adminShellAdjustment || 0
+  ) : {
     shippedHours: 0,
     viralHours: 0,
     otherHours: 0,
     totalHours: 0,
     totalPercentage: 0,
     rawHours: 0,
-    currency: 0
+    availableShells: 0,
+    purchasedProgressHours: 0,
+    totalProgressWithPurchased: 0,
+    totalPercentageWithPurchased: 0
   };
 
   if (status !== 'authenticated') {
@@ -501,6 +512,139 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
           >
             {isUpdating ? 'Updating...' : 'Save Changes'}
           </button>
+        </div>
+      </div>
+
+      {/* Shell Management Section */}
+      <div className="bg-white rounded-lg shadow overflow-hidden mt-6">
+        <div className="p-6">
+          <h3 className="text-lg font-medium mb-4">Shell Balance Management</h3>
+          
+          {/* Current Shell Balance Breakdown */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-100 p-4 rounded-lg border border-yellow-200 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {user?.projects ? calculateProgressMetrics(user.projects, user.purchasedProgressHours || 0).availableShells : 0}
+                </div>
+                <div className="text-sm text-yellow-800">Earned Shells</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-red-600">
+                  {(user?.totalShellsSpent || 0) > 0 ? `-${user.totalShellsSpent}` : '0'}
+                </div>
+                <div className="text-sm text-red-800">Spent Shells</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {user?.adminShellAdjustment ? (user.adminShellAdjustment > 0 ? '+' : '') + user.adminShellAdjustment : '0'}
+                </div>
+                <div className="text-sm text-blue-800">Admin Adjustment</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-600">
+                  {progressMetrics.availableShells}
+                </div>
+                <div className="text-sm text-green-800">Available Shells</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Shell Modification Form */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h4 className="text-md font-medium mb-3">Modify Shell Balance</h4>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const adjustment = parseInt(formData.get('adjustment') as string);
+              const reason = formData.get('reason') as string;
+
+              if (!adjustment || adjustment === 0) {
+                toast.error('Please enter a non-zero adjustment amount');
+                return;
+              }
+
+              try {
+                const response = await fetch(`/api/admin/users/${user?.id}/shells`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    adjustment,
+                    reason: reason.trim() || undefined,
+                  }),
+                });
+
+                if (!response.ok) {
+                  const error = await response.json();
+                  throw new Error(error.error || 'Failed to modify shells');
+                }
+
+                const result = await response.json();
+                toast.success(`Shell balance updated! Previous: ${result.previousBalance}, New: ${result.newBalance}`);
+                
+                // Refresh user data
+                await refreshUserData();
+                
+                // Reset form
+                (e.target as HTMLFormElement).reset();
+              } catch (error) {
+                console.error('Error modifying shells:', error);
+                toast.error(error instanceof Error ? error.message : 'Failed to modify shells');
+              }
+            }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="adjustment" className="block text-sm font-medium text-gray-700 mb-1">
+                    Shell Adjustment
+                  </label>
+                  <input
+                    type="number"
+                    id="adjustment"
+                    name="adjustment"
+                    placeholder="e.g., 50 to add, -25 to deduct"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="-1000"
+                    max="1000"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Positive numbers add shells, negative numbers deduct shells. Range: -1000 to +1000
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
+                    Reason (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="reason"
+                    name="reason"
+                    placeholder="e.g., Compensation for bug, Manual correction"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    maxLength={200}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Optional reason that will be recorded in audit logs
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Update Shell Balance
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-500">
+            <p><strong>⚠️ Important:</strong> All shell modifications are logged in the audit system and cannot be undone.</p>
+            <p>The user's available shell balance will be updated immediately and reflected across the platform.</p>
+          </div>
         </div>
       </div>
 

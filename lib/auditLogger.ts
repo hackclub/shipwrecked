@@ -15,6 +15,7 @@ export enum AuditLogEventType {
   ShopOrderCreated = "ShopOrderCreated",
   ShopOrderFulfilled = "ShopOrderFulfilled",
   ShopOrderRejected = "ShopOrderRejected",
+  ShellModification = "ShellModification",
   OtherEvent = "OtherEvent"
 }
 
@@ -218,5 +219,42 @@ export async function logUserEvent({
     targetUserId,
     actorUserId,
     metadata
+  });
+} 
+
+/**
+ * Helper function to create a shell modification audit log
+ */
+export async function logShellModification({
+  targetUserId,
+  actorUserId,
+  adjustment,
+  reason,
+  previousBalance,
+  newBalance
+}: {
+  targetUserId: string;
+  actorUserId: string;
+  adjustment: number;
+  reason?: string;
+  previousBalance: number;
+  newBalance: number;
+}) {
+  const description = `Admin ${adjustment > 0 ? 'added' : 'deducted'} ${Math.abs(adjustment)} shells. Previous balance: ${previousBalance}, New balance: ${newBalance}${reason ? `. Reason: ${reason}` : ''}`;
+  
+  console.log(`[SHELL-AUDIT-TRACE] Logging shell modification: ${description}`);
+  
+  return createAuditLog({
+    eventType: AuditLogEventType.ShellModification,
+    description,
+    targetUserId,
+    actorUserId,
+    metadata: {
+      adjustment,
+      reason,
+      previousBalance,
+      newBalance,
+      timestamp: new Date().toISOString()
+    }
   });
 } 

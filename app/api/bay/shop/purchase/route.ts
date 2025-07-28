@@ -7,10 +7,14 @@ import { calculateProgressMetrics } from '@/lib/project-client';
 import { calculateRandomizedPrice, calculateShellPrice } from '@/lib/shop-utils';
 
 async function getUserShellBalance(userId: string): Promise<number> {
-  // Get user with totalShellsSpent
+  // Get user with all shell-related fields
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { totalShellsSpent: true }
+    select: { 
+      totalShellsSpent: true,
+      adminShellAdjustment: true,
+      purchasedProgressHours: true
+    }
   });
 
   if (!user) {
@@ -23,13 +27,15 @@ async function getUserShellBalance(userId: string): Promise<number> {
     include: { hackatimeLinks: true }
   });
 
-  // Calculate shell balance
-  const metrics = calculateProgressMetrics(projects);
-  const earnedShells = metrics.currency;
-  const totalSpent = user.totalShellsSpent;
-  const shells = Math.max(0, earnedShells - totalSpent);
-
-  return shells;
+  // Calculate shell balance using updated function that includes admin adjustment
+  const metrics = calculateProgressMetrics(
+    projects,
+    user.purchasedProgressHours,
+    user.totalShellsSpent,
+    user.adminShellAdjustment
+  );
+  
+  return metrics.availableShells; // This now includes admin adjustment!
 }
 
 export async function POST(request: NextRequest) {

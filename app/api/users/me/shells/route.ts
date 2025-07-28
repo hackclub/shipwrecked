@@ -18,10 +18,13 @@ export async function GET() {
       return NextResponse.json({ error: 'User ID not found in session' }, { status: 400 });
     }
 
-  
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { totalShellsSpent: true, purchasedProgressHours: true }
+      select: { 
+        totalShellsSpent: true, 
+        purchasedProgressHours: true,
+        adminShellAdjustment: true
+      }
     });
 
     if (!user) {
@@ -34,17 +37,20 @@ export async function GET() {
       include: { hackatimeLinks: true }
     });
 
-    // Calculate shell balance and progress metrics
-    const metrics = calculateProgressMetrics(projects, user.purchasedProgressHours);
-    const earnedShells = metrics.currency;
-    const totalSpent = user.totalShellsSpent;
-    const shells = Math.max(0, earnedShells - totalSpent);
+    // Calculate comprehensive shell balance using the enhanced function
+    const metrics = calculateProgressMetrics(
+      projects,
+      user.purchasedProgressHours,
+      user.totalShellsSpent,
+      user.adminShellAdjustment
+    );
 
     return NextResponse.json({ 
-      shells,
-      earnedShells,
-      totalSpent,
-      availableShells: shells,
+      shells: metrics.availableShells,
+      earnedShells: metrics.availableShells,
+      totalSpent: user.totalShellsSpent,
+      adminShellAdjustment: user.adminShellAdjustment,
+      availableShells: metrics.availableShells,
       progress: {
         earned: {
           totalHours: metrics.totalHours,

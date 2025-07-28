@@ -22,6 +22,12 @@ enum UserStatus {
   FraudSuspect = "FraudSuspect"
 }
 
+enum UserRole {
+  User = "User",
+  Reviewer = "Reviewer", 
+  Admin = "Admin"
+}
+
 interface User {
   id: string;
   name: string | null;
@@ -41,6 +47,7 @@ interface User {
   identityToken?: string;
   purchasedProgressHours?: number;
   totalShellsSpent?: number;
+  adminShellAdjustment?: number;
 }
 
 // Sorting types
@@ -399,7 +406,12 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {Math.max(0, calculateProgressMetrics(user.projects).currency - (user.totalShellsSpent || 0))}
+                          {calculateProgressMetrics(
+                            user.projects, 
+                            user.purchasedProgressHours || 0,
+                            user.totalShellsSpent || 0,
+                            user.adminShellAdjustment || 0
+                          ).availableShells}
                         </div>
                       </td>
                     </tr>
@@ -495,7 +507,12 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                         <div>
                           <span className="text-gray-500 block">Clamshells</span>
                           <span className="text-gray-800">
-                            {Math.max(0, calculateProgressMetrics(user.projects).currency - (user.totalShellsSpent || 0))}
+                            {calculateProgressMetrics(
+                              user.projects, 
+                              user.purchasedProgressHours || 0,
+                              user.totalShellsSpent || 0,
+                              user.adminShellAdjustment || 0
+                            ).availableShells}
                           </span>
                         </div>
                         <div>

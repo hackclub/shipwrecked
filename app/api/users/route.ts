@@ -15,6 +15,8 @@ export async function GET() {
                     },
                 },
                 purchasedProgressHours: true,
+                totalShellsSpent: true,
+                adminShellAdjustment: true,
             },
             orderBy: {
                 createdAt: 'desc',
