@@ -29,7 +29,6 @@ export async function GET(request: Request) {
       return NextResponse.json(cache, {status: 200});
     }
     // Get flight data from Airtable
-    console.log('FLIGHT DADTA');
     const tableName = 'Flights';
     const records = await getRecords(tableName, {
       filterByFormula: `AND(NOT({Inbound Flight Number} = ''), NOT({Outbound Flight Number} = ''))`,
