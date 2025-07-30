@@ -100,31 +100,27 @@ export async function PATCH(request: NextRequest) {
         // Get all link IDs from the current project
         const projectLinkIds = currentProject.hackatimeLinks.map(link => link.id);
         
-        // For each link in the project, check if it has an override in the request
+        // Process ALL links for the project to ensure consistency
         for (const linkId of projectLinkIds) {
           // Check if this link ID exists in the overrides object
           const hasOverrideValue = linkId in hackatimeLinkOverrides;
           const overrideValue = hackatimeLinkOverrides[linkId];
           
-          // Only process if this link is mentioned in the overrides (either to set or clear)
-          if (hasOverrideValue) {
-            console.log(`Processing override for link ${linkId}: ${overrideValue}`);
-            
-            if (typeof overrideValue === 'number' && !isNaN(overrideValue)) {
-              // Set a specific override value
-              await prismaClient.hackatimeProjectLink.update({
-                where: { id: linkId },
-                data: { hoursOverride: overrideValue }
-              });
-              console.log(`Set override to ${overrideValue} for link ${linkId}`);
-            } else {
-              // Clear the override (null)
-              await prismaClient.hackatimeProjectLink.update({
-                where: { id: linkId },
-                data: { hoursOverride: null }
-              });
-              console.log(`Cleared override for link ${linkId}`);
-            }
+          // Process ALL links: set if in request, clear if not
+          if (hasOverrideValue && typeof overrideValue === 'number' && !isNaN(overrideValue)) {
+            // Set a specific override value
+            await prismaClient.hackatimeProjectLink.update({
+              where: { id: linkId },
+              data: { hoursOverride: overrideValue }
+            });
+            console.log(`Set override to ${overrideValue} for link ${linkId}`);
+          } else {
+            // Clear the override for links not in request or with invalid values
+            await prismaClient.hackatimeProjectLink.update({
+              where: { id: linkId },
+              data: { hoursOverride: null }
+            });
+            console.log(`Cleared override for link ${linkId}`);
           }
         }
       }
