@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
-import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours } from '@/lib/project-client';
+import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours, getProjectApprovedHours } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
 import TagManagement from '@/components/common/TagManagement';
 
@@ -365,15 +365,8 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
               {user.projects.map((project) => {
                 const rawHours = getProjectHackatimeHours(project);
                 
-                // Calculate approved hours using the same logic as calculateProgressMetrics
-                let approvedHours = 0;
-                if (project?.viral === true) {
-                  approvedHours = 15;
-                } else if (project?.shipped === true) {
-                  approvedHours = Math.min(rawHours, 15);
-                } else {
-                  approvedHours = Math.min(rawHours, 14.75);
-                }
+                // Calculate actual approved hours (not capped at 15 like island contribution)
+                const approvedHours = getProjectApprovedHours(project);
                 
                 return (
                   <div key={project.projectID} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
