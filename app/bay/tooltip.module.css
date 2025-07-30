@@ -9,17 +9,14 @@
   visibility: hidden;
   opacity: 0;
   width: max-content;
-  max-width: 200px;
+  max-width: 280px;
   background-color: #333;
   color: #fff;
   text-align: center;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 6px;
-  font-size: 14px;
-  
-  /* Position the tooltip */
-  position: absolute;
-  z-index: 100;
+  font-size: 13px;
+  line-height: 1.4;
   
   /* Animation */
   transition: opacity 0.3s;
@@ -28,39 +25,7 @@
   display: none;
 }
 
-/* Position: top (default) */
-.top {
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Position: bottom */
-.bottom {
-  top: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Position: left */
-.left {
-  right: 125%;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Position: right */
-.right {
-  left: 125%;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Show the tooltip on hover */
-.tooltipContainer:hover .tooltipContent {
-  visibility: visible;
-  opacity: 1;
-}
+/* Show the tooltip on hover - removed since now handled by JavaScript */
 
 /* Arrow indicators for each position */
 .top::after {

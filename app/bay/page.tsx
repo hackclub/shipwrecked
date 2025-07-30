@@ -1296,7 +1296,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                         }));
                       }}
                     >
-                      Project Name
+                      <Tooltip content="The name of your project as it will appear in the gallery and throughout the platform. Choose something clear and memorable.">
+                        Project Name
+                      </Tooltip>
                     </FormInput>
                     <FormInput
                       fieldName='description'
@@ -1311,7 +1313,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                       }}
                       required
                     >
-                      Description
+                      <Tooltip content="A brief description of your project that will be shown to both project reviewers and visitors viewing your project in the gallery. Explain what your project does and what makes it interesting.">
+                        Description
+                      </Tooltip>
                     </FormInput>
                   </div>
                   
@@ -1329,7 +1333,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                         }));
                       }}
                     >
-                      Code URL
+                      <Tooltip content="The URL to your project's source code repository. Example: https://github.com/username/project-name">
+                        Code URL
+                      </Tooltip>
                     </FormInput>
                     <FormInput
                       fieldName='playableUrl'
@@ -1343,7 +1349,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                         }));
                       }}
                     >
-                      Playable URL
+                      <Tooltip content="The URL where users can experience your project. This could be a deployed website, demo link, or where the project can be tried/played.">
+                        Playable URL
+                      </Tooltip>
                     </FormInput>
                     <FormInput
                       fieldName='screenshot'
@@ -1357,7 +1365,9 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                         }));
                       }}
                     >
-                      Screenshot URL
+                      <Tooltip content="A direct URL to an image file that showcases your project. This image will be displayed in the gallery to give viewers a preview of what your project looks like.">
+                        Screenshot URL
+                      </Tooltip>
                     </FormInput>
                   </div>
                   
@@ -2050,7 +2060,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               required
               {...(props.name && { defaultValue: props.name})}
             >
-              Project Name
+              <Tooltip content="The name of your project as it will appear in the gallery and throughout the platform. Choose something clear and memorable.">
+                Project Name
+              </Tooltip>
             </FormInput>
             <FormInput
               fieldName='description'
@@ -2059,7 +2071,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               {...(props.description && { defaultValue: props.description})}
               required
             >
-              Description
+              <Tooltip content="A brief description of your project that will be shown to both project reviewers and visitors viewing your project in the gallery. Explain what your project does and what makes it interesting.">
+                Description
+              </Tooltip>
             </FormInput>
           </div>
           
@@ -2073,7 +2087,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   state={props.state}
                   {...(props.codeUrl && { defaultValue: props.codeUrl})}
                 >
-                  Code URL
+                  <Tooltip content="The URL to your project's source code repository. Example: https://github.com/username/project-name">
+                    Code URL
+                  </Tooltip>
                 </FormInput>
                 <FormInput
                   fieldName='playableUrl'
@@ -2081,7 +2097,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   state={props.state}
                   {...(props.playableUrl && { defaultValue: props.playableUrl})}
                 >
-                  Playable URL
+                  <Tooltip content="The URL where users can experience your project. This could be a deployed website, demo link, or where the project can be tried/played.">
+                    Playable URL
+                  </Tooltip>
                 </FormInput>
                 <FormInput
                   fieldName='screenshot'
@@ -2089,7 +2107,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   state={props.state}
                   {...(props.screenshot && { defaultValue: props.screenshot})}
                 >
-                  Screenshot URL
+                  <Tooltip content="A direct URL to an image file that showcases your project. This image will be displayed in the gallery to give viewers a preview of what your project looks like.">
+                    Screenshot URL
+                  </Tooltip>
                 </FormInput>
               </div>
               
@@ -2264,7 +2284,9 @@ function HackatimeMultiSelect({
   return (
     <div className="w-full mb-8">
       <label className="text-lg font-semibold text-left">
-        Your Hackatime Projects
+        <Tooltip content="Shipwrecked works by allowing you to link projects that are currently being tracked by Hackatime. Select the Hackatime projects you want to showcase here.">
+          Your Hackatime Projects
+        </Tooltip>
         <p className="text-red-500 inline">*</p>
       </label>
       
