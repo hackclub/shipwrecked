@@ -16,14 +16,42 @@ export async function GET() {
         },
     });
 
+    // Check if user has a valid identity token
+    if (!user?.identityToken) {
+        // Allow admins to bypass identity verification
+        if (user?.isAdmin) {
+            console.log('Admin user without identity token, returning empty identity data:', session.user.id);
+            return NextResponse.json({ 
+                verified: false, 
+                admin_bypass: true,
+                message: 'Admin user - identity verification not required' 
+            });
+        }
+        
+        console.log('No identity token found for user:', session.user.id);
+        return NextResponse.json({ error: 'Identity token not found. Please complete identity verification.' }, { status: 404 });
+    }
+
     const response = await fetch(`${process.env.IDENTITY_URL}/api/v1/me`, {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${user?.identityToken}`,
+            'Authorization': `Bearer ${user.identityToken}`,
         },
     });
+
+    if (!response.ok) {
+        console.error('Identity service responded with error:', response.status, response.statusText);
+        return NextResponse.json({ error: 'Identity service unavailable' }, { status: response.status });
+    }
+
     const data = await response.json();
     
+    // Handle undefined identity data
+    if (!data.identity) {
+        console.error('Identity data is undefined:', data);
+        return NextResponse.json({ error: 'Identity data not found' }, { status: 404 });
+    }
+
     try {
         return NextResponse.json(data.identity);
     } catch (error) {
@@ -31,22 +59,27 @@ export async function GET() {
         console.error('Data causing error:', data.identity);
         
         // Fallback: sanitize the data by removing non-serializable values
-        const sanitizedData = JSON.parse(JSON.stringify(data.identity, (key, value) => {
-            // Handle BigInt
-            if (typeof value === 'bigint') {
-                return value.toString();
-            }
-            // Handle Date objects
-            if (value instanceof Date) {
-                return value.toISOString();
-            }
-            // Handle functions
-            if (typeof value === 'function') {
-                return undefined;
-            }
-            return value;
-        }));
-        
-        return NextResponse.json(sanitizedData);
+        try {
+            const sanitizedData = JSON.parse(JSON.stringify(data.identity, (key, value) => {
+                // Handle BigInt
+                if (typeof value === 'bigint') {
+                    return value.toString();
+                }
+                // Handle Date objects
+                if (value instanceof Date) {
+                    return value.toISOString();
+                }
+                // Handle functions
+                if (typeof value === 'function') {
+                    return undefined;
+                }
+                return value;
+            }));
+            
+            return NextResponse.json(sanitizedData);
+        } catch (fallbackError) {
+            console.error('Fallback serialization also failed:', fallbackError);
+            return NextResponse.json({ error: 'Unable to serialize identity data' }, { status: 500 });
+        }
     }
 }
