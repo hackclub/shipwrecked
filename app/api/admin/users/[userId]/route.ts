@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { UserStatus } from '@/app/generated/prisma/client';
+import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
 
 export async function GET(
   request: Request,
@@ -135,12 +136,19 @@ export async function PATCH(
     // Check if this is a downgrade from Admin
     const userBeforeUpdate = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, isAdmin: true },
+      select: { role: true, isAdmin: true, status: true, name: true, email: true },
     });
+    
+    if (!userBeforeUpdate) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
     
     const isDowngrade = 
       (userBeforeUpdate?.role === 'Admin' && role && role !== 'Admin') || 
       (userBeforeUpdate?.isAdmin === true && data.isAdmin === false);
+    
+    // Check if status is changing
+    const isStatusChanging = status && status !== userBeforeUpdate.status;
       
     // Update the user
     const updatedUser = await prisma.user.update({
@@ -166,6 +174,26 @@ export async function PATCH(
         slack: true,
       },
     });
+    
+    // Create audit log for status change
+    if (isStatusChanging) {
+      const adminName = session.user.name || session.user.email || 'Unknown Admin';
+      const targetName = userBeforeUpdate.name || userBeforeUpdate.email || 'Unknown User';
+      
+      await createAuditLog({
+        eventType: AuditLogEventType.OtherEvent,
+        description: `Admin ${adminName} changed user status from ${userBeforeUpdate.status} to ${status} for user ${targetName}`,
+        targetUserId: userId,
+        actorUserId: session.user.id,
+        metadata: {
+          eventSubtype: 'UserStatusChanged',
+          previousStatus: userBeforeUpdate.status,
+          newStatus: status,
+          adminEmail: session.user.email,
+          targetUserEmail: userBeforeUpdate.email
+        }
+      });
+    }
     
     // If this was a downgrade from Admin role, invalidate any active sessions for this user
     if (isDowngrade) {
