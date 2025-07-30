@@ -6,6 +6,6 @@ services:
       file: docker-compose.yaml
       service: app
     environment:
-      - NODE_ENV=staging
+      - NODE_ENV=production
     ports:
       - ${BIND_PORT:-9998}:9991
