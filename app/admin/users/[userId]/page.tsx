@@ -8,6 +8,8 @@ import { toast, Toaster } from 'sonner';
 import { calculateProgressMetrics, ProgressMetrics, getProjectHackatimeHours, getProjectApprovedHours } from '@/lib/project-client';
 import { ProjectType } from '@/app/api/projects/route';
 import TagManagement from '@/components/common/TagManagement';
+import MultiPartProgressBar from '@/components/common/MultiPartProgressBar';
+import Tooltip from '@/components/common/Tooltip';
 
 enum UserStatus {
   Unknown = "Unknown",
@@ -318,14 +320,24 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
                   </div>
                   <div className="text-sm text-blue-800 mb-2">Progress to Island</div>
                   <div className="text-xs text-gray-600">
-                    {progressMetrics.totalPercentageWithPurchased.toFixed(1)} / 60 hours • {user.projects?.length || 0} projects
+                    {user.projects?.length || 0} projects
                   </div>
                 </div>
-                <div className="mt-3 bg-white rounded-full p-1">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(progressMetrics.totalPercentageWithPurchased, 100)}%` }}
-                  ></div>
+                <div className="mt-3">
+                  <Tooltip 
+                    content={`Progress Bar Colors: Green=Shipped, Gold=Viral, Blue=In-Progress${progressMetrics.purchasedProgressHours > 0 ? ', Pink=Purchased' : ''}, Gray=Remaining`}
+                    className="block w-full"
+                  >
+                    <MultiPartProgressBar 
+                      projects={user.projects}
+                      progressMetrics={progressMetrics}
+                      max={100}
+                      height={8}
+                      rounded={true}
+                      showLabels={false}
+                      tooltipPosition="top"
+                    />
+                  </Tooltip>
                 </div>
                 <div className="mt-2 flex justify-between text-xs text-gray-600">
                   <span>Shipped: {progressMetrics.shippedHours.toFixed(1)}h</span>
