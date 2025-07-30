@@ -15,33 +15,45 @@ const adapter = {
   createUser: async (user: AdapterUser) => {
     console.log('Creating user:', user.email);
     
-    // Create the user using Prisma
-    const userCreated = await prisma.user.create({
-      data: user
-    });
-    
-    // Log the user creation event
     try {
-      // Import dynamically to avoid circular imports
-      const { logUserEvent, AuditLogEventType } = await import('@/lib/auditLogger');
-      
-      await logUserEvent({
-        eventType: AuditLogEventType.UserCreated,
-        description: `User account created with email ${user.email}`,
-        targetUserId: userCreated.id,
-        metadata: {
-          provider: 'system',
-          email: user.email,
-          timestamp: new Date().toISOString()
-        }
+      // Create the user using Prisma
+      const userCreated = await prisma.user.create({
+        data: user
       });
       
-      console.log('User creation audit log created successfully');
+      // Ensure we have a valid user with an ID before proceeding
+      if (!userCreated || !userCreated.id) {
+        console.error('User creation failed: no ID returned');
+        throw new Error('User creation failed: no ID returned');
+      }
+      
+      // Log the user creation event
+      try {
+        // Import dynamically to avoid circular imports
+        const { logUserEvent, AuditLogEventType } = await import('@/lib/auditLogger');
+        
+        await logUserEvent({
+          eventType: AuditLogEventType.UserCreated,
+          description: `User account created with email ${user.email}`,
+          targetUserId: userCreated.id,
+          metadata: {
+            provider: 'system',
+            email: user.email,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        console.log('User creation audit log created successfully');
+      } catch (error) {
+        console.error('Failed to create audit log for user creation:', error);
+        // Don't fail user creation if audit log fails
+      }
+      
+      return userCreated;
     } catch (error) {
-      console.error('Failed to create audit log for user creation:', error);
+      console.error('Error creating user:', error);
+      throw error; // Re-throw the error so NextAuth can handle it
     }
-    
-    return userCreated;
   },
   // Override updateUser to log when email is verified
   updateUser: async (user: { id: string; emailVerified?: Date | null } & Record<string, any>) => {

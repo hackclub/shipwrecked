@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -68,7 +68,8 @@ interface User {
 
 
 
-export default function UserDetail({ params }: { params: { userId: string } }) {
+export default function UserDetail({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -85,7 +86,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
       
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/admin/users/${params.userId}`);
+        const response = await fetch(`/api/admin/users/${userId}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch user: ${response.statusText}`);
@@ -104,7 +105,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     }
     
     fetchUser();
-  }, [params.userId, status]);
+  }, [userId, status]);
 
 
 
@@ -148,7 +149,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
 
   const refreshUserData = async () => {
     try {
-      const userResponse = await fetch(`/api/admin/users/${params.userId}`);
+      const userResponse = await fetch(`/api/admin/users/${userId}`);
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser(userData);
