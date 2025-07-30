@@ -318,10 +318,28 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
                   <div className="text-3xl font-bold text-blue-600 mb-1">
                     {Math.round(progressMetrics.totalPercentageWithPurchased)}%
                   </div>
-                  <div className="text-sm text-blue-800 mb-2">Progress to Island</div>
                   <div className="text-xs text-gray-600">
                     {user.projects?.length || 0} projects
                   </div>
+                  {(() => {
+                    if (!user.projects) return null;
+                    const shippedProjects = user.projects.filter(project => project.shipped === true);
+                    const totalApprovedHours = shippedProjects.reduce((sum, project) => 
+                      sum + getProjectApprovedHours(project), 0
+                    );
+                    const meetsRequirements = shippedProjects.length >= 4 && totalApprovedHours >= 60;
+                    
+                    if (meetsRequirements) {
+                      return (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Island Eligible
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 <div className="mt-3">
                   <Tooltip 
