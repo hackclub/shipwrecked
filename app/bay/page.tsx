@@ -576,7 +576,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const progressMetrics = useMemo(() => {
     // Don't calculate until user data is loaded
     if (!user) {
-      console.log('🚨 BAY DEBUG: No user data available');
+      
       return {
         shippedHours: 0,
         viralHours: 0,
@@ -591,26 +591,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       };
     }
     
-    console.log('🚨 BAY DEBUG: User data:', {
-      userId: user.id,
-      userName: user.name,
-      projectsCount: projects.length,
-      purchasedProgressHours: user?.purchasedProgressHours || 0,
-      totalShellsSpent: user?.totalShellsSpent || 0,
-      adminShellAdjustment: user?.adminShellAdjustment || 0,
-      userHasAdminField: user?.hasOwnProperty('adminShellAdjustment')
-    });
-    
-    console.log('🚨 BAY DEBUG: Projects data:', projects.map(p => ({
-      id: p.projectID,
-      name: p.name,
-      shipped: p.shipped,
-      viral: p.viral,
-      in_review: p.in_review,
-      rawHours: p.rawHours,
-      hackatimeLinks: p.hackatimeLinks?.length || 0
-    })));
-    
     const metrics = calculateProgressMetrics(
       projects, 
       user.purchasedProgressHours || 0,
@@ -618,7 +598,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       user.adminShellAdjustment || 0
     );
     
-    console.log('🚨 BAY DEBUG: Calculated metrics:', metrics);
+    console.log(`Bay: Calculated progress for ${projects.length} projects - Total: ${metrics.totalPercentage?.toFixed(1)}%`);
     
     return metrics;
   }, [projects, user]);
@@ -1009,25 +989,214 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         </div>
       )}
       
-      <div className={styles.progressSection}>
+      <div 
+        className={styles.progressSection}
+        ref={(el) => {
+          if (el) {
+            console.log('🔍 Bay: Progress section mounted:', {
+              width: el.offsetWidth,
+              height: el.offsetHeight,
+              className: el.className,
+              computedStyles: {
+                display: window.getComputedStyle(el).display,
+                position: window.getComputedStyle(el).position,
+                overflow: window.getComputedStyle(el).overflow,
+                zIndex: window.getComputedStyle(el).zIndex
+              },
+              progressSectionClass: styles.progressSection,
+              hasProgressSectionClass: !!styles.progressSection
+            });
+          }
+        }}
+      >
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
           {impersonationData ? `${impersonationData.user.name ? `${impersonationData.user.name}'s Voyage` : 'User Voyage'}` : 'Your Voyage'}
         </h2>
         
         {/* Show pending orders for non-impersonation mode */}
         {!impersonationData && <PendingOrders />}
-        <div className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto">
+        <div 
+          className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto"
+          ref={(el) => {
+            if (el) {
+              console.log('🔍 Bay: Main progress container mounted:', {
+                width: el.offsetWidth,
+                height: el.offsetHeight,
+                backgroundColor: window.getComputedStyle(el).backgroundColor,
+                border: window.getComputedStyle(el).border,
+                display: window.getComputedStyle(el).display,
+                position: window.getComputedStyle(el).position
+              });
+            }
+          }}
+        >
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-2 sm:px-4 md:px-0">
-              <div className="flex items-center justify-center gap-2 sm:gap-3 min-w-0">
-                <Tooltip content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}>
-                  <img src="/ship2.png" alt="Ship" className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center" />
+              <div 
+                className="flex items-center justify-center gap-2 sm:gap-3 min-w-0"
+                ref={(el) => {
+                  if (el) {
+                    console.log('🚨 Bay: SHIP + PROGRESS + ISLAND container:', {
+                      width: el.offsetWidth,
+                      height: el.offsetHeight,
+                      className: el.className,
+                      childrenCount: el.children.length,
+                      computedStyles: {
+                        display: window.getComputedStyle(el).display,
+                        gap: window.getComputedStyle(el).gap,
+                        alignItems: window.getComputedStyle(el).alignItems,
+                        justifyContent: window.getComputedStyle(el).justifyContent,
+                        flexDirection: window.getComputedStyle(el).flexDirection
+                      },
+                      childElements: Array.from(el.children).map((child, i) => ({
+                        index: i,
+                        tagName: child.tagName,
+                        className: child.className,
+                        width: child.offsetWidth,
+                        height: child.offsetHeight,
+                        position: window.getComputedStyle(child).position,
+                        flex: window.getComputedStyle(child).flex,
+                        flexGrow: window.getComputedStyle(child).flexGrow
+                      }))
+                    });
+                  }
+                }}
+              >
+                <Tooltip 
+                  content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}
+                  ref={(el) => {
+                    if (el) {
+                      console.log('🚨 Bay: SHIP TOOLTIP mounted with MASSIVE dimensions:', {
+                        width: el.offsetWidth,
+                        height: el.offsetHeight,
+                        clientWidth: el.clientWidth,
+                        clientHeight: el.clientHeight,
+                        scrollWidth: el.scrollWidth,
+                        scrollHeight: el.scrollHeight,
+                        boundingRect: el.getBoundingClientRect(),
+                        className: el.className,
+                        computedStyles: {
+                          width: window.getComputedStyle(el).width,
+                          height: window.getComputedStyle(el).height,
+                          position: window.getComputedStyle(el).position,
+                          display: window.getComputedStyle(el).display,
+                          zIndex: window.getComputedStyle(el).zIndex,
+                          overflow: window.getComputedStyle(el).overflow,
+                          pointerEvents: window.getComputedStyle(el).pointerEvents
+                        },
+                        childElements: Array.from(el.children).map(child => ({
+                          tagName: child.tagName,
+                          className: child.className,
+                          width: child.offsetWidth,
+                          height: child.offsetHeight
+                        }))
+                      });
+                    }
+                  }}
+                >
+                  <img 
+                    src="/ship2.png" 
+                    alt="Ship" 
+                    className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center"
+                    ref={(el) => {
+                      if (el) {
+                        console.log('🚨 Bay: SHIP IMG element:', {
+                          width: el.offsetWidth,
+                          height: el.offsetHeight,
+                          naturalWidth: el.naturalWidth,
+                          naturalHeight: el.naturalHeight,
+                          className: el.className,
+                          computedStyles: {
+                            width: window.getComputedStyle(el).width,
+                            height: window.getComputedStyle(el).height,
+                            objectFit: window.getComputedStyle(el).objectFit,
+                            maxWidth: window.getComputedStyle(el).maxWidth,
+                            maxHeight: window.getComputedStyle(el).maxHeight
+                          }
+                        });
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      console.log('🚨 Bay: Ship image MOUSE ENTER - tooltip showing');
+                      console.log('🚨 Bay: Mouse event target vs currentTarget:', {
+                        target: e.target,
+                        currentTarget: e.currentTarget,
+                        targetDimensions: {
+                          width: (e.target as HTMLElement).offsetWidth,
+                          height: (e.target as HTMLElement).offsetHeight
+                        },
+                        currentTargetDimensions: {
+                          width: e.currentTarget.offsetWidth,
+                          height: e.currentTarget.offsetHeight
+                        }
+                      });
+                    }}
+                    onMouseLeave={(e) => {
+                      console.log('🚨 Bay: Ship image MOUSE LEAVE - tooltip hiding');
+                    }}
+                  />
                 </Tooltip>
                 <div 
                   className="flex-grow cursor-pointer min-w-0" 
-                  onClick={() => setIsProgressModalOpen(true)}
+                  onClick={() => {
+                    console.log('🔍 Bay: Progress bar container clicked');
+                    setIsProgressModalOpen(true);
+                  }}
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
+                  onMouseEnter={(e) => {
+                    console.log('🚨 Bay: Progress bar container MOUSE ENTER:', {
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                      targetWidth: e.currentTarget.offsetWidth,
+                      targetHeight: e.currentTarget.offsetHeight,
+                      zIndex: window.getComputedStyle(e.currentTarget).zIndex,
+                      pointerEvents: window.getComputedStyle(e.currentTarget).pointerEvents
+                    });
+                  }}
+                  onMouseMove={(e) => {
+                    // Only log occasionally to avoid spam
+                    if (Math.random() < 0.1) {
+                      console.log('🚨 Bay: Mouse moving over progress bar area');
+                    }
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      console.log('🚨 Bay: Progress bar container mounted - checking for overlap issues:', {
+                        width: el.offsetWidth,
+                        height: el.offsetHeight,
+                        boundingRect: el.getBoundingClientRect(),
+                        computedStyles: {
+                          display: window.getComputedStyle(el).display,
+                          visibility: window.getComputedStyle(el).visibility,
+                          opacity: window.getComputedStyle(el).opacity,
+                          position: window.getComputedStyle(el).position,
+                          zIndex: window.getComputedStyle(el).zIndex,
+                          pointerEvents: window.getComputedStyle(el).pointerEvents,
+                          flexGrow: window.getComputedStyle(el).flexGrow
+                        },
+                        className: el.className,
+                        // Check if elements are overlapping
+                        siblingElements: Array.from(el.parentElement?.children || []).map((sibling, i) => ({
+                          index: i,
+                          isCurrentElement: sibling === el,
+                          tagName: sibling.tagName,
+                          className: sibling.className,
+                          boundingRect: sibling.getBoundingClientRect(),
+                          zIndex: window.getComputedStyle(sibling).zIndex
+                        }))
+                      });
+                    }
+                  }}
                 >
+                  {(() => {
+                    console.log('🔍 Bay: About to render MultiPartProgressBar with:', {
+                      projectsCount: projects.length,
+                      progressMetrics: progressMetrics,
+                      max: 100,
+                      height: 10
+                    });
+                    return null;
+                  })()}
                   <MultiPartProgressBar 
                     projects={projects}
                     progressMetrics={progressMetrics}
@@ -1037,6 +1206,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     showLabels={false}
                     tooltipPosition="top"
                   />
+                  {(() => {
+                    console.log('🔍 Bay: MultiPartProgressBar should have rendered');
+                    return null;
+                  })()}
                 </div>
                 <Tooltip content="Your prize - a fantastic island adventure with friends">
                   <img src="/island2.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />

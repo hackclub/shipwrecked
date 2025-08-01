@@ -37,33 +37,21 @@ export function calculateProgressSegmentsFromData({
   projects?: ProjectType[];
   progressMetrics?: ProgressMetrics;
 }): ProgressSegment[] {
-  console.log('🚨 SEGMENT CALC DEBUG: Starting calculation with:', {
-    projects: projects?.length,
-    progressMetrics
-  });
-  
   // Use centralized metrics
   const metrics = progressMetrics || { shippedHours: 0, viralHours: 0, otherHours: 0, totalHours: 0, totalPercentage: 0, rawHours: 0, currency: 0, purchasedProgressHours: 0, totalProgressWithPurchased: 0, totalPercentageWithPurchased: 0 };
   
-  console.log('🚨 SEGMENT CALC DEBUG: Using metrics:', metrics);
-  
   if (!projects || !Array.isArray(projects)) {
-    console.log('🚨 SEGMENT CALC DEBUG: No projects or not array, returning default segment');
+    console.log('ProgressBar: No projects data, showing empty state');
     return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
   }
+  
   // Convert hours to percentages (based on 60-hour goal)
   const shippedPercentage = (metrics.shippedHours / 60) * 100;
   const viralPercentage = (metrics.viralHours / 60) * 100;
   const otherPercentage = (metrics.otherHours / 60) * 100;
-  // Get purchased progress percentage from metrics only
   const purchasedPercentage = metrics.purchasedProgressHours || 0;
   
-  console.log('🚨 SEGMENT CALC DEBUG: Calculated percentages:', {
-    shipped: shippedPercentage,
-    viral: viralPercentage,
-    other: otherPercentage,
-    purchased: purchasedPercentage
-  });
+  console.log(`ProgressBar: Progress breakdown - Shipped: ${shippedPercentage.toFixed(1)}%, Viral: ${viralPercentage.toFixed(1)}%, Other: ${otherPercentage.toFixed(1)}%, Purchased: ${purchasedPercentage.toFixed(1)}%`);
   
   // Create segments array
   const segments: ProgressSegment[] = [];
@@ -114,15 +102,7 @@ export function calculateProgressSegmentsFromData({
   // Calculate total progress including purchased and in-progress (if shown)
   const totalProgressWithPurchased = Math.min((metrics.totalPercentage || 0) + purchasedPercentage, 100);
   
-  console.log('🚨 SEGMENT CALC DEBUG: Total progress calculation:', {
-    totalPercentage: metrics.totalPercentage,
-    purchasedPercentage,
-    totalProgressWithPurchased,
-    remaining: 100 - totalProgressWithPurchased
-  });
-  
   if (totalProgressWithPurchased < 100) {
-    console.log('🚨 SEGMENT CALC DEBUG: Adding remaining segment');
     segments.push({
       value: 100 - totalProgressWithPurchased,
       color: '#e5e7eb', // Light gray
@@ -130,13 +110,6 @@ export function calculateProgressSegmentsFromData({
       status: 'pending'
     });
   }
-  
-  console.log('🚨 SEGMENT CALC DEBUG: Final segments array:', segments.map(s => ({
-    value: s.value,
-    color: s.color,
-    label: s.label,
-    status: s.status
-  })));
   
   return segments;
 }
@@ -156,33 +129,30 @@ export default function MultiPartProgressBar({
 }: MultiPartProgressBarProps) {
   // Memoize computedSegments to avoid infinite update loop
   const computedSegments = useMemo(() => {
-    console.log('🚨 PROGRESS BAR DEBUG: Input data:', {
-      hasSegments: !!segments,
-      segmentsLength: segments?.length,
-      hasProjects: !!projects,
-      projectsLength: projects?.length,
-      hasProgressMetrics: !!progressMetrics,
-      progressMetrics: progressMetrics
-    });
-    
     const result = segments || calculateProgressSegmentsFromData({ projects, progressMetrics });
-    
-    console.log('🚨 PROGRESS BAR DEBUG: Computed segments:', result);
-    
+    console.log('ProgressBar: Calculated', result.length, 'segments with total value:', result.reduce((sum, s) => sum + s.value, 0));
     return result;
   }, [segments, projects, progressMetrics]);
   const [processedSegments, setProcessedSegments] = useState<Array<ProgressSegment & { width: string; actualWidth: number }>>([]); 
   const [totalValue, setTotalValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
+
+  // Log CSS modules loading on mount
+  useEffect(() => {
+    console.log('🔍 ProgressBar: CSS Modules check:', {
+      stylesImported: !!styles,
+      stylesKeys: Object.keys(styles || {}),
+      containerClass: styles?.container,
+      trackClass: styles?.track,
+      segmentClass: styles?.segment,
+      animatedClass: styles?.animated,
+      roundedClass: styles?.rounded,
+      allStyles: styles
+    });
+  }, []);
   
   // Process segments and calculate widths
   useEffect(() => {
-    console.log('🚨 PROGRESS BAR DEBUG: Processing segments:', {
-      computedSegmentsLength: computedSegments.length,
-      computedSegments: computedSegments.map(s => ({ value: s.value, color: s.color })),
-      max
-    });
-    
     // Calculate total value from all segments
     const total = computedSegments.reduce((sum, segment) => sum + segment.value, 0);
     setTotalValue(total);
@@ -190,11 +160,6 @@ export default function MultiPartProgressBar({
     // Determine max (either provided or calculated)
     const calculatedMax = max || total;
     setMaxValue(calculatedMax);
-    
-    console.log('🚨 PROGRESS BAR DEBUG: Total calculation:', {
-      total,
-      calculatedMax
-    });
     
     // Calculate percentage width for each segment
     const processed = computedSegments.map(segment => {
@@ -206,45 +171,150 @@ export default function MultiPartProgressBar({
       };
     });
     
-    console.log('🚨 PROGRESS BAR DEBUG: Processed segments for rendering:', processed.map(s => ({
-      value: s.value,
-      width: s.width,
-      color: s.color,
-      actualWidth: s.actualWidth
-    })));
-    
+    console.log(`ProgressBar: Processed ${processed.length} segments, widths:`, processed.map(s => s.width).join(', '));
     setProcessedSegments(processed);
   }, [computedSegments, max]);
 
+  // Log when rendering
+  console.log(`ProgressBar: Rendering ${processedSegments.length} segments`);
+
   return (
-    <div className={`${styles.container} ${className}`}>
+    <div 
+      className={`${styles.container} ${className}`}
+      ref={(el) => {
+        if (el) {
+          console.log('🔍 ProgressBar: Container mounted:', {
+            width: el.offsetWidth,
+            height: el.offsetHeight,
+            className: el.className,
+            computedStyles: {
+              width: window.getComputedStyle(el).width,
+              height: window.getComputedStyle(el).height,
+              margin: window.getComputedStyle(el).margin,
+              position: window.getComputedStyle(el).position,
+              display: window.getComputedStyle(el).display
+            },
+            stylesObject: styles,
+            containerClass: styles.container,
+            hasContainerClass: !!styles.container
+          });
+        }
+      }}
+    >
       <div 
         className={`${styles.track} ${rounded ? styles.rounded : ''}`}
         style={{ height: `${height}px` }}
+        ref={(el) => {
+          if (el) {
+            console.log('🔍 ProgressBar: Track mounted:', {
+              width: el.offsetWidth,
+              height: el.offsetHeight,
+              className: el.className,
+              inlineHeight: `${height}px`,
+              computedStyles: {
+                width: window.getComputedStyle(el).width,
+                height: window.getComputedStyle(el).height,
+                backgroundColor: window.getComputedStyle(el).backgroundColor,
+                display: window.getComputedStyle(el).display,
+                flexDirection: window.getComputedStyle(el).flexDirection,
+                overflow: window.getComputedStyle(el).overflow
+              },
+              trackClass: styles.track,
+              roundedClass: styles.rounded,
+              hasTrackClass: !!styles.track,
+              childrenCount: el.children.length
+            });
+          }
+        }}
       >
-        {processedSegments.map((segment, index) => (
-          <div
-            key={index}
-            className={`
-              ${styles.segment} 
-              ${segment.animated ? styles.animated : ''} 
-              ${segment.status ? styles[segment.status] : ''}
-            `}
-            style={{ 
-              width: segment.width,
-              backgroundColor: segment.color,
-              height: '100%',
-              // Apply rounded corners only to first/last segments if rounded is true
-              borderTopLeftRadius: rounded && index === 0 ? '9999px' : '0',
-              borderBottomLeftRadius: rounded && index === 0 ? '9999px' : '0',
-              borderTopRightRadius: rounded && index === processedSegments.length - 1 ? '9999px' : '0',
-              borderBottomRightRadius: rounded && index === processedSegments.length - 1 ? '9999px' : '0',
-            }}
-            data-tooltip={segment.tooltip}
-            data-tooltip-position={tooltipPosition}
-            data-status={segment.status}
-          />
-        ))}
+        {processedSegments.map((segment, index) => {
+          const segmentClassName = `${styles.segment} ${segment.animated ? styles.animated : ''} ${segment.status ? styles[segment.status] : ''}`;
+          
+          return (
+            <div
+              key={index}
+              className={segmentClassName}
+              style={{ 
+                width: segment.width,
+                backgroundColor: segment.color,
+                height: '100%',
+                // Apply rounded corners only to first/last segments if rounded is true
+                borderTopLeftRadius: rounded && index === 0 ? '9999px' : '0',
+                borderBottomLeftRadius: rounded && index === 0 ? '9999px' : '0',
+                borderTopRightRadius: rounded && index === processedSegments.length - 1 ? '9999px' : '0',
+                borderBottomRightRadius: rounded && index === processedSegments.length - 1 ? '9999px' : '0',
+              }}
+              data-tooltip={segment.tooltip}
+              data-tooltip-position={tooltipPosition}
+              data-status={segment.status}
+              onMouseEnter={(e) => {
+                console.log(`🔍 ProgressBar: Segment ${index} MOUSE ENTER:`, {
+                  width: segment.width,
+                  actualWidth: segment.actualWidth,
+                  backgroundColor: segment.color,
+                  tooltip: segment.tooltip,
+                  className: segmentClassName,
+                  hasDataTooltip: !!segment.tooltip,
+                  elementWidth: e.currentTarget.offsetWidth,
+                  elementHeight: e.currentTarget.offsetHeight,
+                  computedStyles: {
+                    position: window.getComputedStyle(e.currentTarget).position,
+                    cursor: window.getComputedStyle(e.currentTarget).cursor,
+                    zIndex: window.getComputedStyle(e.currentTarget).zIndex,
+                    display: window.getComputedStyle(e.currentTarget).display,
+                    visibility: window.getComputedStyle(e.currentTarget).visibility
+                  }
+                });
+                
+                // Check tooltip pseudo-element after a short delay
+                setTimeout(() => {
+                  const pseudoElement = window.getComputedStyle(e.currentTarget, '::after');
+                  console.log(`🔍 ProgressBar: Segment ${index} tooltip pseudo-element check:`, {
+                    content: pseudoElement.content,
+                    display: pseudoElement.display,
+                    position: pseudoElement.position,
+                    backgroundColor: pseudoElement.backgroundColor,
+                    color: pseudoElement.color,
+                    zIndex: pseudoElement.zIndex,
+                    transform: pseudoElement.transform,
+                    bottom: pseudoElement.bottom,
+                    top: pseudoElement.top,
+                    left: pseudoElement.left
+                  });
+                }, 10);
+              }}
+              onMouseLeave={(e) => {
+                console.log(`🔍 ProgressBar: Segment ${index} MOUSE LEAVE`);
+              }}
+              onMouseOver={(e) => {
+                console.log(`🔍 ProgressBar: Segment ${index} MOUSE OVER - tooltip should show`);
+              }}
+              onMouseOut={(e) => {
+                console.log(`🔍 ProgressBar: Segment ${index} MOUSE OUT - tooltip should hide`);
+              }}
+              ref={(el) => {
+                if (el && index === 0) {
+                  console.log('🔍 ProgressBar: First segment mounted:', {
+                    offsetWidth: el.offsetWidth,
+                    offsetHeight: el.offsetHeight,
+                    clientWidth: el.clientWidth,
+                    clientHeight: el.clientHeight,
+                    scrollWidth: el.scrollWidth,
+                    scrollHeight: el.scrollHeight,
+                    className: el.className,
+                    hasTooltipAttr: el.hasAttribute('data-tooltip'),
+                    tooltipValue: el.getAttribute('data-tooltip'),
+                    computedWidth: window.getComputedStyle(el).width,
+                    computedHeight: window.getComputedStyle(el).height,
+                    computedDisplay: window.getComputedStyle(el).display,
+                    computedPosition: window.getComputedStyle(el).position,
+                    computedBackgroundColor: window.getComputedStyle(el).backgroundColor
+                  });
+                }
+              }}
+            />
+          );
+        })}
       </div>
       
       {/* Labels row (optional) */}
