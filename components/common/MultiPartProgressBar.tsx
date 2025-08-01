@@ -37,9 +37,18 @@ export function calculateProgressSegmentsFromData({
   projects?: ProjectType[];
   progressMetrics?: ProgressMetrics;
 }): ProgressSegment[] {
+  console.log('🚨 SEGMENT CALC DEBUG: Starting calculation with:', {
+    projects: projects?.length,
+    progressMetrics
+  });
+  
   // Use centralized metrics
   const metrics = progressMetrics || { shippedHours: 0, viralHours: 0, otherHours: 0, totalHours: 0, totalPercentage: 0, rawHours: 0, currency: 0, purchasedProgressHours: 0, totalProgressWithPurchased: 0, totalPercentageWithPurchased: 0 };
+  
+  console.log('🚨 SEGMENT CALC DEBUG: Using metrics:', metrics);
+  
   if (!projects || !Array.isArray(projects)) {
+    console.log('🚨 SEGMENT CALC DEBUG: No projects or not array, returning default segment');
     return [{ value: 100, color: '#e5e7eb', tooltip: 'No projects found', status: 'pending' }];
   }
   // Convert hours to percentages (based on 60-hour goal)
@@ -48,6 +57,14 @@ export function calculateProgressSegmentsFromData({
   const otherPercentage = (metrics.otherHours / 60) * 100;
   // Get purchased progress percentage from metrics only
   const purchasedPercentage = metrics.purchasedProgressHours || 0;
+  
+  console.log('🚨 SEGMENT CALC DEBUG: Calculated percentages:', {
+    shipped: shippedPercentage,
+    viral: viralPercentage,
+    other: otherPercentage,
+    purchased: purchasedPercentage
+  });
+  
   // Create segments array
   const segments: ProgressSegment[] = [];
   if (metrics.shippedHours > 0) {
@@ -96,7 +113,16 @@ export function calculateProgressSegmentsFromData({
 
   // Calculate total progress including purchased and in-progress (if shown)
   const totalProgressWithPurchased = Math.min((metrics.totalPercentage || 0) + purchasedPercentage, 100);
+  
+  console.log('🚨 SEGMENT CALC DEBUG: Total progress calculation:', {
+    totalPercentage: metrics.totalPercentage,
+    purchasedPercentage,
+    totalProgressWithPurchased,
+    remaining: 100 - totalProgressWithPurchased
+  });
+  
   if (totalProgressWithPurchased < 100) {
+    console.log('🚨 SEGMENT CALC DEBUG: Adding remaining segment');
     segments.push({
       value: 100 - totalProgressWithPurchased,
       color: '#e5e7eb', // Light gray
@@ -104,6 +130,14 @@ export function calculateProgressSegmentsFromData({
       status: 'pending'
     });
   }
+  
+  console.log('🚨 SEGMENT CALC DEBUG: Final segments array:', segments.map(s => ({
+    value: s.value,
+    color: s.color,
+    label: s.label,
+    status: s.status
+  })));
+  
   return segments;
 }
 
@@ -121,16 +155,34 @@ export default function MultiPartProgressBar({
   tooltipPosition = 'top'
 }: MultiPartProgressBarProps) {
   // Memoize computedSegments to avoid infinite update loop
-  const computedSegments = useMemo(
-    () => segments || calculateProgressSegmentsFromData({ projects, progressMetrics }),
-    [segments, projects, progressMetrics]
-  );
+  const computedSegments = useMemo(() => {
+    console.log('🚨 PROGRESS BAR DEBUG: Input data:', {
+      hasSegments: !!segments,
+      segmentsLength: segments?.length,
+      hasProjects: !!projects,
+      projectsLength: projects?.length,
+      hasProgressMetrics: !!progressMetrics,
+      progressMetrics: progressMetrics
+    });
+    
+    const result = segments || calculateProgressSegmentsFromData({ projects, progressMetrics });
+    
+    console.log('🚨 PROGRESS BAR DEBUG: Computed segments:', result);
+    
+    return result;
+  }, [segments, projects, progressMetrics]);
   const [processedSegments, setProcessedSegments] = useState<Array<ProgressSegment & { width: string; actualWidth: number }>>([]); 
   const [totalValue, setTotalValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
   
   // Process segments and calculate widths
   useEffect(() => {
+    console.log('🚨 PROGRESS BAR DEBUG: Processing segments:', {
+      computedSegmentsLength: computedSegments.length,
+      computedSegments: computedSegments.map(s => ({ value: s.value, color: s.color })),
+      max
+    });
+    
     // Calculate total value from all segments
     const total = computedSegments.reduce((sum, segment) => sum + segment.value, 0);
     setTotalValue(total);
@@ -138,6 +190,11 @@ export default function MultiPartProgressBar({
     // Determine max (either provided or calculated)
     const calculatedMax = max || total;
     setMaxValue(calculatedMax);
+    
+    console.log('🚨 PROGRESS BAR DEBUG: Total calculation:', {
+      total,
+      calculatedMax
+    });
     
     // Calculate percentage width for each segment
     const processed = computedSegments.map(segment => {
@@ -148,6 +205,13 @@ export default function MultiPartProgressBar({
         actualWidth: percentWidth
       };
     });
+    
+    console.log('🚨 PROGRESS BAR DEBUG: Processed segments for rendering:', processed.map(s => ({
+      value: s.value,
+      width: s.width,
+      color: s.color,
+      actualWidth: s.actualWidth
+    })));
     
     setProcessedSegments(processed);
   }, [computedSegments, max]);
