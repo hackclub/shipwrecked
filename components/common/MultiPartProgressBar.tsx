@@ -137,9 +137,9 @@ export default function MultiPartProgressBar({
   const [totalValue, setTotalValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
 
-  // Log CSS modules loading on mount
+  // Log CSS modules loading on mount and check actual CSS properties
   useEffect(() => {
-    console.log('🔍 ProgressBar: CSS Modules check:', {
+    console.log('🚨 CSS MODULES DEEP ANALYSIS:', {
       stylesImported: !!styles,
       stylesKeys: Object.keys(styles || {}),
       containerClass: styles?.container,
@@ -149,6 +149,49 @@ export default function MultiPartProgressBar({
       roundedClass: styles?.rounded,
       allStyles: styles
     });
+    
+    // Check if CSS classes actually apply the expected styles
+    const testDiv = document.createElement('div');
+    testDiv.className = styles?.container || '';
+    document.body.appendChild(testDiv);
+    
+    const containerStyles = window.getComputedStyle(testDiv);
+    console.log('🚨 ACTUAL CSS PROPERTIES FOR CONTAINER CLASS:', {
+      className: testDiv.className,
+      width: containerStyles.width,
+      margin: containerStyles.margin,
+      position: containerStyles.position,
+      display: containerStyles.display,
+      allComputedStyles: {
+        width: containerStyles.width,
+        height: containerStyles.height,
+        margin: containerStyles.margin,
+        padding: containerStyles.padding,
+        position: containerStyles.position,
+        display: containerStyles.display,
+        boxSizing: containerStyles.boxSizing
+      }
+    });
+    
+    testDiv.className = styles?.track || '';
+    const trackStyles = window.getComputedStyle(testDiv);
+    console.log('🚨 ACTUAL CSS PROPERTIES FOR TRACK CLASS:', {
+      className: testDiv.className,
+      width: trackStyles.width,
+      backgroundColor: trackStyles.backgroundColor,
+      display: trackStyles.display,
+      flexDirection: trackStyles.flexDirection,
+      allComputedStyles: {
+        width: trackStyles.width,
+        height: trackStyles.height,
+        backgroundColor: trackStyles.backgroundColor,
+        display: trackStyles.display,
+        flexDirection: trackStyles.flexDirection,
+        overflow: trackStyles.overflow
+      }
+    });
+    
+    document.body.removeChild(testDiv);
   }, []);
   
   // Process segments and calculate widths
@@ -183,20 +226,41 @@ export default function MultiPartProgressBar({
       className={`${styles.container} ${className}`}
       ref={(el) => {
         if (el) {
-          console.log('🔍 ProgressBar: Container mounted:', {
-            width: el.offsetWidth,
-            height: el.offsetHeight,
-            className: el.className,
-            computedStyles: {
-              width: window.getComputedStyle(el).width,
-              height: window.getComputedStyle(el).height,
-              margin: window.getComputedStyle(el).margin,
-              position: window.getComputedStyle(el).position,
-              display: window.getComputedStyle(el).display
+          // Trace the entire width inheritance chain
+          let current = el;
+          let chain = [];
+          let depth = 0;
+          
+          while (current && depth < 10) {
+            const computed = window.getComputedStyle(current);
+            chain.push({
+              depth,
+              tagName: current.tagName,
+              className: current.className,
+              offsetWidth: current.offsetWidth,
+              offsetHeight: current.offsetHeight,
+              computedWidth: computed.width,
+              computedHeight: computed.height,
+              display: computed.display,
+              flex: computed.flex,
+              flexGrow: computed.flexGrow,
+              flexShrink: computed.flexShrink,
+              flexBasis: computed.flexBasis,
+              position: computed.position,
+              boxSizing: computed.boxSizing
+            });
+            current = current.parentElement;
+            depth++;
+          }
+          
+          console.log('🚨 WIDTH INHERITANCE CHAIN ANALYSIS:', {
+            progressBarContainer: {
+              width: el.offsetWidth,
+              height: el.offsetHeight,
+              className: el.className
             },
-            stylesObject: styles,
-            containerClass: styles.container,
-            hasContainerClass: !!styles.container
+            fullChain: chain,
+            rootCause: chain.find(c => c.offsetWidth === 0) || 'No zero-width parent found'
           });
         }
       }}
