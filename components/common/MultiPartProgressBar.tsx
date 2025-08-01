@@ -206,23 +206,38 @@ export default function MultiPartProgressBar({
         style={{ height: `${height}px` }}
         ref={(el) => {
           if (el) {
-            console.log('🔍 ProgressBar: Track mounted:', {
+            console.log('🚨 TRACK VISIBILITY CHECK:', {
               width: el.offsetWidth,
               height: el.offsetHeight,
               className: el.className,
               inlineHeight: `${height}px`,
+              boundingRect: el.getBoundingClientRect(),
               computedStyles: {
                 width: window.getComputedStyle(el).width,
                 height: window.getComputedStyle(el).height,
                 backgroundColor: window.getComputedStyle(el).backgroundColor,
                 display: window.getComputedStyle(el).display,
                 flexDirection: window.getComputedStyle(el).flexDirection,
-                overflow: window.getComputedStyle(el).overflow
+                overflow: window.getComputedStyle(el).overflow,
+                visibility: window.getComputedStyle(el).visibility,
+                opacity: window.getComputedStyle(el).opacity,
+                border: window.getComputedStyle(el).border,
+                padding: window.getComputedStyle(el).padding,
+                margin: window.getComputedStyle(el).margin
               },
               trackClass: styles.track,
               roundedClass: styles.rounded,
               hasTrackClass: !!styles.track,
-              childrenCount: el.children.length
+              childrenCount: el.children.length,
+              actualChildrenInfo: Array.from(el.children).map((child, i) => ({
+                index: i,
+                tagName: child.tagName,
+                className: child.className,
+                offsetWidth: child.offsetWidth,
+                offsetHeight: child.offsetHeight,
+                computedBackground: window.getComputedStyle(child).backgroundColor
+              })),
+              isTrackVisible: el.offsetWidth > 0 && el.offsetHeight > 0
             });
           }
         }}
@@ -294,7 +309,7 @@ export default function MultiPartProgressBar({
               }}
               ref={(el) => {
                 if (el && index === 0) {
-                  console.log('🔍 ProgressBar: First segment mounted:', {
+                  console.log('🚨 SEGMENT VISIBILITY CHECK:', {
                     offsetWidth: el.offsetWidth,
                     offsetHeight: el.offsetHeight,
                     clientWidth: el.clientWidth,
@@ -304,11 +319,39 @@ export default function MultiPartProgressBar({
                     className: el.className,
                     hasTooltipAttr: el.hasAttribute('data-tooltip'),
                     tooltipValue: el.getAttribute('data-tooltip'),
-                    computedWidth: window.getComputedStyle(el).width,
-                    computedHeight: window.getComputedStyle(el).height,
-                    computedDisplay: window.getComputedStyle(el).display,
-                    computedPosition: window.getComputedStyle(el).position,
-                    computedBackgroundColor: window.getComputedStyle(el).backgroundColor
+                    boundingRect: el.getBoundingClientRect(),
+                    computedStyles: {
+                      width: window.getComputedStyle(el).width,
+                      height: window.getComputedStyle(el).height,
+                      display: window.getComputedStyle(el).display,
+                      position: window.getComputedStyle(el).position,
+                      backgroundColor: window.getComputedStyle(el).backgroundColor,
+                      visibility: window.getComputedStyle(el).visibility,
+                      opacity: window.getComputedStyle(el).opacity,
+                      zIndex: window.getComputedStyle(el).zIndex,
+                      border: window.getComputedStyle(el).border,
+                      borderRadius: window.getComputedStyle(el).borderRadius,
+                      transform: window.getComputedStyle(el).transform,
+                      overflow: window.getComputedStyle(el).overflow
+                    },
+                    inlineStyles: el.style.cssText,
+                    actualBackgroundColor: segment.color,
+                    actualWidth: segment.width,
+                    isVisible: el.offsetWidth > 0 && el.offsetHeight > 0
+                  });
+                  
+                  // Check if element is actually visible in viewport
+                  const rect = el.getBoundingClientRect();
+                  const isInViewport = (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= window.innerHeight &&
+                    rect.right <= window.innerWidth
+                  );
+                  console.log('🚨 VIEWPORT VISIBILITY:', {
+                    isInViewport,
+                    rect,
+                    windowSize: { width: window.innerWidth, height: window.innerHeight }
                   });
                 }
               }}
