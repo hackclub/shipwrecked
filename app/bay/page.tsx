@@ -576,6 +576,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const progressMetrics = useMemo(() => {
     // Don't calculate until user data is loaded
     if (!user) {
+      console.log('🚨 BAY DEBUG: No user data available');
       return {
         shippedHours: 0,
         viralHours: 0,
@@ -590,19 +591,36 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       };
     }
     
-    console.log('🐚 BAY SHELL DEBUG:', {
-      projects: projects.length,
+    console.log('🚨 BAY DEBUG: User data:', {
+      userId: user.id,
+      userName: user.name,
+      projectsCount: projects.length,
       purchasedProgressHours: user?.purchasedProgressHours || 0,
       totalShellsSpent: user?.totalShellsSpent || 0,
       adminShellAdjustment: user?.adminShellAdjustment || 0,
       userHasAdminField: user?.hasOwnProperty('adminShellAdjustment')
     });
-    return calculateProgressMetrics(
+    
+    console.log('🚨 BAY DEBUG: Projects data:', projects.map(p => ({
+      id: p.projectID,
+      name: p.name,
+      shipped: p.shipped,
+      viral: p.viral,
+      in_review: p.in_review,
+      rawHours: p.rawHours,
+      hackatimeLinks: p.hackatimeLinks?.length || 0
+    })));
+    
+    const metrics = calculateProgressMetrics(
       projects, 
       user.purchasedProgressHours || 0,
       user.totalShellsSpent || 0,
       user.adminShellAdjustment || 0
     );
+    
+    console.log('🚨 BAY DEBUG: Calculated metrics:', metrics);
+    
+    return metrics;
   }, [projects, user]);
   
   // Extract currency separately to avoid object reference issues
