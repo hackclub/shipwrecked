@@ -1064,35 +1064,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
               >
                 <Tooltip 
                   content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}
-                  ref={(el) => {
-                    if (el) {
-                      console.log('🚨 Bay: SHIP TOOLTIP mounted with MASSIVE dimensions:', {
-                        width: el.offsetWidth,
-                        height: el.offsetHeight,
-                        clientWidth: el.clientWidth,
-                        clientHeight: el.clientHeight,
-                        scrollWidth: el.scrollWidth,
-                        scrollHeight: el.scrollHeight,
-                        boundingRect: el.getBoundingClientRect(),
-                        className: el.className,
-                        computedStyles: {
-                          width: window.getComputedStyle(el).width,
-                          height: window.getComputedStyle(el).height,
-                          position: window.getComputedStyle(el).position,
-                          display: window.getComputedStyle(el).display,
-                          zIndex: window.getComputedStyle(el).zIndex,
-                          overflow: window.getComputedStyle(el).overflow,
-                          pointerEvents: window.getComputedStyle(el).pointerEvents
-                        },
-                        childElements: Array.from(el.children).map(child => ({
-                          tagName: child.tagName,
-                          className: child.className,
-                          width: child.offsetWidth,
-                          height: child.offsetHeight
-                        }))
-                      });
-                    }
-                  }}
+
                 >
                   <img 
                     src="/ship2.png" 
@@ -1117,76 +1089,20 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                       }
                     }}
                     onMouseEnter={(e) => {
-                      console.log('🚨 Bay: Ship image MOUSE ENTER - tooltip showing');
-                      console.log('🚨 Bay: Mouse event target vs currentTarget:', {
-                        target: e.target,
-                        currentTarget: e.currentTarget,
-                        targetDimensions: {
-                          width: (e.target as HTMLElement).offsetWidth,
-                          height: (e.target as HTMLElement).offsetHeight
-                        },
-                        currentTargetDimensions: {
-                          width: e.currentTarget.offsetWidth,
-                          height: e.currentTarget.offsetHeight
-                        }
-                      });
+                      // Mouse enter handled by tooltip
                     }}
                     onMouseLeave={(e) => {
-                      console.log('🚨 Bay: Ship image MOUSE LEAVE - tooltip hiding');
+                      // Mouse leave handled by tooltip
                     }}
                   />
                 </Tooltip>
                 <div 
                   className="flex-grow cursor-pointer min-w-0" 
                   onClick={() => {
-                    console.log('🔍 Bay: Progress bar container clicked');
                     setIsProgressModalOpen(true);
                   }}
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
-                  onMouseEnter={(e) => {
-                    console.log('🚨 Bay: Progress bar container MOUSE ENTER:', {
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                      targetWidth: e.currentTarget.offsetWidth,
-                      targetHeight: e.currentTarget.offsetHeight,
-                      zIndex: window.getComputedStyle(e.currentTarget).zIndex,
-                      pointerEvents: window.getComputedStyle(e.currentTarget).pointerEvents
-                    });
-                  }}
-                  onMouseMove={(e) => {
-                    // Only log occasionally to avoid spam
-                    if (Math.random() < 0.1) {
-                      console.log('🚨 Bay: Mouse moving over progress bar area');
-                    }
-                  }}
-                  ref={(el) => {
-                    if (el) {
-                      console.log('🚨 Bay: Progress bar container mounted - checking for overlap issues:', {
-                        width: el.offsetWidth,
-                        height: el.offsetHeight,
-                        boundingRect: el.getBoundingClientRect(),
-                        computedStyles: {
-                          display: window.getComputedStyle(el).display,
-                          visibility: window.getComputedStyle(el).visibility,
-                          opacity: window.getComputedStyle(el).opacity,
-                          position: window.getComputedStyle(el).position,
-                          zIndex: window.getComputedStyle(el).zIndex,
-                          pointerEvents: window.getComputedStyle(el).pointerEvents,
-                          flexGrow: window.getComputedStyle(el).flexGrow
-                        },
-                        className: el.className,
-                        // Check if elements are overlapping
-                        siblingElements: Array.from(el.parentElement?.children || []).map((sibling, i) => ({
-                          index: i,
-                          isCurrentElement: sibling === el,
-                          tagName: sibling.tagName,
-                          className: sibling.className,
-                          boundingRect: sibling.getBoundingClientRect(),
-                          zIndex: window.getComputedStyle(sibling).zIndex
-                        }))
-                      });
-                    }
-                  }}
+
                 >
                   {(() => {
                     console.log('🔍 Bay: About to render MultiPartProgressBar with:', {
