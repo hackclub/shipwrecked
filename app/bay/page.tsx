@@ -991,23 +991,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       
       <div 
         className={styles.progressSection}
-        ref={(el) => {
-          if (el) {
-            console.log('🔍 Bay: Progress section mounted:', {
-              width: el.offsetWidth,
-              height: el.offsetHeight,
-              className: el.className,
-              computedStyles: {
-                display: window.getComputedStyle(el).display,
-                position: window.getComputedStyle(el).position,
-                overflow: window.getComputedStyle(el).overflow,
-                zIndex: window.getComputedStyle(el).zIndex
-              },
-              progressSectionClass: styles.progressSection,
-              hasProgressSectionClass: !!styles.progressSection
-            });
-          }
-        }}
+
       >
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
           {impersonationData ? `${impersonationData.user.name ? `${impersonationData.user.name}'s Voyage` : 'User Voyage'}` : 'Your Voyage'}
@@ -1017,50 +1001,13 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         {!impersonationData && <PendingOrders />}
         <div 
           className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto"
-          ref={(el) => {
-            if (el) {
-              console.log('🔍 Bay: Main progress container mounted:', {
-                width: el.offsetWidth,
-                height: el.offsetHeight,
-                backgroundColor: window.getComputedStyle(el).backgroundColor,
-                border: window.getComputedStyle(el).border,
-                display: window.getComputedStyle(el).display,
-                position: window.getComputedStyle(el).position
-              });
-            }
-          }}
+
         >
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-2 sm:px-4 md:px-0">
               <div 
                 className="flex items-center justify-center gap-2 sm:gap-3 min-w-0"
-                ref={(el) => {
-                  if (el) {
-                    console.log('🚨 Bay: SHIP + PROGRESS + ISLAND container:', {
-                      width: el.offsetWidth,
-                      height: el.offsetHeight,
-                      className: el.className,
-                      childrenCount: el.children.length,
-                      computedStyles: {
-                        display: window.getComputedStyle(el).display,
-                        gap: window.getComputedStyle(el).gap,
-                        alignItems: window.getComputedStyle(el).alignItems,
-                        justifyContent: window.getComputedStyle(el).justifyContent,
-                        flexDirection: window.getComputedStyle(el).flexDirection
-                      },
-                      childElements: Array.from(el.children).map((child, i) => ({
-                        index: i,
-                        tagName: child.tagName,
-                        className: child.className,
-                        width: child.offsetWidth,
-                        height: child.offsetHeight,
-                        position: window.getComputedStyle(child).position,
-                        flex: window.getComputedStyle(child).flex,
-                        flexGrow: window.getComputedStyle(child).flexGrow
-                      }))
-                    });
-                  }
-                }}
+
               >
                 <Tooltip 
                   content={`You've built ${projects.length} project${projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}
@@ -1070,24 +1017,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     src="/ship2.png" 
                     alt="Ship" 
                     className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center"
-                    ref={(el) => {
-                      if (el) {
-                        console.log('🚨 Bay: SHIP IMG element:', {
-                          width: el.offsetWidth,
-                          height: el.offsetHeight,
-                          naturalWidth: el.naturalWidth,
-                          naturalHeight: el.naturalHeight,
-                          className: el.className,
-                          computedStyles: {
-                            width: window.getComputedStyle(el).width,
-                            height: window.getComputedStyle(el).height,
-                            objectFit: window.getComputedStyle(el).objectFit,
-                            maxWidth: window.getComputedStyle(el).maxWidth,
-                            maxHeight: window.getComputedStyle(el).maxHeight
-                          }
-                        });
-                      }
-                    }}
+
                     onMouseEnter={(e) => {
                       // Mouse enter handled by tooltip
                     }}
@@ -1104,15 +1034,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
 
                 >
-                  {(() => {
-                    console.log('🔍 Bay: About to render MultiPartProgressBar with:', {
-                      projectsCount: projects.length,
-                      progressMetrics: progressMetrics,
-                      max: 100,
-                      height: 10
-                    });
-                    return null;
-                  })()}
                   <MultiPartProgressBar 
                     projects={projects}
                     progressMetrics={progressMetrics}
@@ -1122,10 +1043,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     showLabels={false}
                     tooltipPosition="top"
                   />
-                  {(() => {
-                    console.log('🔍 Bay: MultiPartProgressBar should have rendered');
-                    return null;
-                  })()}
                 </div>
                 <Tooltip content="Your prize - a fantastic island adventure with friends">
                   <img src="/island2.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />
