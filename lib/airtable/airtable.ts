@@ -26,7 +26,7 @@ export async function getRecords(tableName: string, options?: {
         filterByFormula: options?.filterByFormula,
         sort: options?.sort,
         maxRecords: options?.maxRecords,
-        view: options?.view,
+        ...(options?.view && { view: options.view })
       })
       .all();
     
