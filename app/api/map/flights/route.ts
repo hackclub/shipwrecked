@@ -52,9 +52,9 @@ export async function GET(request: Request) {
 
       const slackId = fields['Slack ID'] as string;
       const inboundFlightNumber = fields['Inbound Flight Number'] as string;
-      const inboundFlightTime = fields['Inbound Flight Time'] as string;
+      const inboundFlightTime = fields['Inbound Flight Date'] as string;
       const outboundFlightNumber = fields['Outbound Flight Number'] as string;
-      const outboundFlightTime = fields['Outbound Flight Time'] as string;
+      const outboundFlightTime = fields['Outbound Flight Date'] as string;
 
       const inboundFlightDate = new Date(inboundFlightTime);
       const outboundFlightDate = new Date(outboundFlightTime);
