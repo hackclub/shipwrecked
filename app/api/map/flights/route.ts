@@ -19,19 +19,15 @@ export async function GET(request: Request) {
     return NextResponse.json({error: 'Unauthorized'}, {status: 401});
   }
   try {
-    // Ensure the user is marked with the attending tag
-    const attendingTag = await prisma.userTag.findFirst({
-      where: {
-        userId: session?.user?.id,
-        tag: {
-          name: {
-            equals: 'attending',
-            mode: 'insensitive', // Case-insensitive match
-          },
-        },
-      },
-    });
-    if (!attendingTag) {
+    // Ensure the user is attending the event
+    const attendingTableName = "RSVPs"
+    const attendingRecords = await getRecords(attendingTableName, {
+      filterByFormula: `{Email} = '${session.user.email}'`,
+      sort: [{field: 'Email', direction: 'asc'}],
+      maxRecords: 1
+    })
+    const attending = attendingRecords[0] && attendingRecords[0].fields['Attending'];
+    if (!attending) {
       return NextResponse.json({error: 'User is not attending event'}, {status: 403});
     }
     // If necessary, send cached reponse
