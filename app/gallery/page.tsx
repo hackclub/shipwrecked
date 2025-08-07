@@ -10,6 +10,7 @@ import Toast from '@/components/common/Toast';
 import Image from 'next/image';
 import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
+import { useExperienceMode } from '@/lib/useExperienceMode';
 
 // Dynamically import the chat modal to avoid SSR issues with socket.io
 const ProjectChatModal = dynamic(() => import('@/components/common/ProjectChatModal'), {
@@ -33,6 +34,7 @@ interface Project {
   chat_enabled: boolean;
   chatCount: number;
   lastChatActivity: string | null;
+  // No tag data exposed in gallery - server-side filtering only
   user: {
     name: string | null;
     slack: string | null;
@@ -60,6 +62,7 @@ const isValidImageUrl = (url: string): boolean => {
 
 export default function Gallery() {
   const { data: session, status } = useSession();
+  const { isIslandMode, isLoading: isExperienceModeLoading } = useExperienceMode();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,10 +102,31 @@ export default function Gallery() {
     setSelectedProjectForChat(null);
   };
 
+  // Handle state cleanup when switching experience modes
+  useEffect(() => {
+    if (isIslandMode) {
+      // Reset viral filter and hours sort when entering island mode
+      setShowViral(false);
+      if (sortBy === 'hours') {
+        setSortBy('upvotes'); // Default to upvotes sort in island mode
+      }
+    }
+  }, [isIslandMode, sortBy]);
+
+  // Calculate total projects for current experience mode (server-side filtered, so just use length)
+  const totalProjectsForCurrentMode = projects.length;
+
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const response = await fetch('/api/gallery');
+        const timestamp = Date.now();
+        const url = `/api/gallery?isIslandMode=${isIslandMode}&_t=${timestamp}`;
+        
+        const response = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
@@ -117,12 +141,12 @@ export default function Gallery() {
       }
     }
 
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && !isExperienceModeLoading) {
       fetchProjects();
     }
-  }, [status]);
+  }, [status, isIslandMode, isExperienceModeLoading]);
 
-  // Filter and sort projects
+  // Filter and sort projects (server-side filtering by experience mode already applied)
   const filteredAndSortedProjects = useMemo(() => {
     let filtered = projects.filter(project => {
       // Search filter
@@ -228,7 +252,7 @@ export default function Gallery() {
     }
   };
 
-  if (status === "loading") {
+  if (status === "loading" || isExperienceModeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-600">Loading...</p>
@@ -278,15 +302,18 @@ export default function Gallery() {
                 Filter by Status
               </label>
               <div className="flex gap-4 py-2">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={showViral}
-                    onChange={(e) => setShowViral(e.target.checked)}
-                    className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Viral</span>
-                </label>
+                {/* Hide viral filter in island mode since island projects don't use viral status */}
+                {!isIslandMode && (
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={showViral}
+                      onChange={(e) => setShowViral(e.target.checked)}
+                      className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Viral</span>
+                  </label>
+                )}
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -339,23 +366,26 @@ export default function Gallery() {
                     Images
                   </div>
                 </label>
-                <label className="w-18">
-                  <input
-                    type="radio"
-                    name="sortBy"
-                    value="hours"
-                    checked={sortBy === 'hours'}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="sr-only"
-                  />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'hours'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
-                    Hours
-                  </div>
-                </label>
+                {/* Hide hours sort in island mode since island projects don't use traditional hour tracking */}
+                {!isIslandMode && (
+                  <label className="w-18">
+                    <input
+                      type="radio"
+                      name="sortBy"
+                      value="hours"
+                      checked={sortBy === 'hours'}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="sr-only"
+                    />
+                    <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'hours'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`} style={{ fontSize: '11px' }}>
+                      Hours
+                    </div>
+                  </label>
+                )}
                 <label className="w-18">
                   <input
                     type="radio"
@@ -414,7 +444,7 @@ export default function Gallery() {
           {/* Results Count */}
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-500">
-              Showing {filteredAndSortedProjects.length} of {projects.length} projects
+              Showing {filteredAndSortedProjects.length} of {totalProjectsForCurrentMode} projects
             </p>
           </div>
         </div>

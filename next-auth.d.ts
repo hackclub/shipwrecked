@@ -15,6 +15,7 @@ declare module "next-auth" {
             isAdmin?: boolean;
             status?: UserStatus;
             emailVerified?: Date | null;
+            isAttendee?: boolean;
         },
         expires: string
     }
@@ -27,5 +28,6 @@ declare module "next-auth" {
         isAdmin?: boolean;
         status?: UserStatus;
         emailVerified?: Date | null;
+        isAttendee?: boolean;
     }
 }

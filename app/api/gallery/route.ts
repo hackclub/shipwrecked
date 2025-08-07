@@ -15,8 +15,47 @@ export async function GET(request: Request) {
 
     console.log('Fetching all projects for gallery...');
     
+    // Check if user is admin to determine tag exposure
+    const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+    
+    // Get experience mode from query params for server-side filtering
+    const { searchParams } = new URL(request.url);
+    const isIslandMode = searchParams.get('isIslandMode') === 'true';
+    
+    // Build where clause for server-side filtering based on experience mode
+    let whereClause: any = {};
+    
+    // ALL USERS (including admins) get filtered based on experience mode in gallery
+    if (isIslandMode) {
+      // Island mode: only show projects with 'island-project' tag
+      whereClause = {
+        projectTags: {
+          some: {
+            tag: {
+              name: 'island-project'
+            }
+          }
+        }
+      };
+    } else {
+      // Voyage mode: only show projects WITHOUT 'island-project' tag
+      whereClause = {
+        NOT: {
+          projectTags: {
+            some: {
+              tag: {
+                name: 'island-project'
+              }
+            }
+          }
+        }
+      };
+    }
+    
     // Fetch all projects from all users with user info, hackatime links, and upvote data
+    // Server-side filtered and no tag data exposed to non-admins
     const allProjects = await prisma.project.findMany({
+      where: whereClause,
       select: {
         projectID: true,
         name: true,
@@ -29,6 +68,7 @@ export async function GET(request: Request) {
         chat_enabled: true,
         userId: true,
         hackatimeLinks: true,
+        // No tag data exposed to anyone - server-side filtering only
         user: {
           select: {
             name: true,

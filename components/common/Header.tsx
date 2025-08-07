@@ -6,6 +6,7 @@ import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ExperienceToggle from './ExperienceToggle';
 
 export type HeaderProps = {
     session: Session | null;
@@ -125,12 +126,6 @@ export default function Header({ session, status }: HeaderProps) {
                         My Projects
                     </Link>
                     <Link 
-                        href="/bay/badge" 
-                        className={`transition-colors ${isActive('/bay/badge') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
-                    >
-                        Badge
-                    </Link>
-                    <Link 
                         href="/gallery" 
                         className={`transition-colors ${isActive('/gallery') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
                     >
@@ -147,6 +142,12 @@ export default function Header({ session, status }: HeaderProps) {
                         className={`transition-colors ${isActive('/faq') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
                     >
                         FAQ
+                    </Link>
+                    <Link 
+                        href="/bay/badge" 
+                        className={`transition-colors ${isActive('/bay/badge') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                    >
+                        Badge
                     </Link>
                     <Link 
                         href="/settings" 
@@ -273,13 +274,6 @@ export default function Header({ session, status }: HeaderProps) {
                                 My Projects
                             </Link>
                             <Link 
-                                href="/bay/badge" 
-                                className={`block transition-colors ${isActive('/bay/badge') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Badge
-                            </Link>
-                            <Link 
                                 href="/gallery" 
                                 className={`block transition-colors ${isActive('/gallery') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                 onClick={() => setMobileMenuOpen(false)}
@@ -301,6 +295,13 @@ export default function Header({ session, status }: HeaderProps) {
                                 FAQ
                             </Link>
                             <Link 
+                                href="/bay/badge" 
+                                className={`block transition-colors ${isActive('/bay/badge') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Badge
+                            </Link>
+                            <Link 
                                 href="/settings" 
                                 className={`block transition-colors ${isActive('/settings') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                 onClick={() => setMobileMenuOpen(false)}
@@ -317,6 +318,13 @@ export default function Header({ session, status }: HeaderProps) {
                                     Shop
                                 </Link>
                             )}
+                            {/* Experience Toggle for attendees in mobile menu */}
+                            {session?.user?.isAttendee && (
+                                <div className="pt-2 border-t border-gray-200">
+                                    <ExperienceToggle className="w-full justify-center" />
+                                </div>
+                            )}
+                            
                             {/* Admin section with submenu for mobile */}
                             {isUserAdmin && (
                                 <div className="space-y-2">
@@ -366,6 +374,11 @@ export default function Header({ session, status }: HeaderProps) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 relative flex-shrink-0" ref={dropdownRef}>
+                {/* Experience Toggle for attendees only */}
+                {status === "authenticated" && session?.user?.isAttendee && (
+                    <ExperienceToggle className="hidden sm:inline-flex" />
+                )}
+                
                 {status === "authenticated" && (
                     <>
                         <img

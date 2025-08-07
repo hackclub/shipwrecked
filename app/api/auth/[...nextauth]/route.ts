@@ -284,6 +284,10 @@ export const opts: NextAuthOptions = {
   callbacks: {
     async session({ session, user }) {
       // With database strategy, we get the fresh user data on every request
+      // Check if user is an island attendee
+      const { isAttendee } = await import('@/lib/userTags');
+      const isAttendeeFlag = await isAttendee(user.id);
+      
       return {
         ...session,
         user: {
@@ -293,7 +297,8 @@ export const opts: NextAuthOptions = {
           role: user.role,
           isAdmin: user.isAdmin,
           status: user.status,
-          emailVerified: user.emailVerified
+          emailVerified: user.emailVerified,
+          isAttendee: isAttendeeFlag
         }
       };
     },
@@ -338,7 +343,11 @@ export const opts: NextAuthOptions = {
         console.log('Redirecting to:', url);
         return url;
       }
-      return `${baseUrl}/bay`;
+      
+      // Clear experience mode cookie on login so it gets reset based on user status
+      // Note: We need to add a flag to clear this on the client side since we can't 
+      // access cookies directly in the redirect callback
+      return `${baseUrl}/bay?clearExperience=true`;
     }
   },
   pages: {

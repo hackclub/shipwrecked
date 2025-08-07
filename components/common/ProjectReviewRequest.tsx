@@ -18,6 +18,7 @@ interface ProjectReviewRequestProps {
   screenshot?: string; // Add screenshot prop
   onRequestSubmitted: (updatedProject: any, review: any) => void;
   onEditProject: () => void; // Add callback to open project editor
+  isIslandProject?: boolean; // Add island project flag
 }
 
 export default function ProjectReviewRequest({
@@ -29,11 +30,14 @@ export default function ProjectReviewRequest({
   playableUrl,
   screenshot,
   onRequestSubmitted,
-  onEditProject
+  onEditProject,
+  isIslandProject = false
 }: ProjectReviewRequestProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
-  const [reviewType, setReviewType] = useState<ReviewRequestType>(isShipped ? 'HoursApproval' : 'ShippedApproval');
+  const [reviewType, setReviewType] = useState<ReviewRequestType>(
+    isIslandProject ? 'ShippedApproval' : (isShipped ? 'HoursApproval' : 'ShippedApproval')
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Checklist state
@@ -45,12 +49,17 @@ export default function ProjectReviewRequest({
     polished: false
   });
 
-  // Effect to update default reviewType when isShipped or isViral changes
+  // Effect to update default reviewType when isShipped, isViral, or isIslandProject changes
   useEffect(() => {
-    // If project is already shipped, default to HoursApproval
-    // Otherwise default to ShippedApproval
-    setReviewType(isShipped ? 'HoursApproval' : 'ShippedApproval');
-  }, [isShipped]);
+    // Island projects can only submit for ship approval
+    if (isIslandProject) {
+      setReviewType('ShippedApproval');
+    } else {
+      // If project is already shipped, default to HoursApproval
+      // Otherwise default to ShippedApproval
+      setReviewType(isShipped ? 'HoursApproval' : 'ShippedApproval');
+    }
+  }, [isShipped, isIslandProject]);
 
   // Don't show this component in review mode or if project is already in review
   if (isReviewMode || isInReview) {
@@ -178,16 +187,24 @@ export default function ProjectReviewRequest({
             disabled={isSubmitting}
             required
           >
-            {!isShipped && (
+            {isIslandProject ? (
+              // Island projects can only submit for ship approval
               <option value="ShippedApproval">I want this project approved as shipped</option>
+            ) : (
+              // Regular voyage projects have all options
+              <>
+                {!isShipped && (
+                  <option value="ShippedApproval">I want this project approved as shipped</option>
+                )}
+                {!isViral && (
+                  <option value="ViralApproval">I want this project approved as viral</option>
+                )}
+                {isShipped && (
+                  <option value="HoursApproval">I want to ship an update to this project</option>
+                )}
+                <option value="Other">Other</option>
+              </>
             )}
-            {!isViral && (
-              <option value="ViralApproval">I want this project approved as viral</option>
-            )}
-            {isShipped && (
-              <option value="HoursApproval">I want to ship an update to this project</option>
-            )}
-            <option value="Other">Other</option>
           </select>
         </div>
         
