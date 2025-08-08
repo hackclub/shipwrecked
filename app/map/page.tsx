@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, Suspense} from 'react';
 import {useSession} from 'next-auth/react';
 import {useRouter} from 'next/navigation';
 import Icon from '@hackclub/icons';
@@ -30,7 +30,7 @@ async function fetchFlights() {
   return res.json();
 }
 
-export default function MapPage() {
+function MapInner() {
   const {data: session, status} = useSession();
   const [flights, setFlights] = useState<FlightData[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -121,5 +121,13 @@ export default function MapPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-600">Loading...</p></div>}>
+      <MapInner />
+    </Suspense>
   );
 }

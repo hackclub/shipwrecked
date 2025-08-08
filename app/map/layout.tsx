@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import Header from "@/components/common/Header";
 import { useSession } from "next-auth/react";
@@ -35,10 +35,12 @@ function SessionWrapper({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header
-        session={session}
-        status={status}
-      />
+      <Suspense fallback={<div />}> 
+        <Header
+          session={session}
+          status={status}
+        />
+      </Suspense>
       <main className="flex-grow container mx-auto p-6">
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-md">
