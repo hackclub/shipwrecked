@@ -409,8 +409,8 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-[95vw] md:max-w-2xl md:h-[600px] h-[80dvh] max-h-[80dvh] flex flex-col border border-gray-200">
+    <div className="fixed inset-0 z-50 p-4 flex md:items-center md:justify-center items-end justify-center overscroll-contain">
+      <div className="bg-white rounded-t-2xl md:rounded-lg shadow-xl w-full max-w-[95vw] md:max-w-2xl md:h-[600px] h-[85dvh] max-h-[85dvh] flex flex-col border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div>
@@ -481,7 +481,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         </div>
 
         {/* Message Input */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 sticky bottom-0 bg-white" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
           {/* In island mode, only the project owner can write */}
           {!(isIslandMode && session?.user?.id !== project.userId) ? (
           <form onSubmit={handleSendMessage} className="flex flex-col gap-2">

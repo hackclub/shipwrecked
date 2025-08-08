@@ -115,7 +115,7 @@ title={`${isIslandMode ? 'Switch to voyage tracking experience' : 'Switch to pea
           />
         )}
       </svg>
-{isIslandMode ? 'remember my voyage...' : 'go to the island...'}
+{isIslandMode ? 'goto voyage' : 'goto island'}
     </button>
   );
 }
