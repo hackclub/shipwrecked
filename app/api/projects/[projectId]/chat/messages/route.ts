@@ -247,3 +247,54 @@ export async function POST(
     }
   );
 } 
+
+// DELETE - Delete a chat message (admins or project owners only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const session = await getServerSession(opts);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { projectId } = await params;
+    const { searchParams } = new URL(request.url);
+    const messageId = searchParams.get('messageId');
+    if (!messageId) {
+      return NextResponse.json({ error: 'messageId is required' }, { status: 400 });
+    }
+
+    // Load project to check ownership
+    const project = await prisma.project.findUnique({
+      where: { projectID: projectId },
+      select: { userId: true },
+    });
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Permission: admins or project owner
+    const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
+    const isOwner = session.user.id === project.userId;
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Ensure message exists and belongs to this project's room
+    const message = await prisma.chatMessage.findUnique({
+      where: { id: messageId },
+      select: { id: true, room: { select: { projectID: true } } },
+    });
+    if (!message || message.room.projectID !== projectId) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    }
+
+    await prisma.chatMessage.delete({ where: { id: messageId } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting chat message:', error);
+    return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 });
+  }
+}

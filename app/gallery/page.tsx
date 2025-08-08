@@ -240,6 +240,9 @@ function GalleryInner() {
           )
         );
       } else {
+        let errText = 'Failed to upvote project';
+        try { const d = await response.json(); if (d?.error) errText = d.error; } catch {}
+        showToast(errText, 'error');
         console.error('Failed to upvote project');
       }
     } catch (error) {
@@ -530,13 +533,14 @@ function GalleryInner() {
                         {/* Upvote button */}
                         <button
                           onClick={() => handleUpvote(project.projectID)}
-                          disabled={upvotingProjects.has(project.projectID)}
+                          disabled={upvotingProjects.has(project.projectID) || session?.user?.id === project.userId}
+                          title={session?.user?.id === project.userId ? 'You cannot upvote your own project' : undefined}
                           className={`flex items-center justify-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-all min-w-[60px] ${
                             project.userUpvoted
                               ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           } ${
-                            upvotingProjects.has(project.projectID)
+                            upvotingProjects.has(project.projectID) || session?.user?.id === project.userId
                               ? 'opacity-50 cursor-not-allowed'
                               : 'cursor-pointer hover:scale-105'
                           }`}
