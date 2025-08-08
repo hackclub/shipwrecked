@@ -35,6 +35,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,6 +72,25 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
       }
     } catch (error) {
       console.error('Error polling messages:', error);
+    }
+  };
+
+  const canModerate = session?.user && (session.user.role === 'Admin' || session.user.isAdmin === true || (project.userId && session.user.id === project.userId));
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!canModerate) return;
+    try {
+      const res = await fetch(`/api/projects/${project.projectID}/chat/messages?messageId=${encodeURIComponent(messageId)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        // Trigger quick poll to stay in sync
+        setTimeout(() => pollMessages(false), 100);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast && showToast(err.error || 'Failed to delete message', 'error');
+      }
+    } catch (e) {
+      showToast && showToast('Failed to delete message', 'error');
     }
   };
 
@@ -218,6 +238,115 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
     });
   };
 
+  const isLikelyImageUrl = (url: string): boolean => {
+    try {
+      const u = new URL(url);
+      const pathname = u.pathname.toLowerCase();
+      if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg)$/.test(pathname)) return true;
+      if (/\/s\/v3\//.test(pathname)) return true; // our CDN short path
+      if (/cdn\.hackclub\.com|hc-cdn\./.test(u.host)) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const renderMessageBody = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = urlRegex.exec(content)) !== null) {
+      const before = content.slice(lastIndex, match.index);
+      if (before) elements.push(<span key={`t-${lastIndex}`}>{before}</span>);
+      const url = match[1];
+      if (isLikelyImageUrl(url)) {
+        elements.push(
+          <a key={`i-${match.index}`} href={url} target="_blank" rel="noopener noreferrer">
+            <img src={url} alt="uploaded" className="max-w-full rounded-lg border border-gray-200 my-2" style={{ maxHeight: 240 }} />
+          </a>
+        );
+      } else {
+        elements.push(
+          <a key={`l-${match.index}`} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+            {url}
+          </a>
+        );
+      }
+      lastIndex = urlRegex.lastIndex;
+    }
+    const tail = content.slice(lastIndex);
+    if (tail) elements.push(<span key={`t-end`}>{tail}</span>);
+    return elements;
+  };
+
+  const handlePickAndUploadImage = async () => {
+    try {
+      // File picker limited to PNG/JPEG
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg';
+      input.multiple = false;
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+        setIsUploading(true);
+        try {
+          // Stream upload to temporary endpoint which returns a temporary URL
+          const form = new FormData();
+          form.append('file', file);
+          const presignRes = await fetch('/api/uploads', { method: 'POST', body: form });
+          if (!presignRes.ok) {
+            const err = await presignRes.json().catch(() => ({}));
+            showToast && showToast(err.error || 'Upload failed', 'error');
+            return;
+          }
+          const { tempUrl } = await presignRes.json();
+
+          // Ask server to instruct CDN to fetch and host the file
+          const cdnRes = await fetch('/api/cdn/ingest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tempPath: tempUrl }),
+          });
+          if (!cdnRes.ok) {
+            showToast && showToast('CDN ingest failed', 'error');
+            return;
+          }
+          const cdn = await cdnRes.json();
+          const deployedUrl = cdn?.deployedUrl || `${location.origin}${tempUrl}`;
+
+          const caption = newMessage.trim();
+          const content = caption ? `${caption}\n${deployedUrl}` : deployedUrl;
+
+          setNewMessage('');
+          const response = await fetch(`/api/projects/${project.projectID}/chat/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content }),
+          });
+          if (response.ok) {
+            const savedMessage = await response.json();
+            setMessages(prev => [...prev, savedMessage]);
+            lastMessageTimestampRef.current = savedMessage.createdAt;
+            setTimeout(() => pollMessages(false), 100);
+          } else {
+            const err = await response.json().catch(() => ({}));
+            showToast && showToast(err.error || 'Failed to post image', 'error');
+          }
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      input.click();
+    } catch (e) {
+      console.error(e);
+      showToast && showToast('Could not upload image', 'error');
+      setIsUploading(false);
+    }
+  };
+
   // Generate obfuscated username based on userid
   const obfuscateUsername = (userId: string) => {
     // Create a simple hash to generate consistent animal names
@@ -315,23 +444,35 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
             </div>
           ) : (
             messages.map((message) => (
-              <div key={message.id} className="mb-3">
-                <div className="text-left">
+              <div key={message.id} className="mb-3 group">
+                <div className="text-left flex items-start gap-2">
                   <span 
                     className="font-bold"
                     style={{ color: getUserColor(message.userId) }}
                   >
                     {isIslandMode && message.userName ? message.userName : obfuscateUsername(message.userId)}
                   </span>
-                  {message.isAuthor && (
+                  {!isIslandMode && message.isAuthor && (
                     <span className="text-yellow-500 ml-1" title="Project Author">
                       ⭐
                     </span>
                   )}
-                  <span className="text-gray-900">: {message.content}</span>
+                  <span className="text-gray-900">: </span>
+                  <div className="mt-1 whitespace-pre-wrap break-words">
+                    {renderMessageBody(message.content)}
+                  </div>
                   <span className="text-xs text-gray-400 ml-2">
                     {formatTime(message.createdAt)}
                   </span>
+                  {canModerate && (
+                    <button
+                      onClick={() => handleDeleteMessage(message.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto text-gray-400 hover:text-red-600"
+                      title="Delete message"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -351,10 +492,19 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={isSending}
+                disabled={isSending || isUploading}
                 ref={messageInputRef}
                 maxLength={1000}
               />
+              <button
+                type="button"
+                onClick={handlePickAndUploadImage}
+                disabled={isSending || isUploading}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Upload image"
+              >
+                {isUploading ? '…' : '🖼️'}
+              </button>
               <button
                 type="submit"
                 disabled={!newMessage.trim() || isSending || newMessage.length > 1000}
