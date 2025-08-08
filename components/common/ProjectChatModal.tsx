@@ -410,7 +410,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl h-[600px] flex flex-col border border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-[95vw] md:max-w-2xl md:h-[600px] h-[80dvh] max-h-[80dvh] flex flex-col border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div>
@@ -430,7 +430,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-gray-500">Loading messages...</p>
