@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Header from '@/components/common/Header';
 import ImageWithFallback from '@/components/common/ImageWithFallback';
 import Icon from '@hackclub/icons';
@@ -61,7 +61,7 @@ const isValidImageUrl = (url: string): boolean => {
   return imageExtensions.some(ext => lowerUrl.includes(ext));
 };
 
-export default function Gallery() {
+function GalleryInner() {
   const { data: session, status } = useSession();
   const { isIslandMode, isLoading: isExperienceModeLoading } = useExperienceMode();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -649,4 +649,12 @@ export default function Gallery() {
       </main>
     </div>
   );
-} 
+}
+
+export default function Gallery() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-600">Loading...</p></div>}>
+      <GalleryInner />
+    </Suspense>
+  );
+}
