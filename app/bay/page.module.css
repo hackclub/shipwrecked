@@ -5,6 +5,15 @@
   background: #f5f5f5;
 }
 
+/* Applied only in Island Experience mode */
+.islandBackground {
+  /* Image should be placed at public/bay-island-bg.png */
+  background-image: url('/bay-island-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .content {
   max-width: 1400px;
   margin: 0 auto;
@@ -16,6 +25,14 @@
   flex: 1;
   min-width: 0;
   max-width: 100%;
+}
+
+/* Semi-transparent panel used in Island Experience mode */
+.islandPanel {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 @media (min-width: 768px) {

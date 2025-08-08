@@ -236,7 +236,7 @@ export async function POST(request: Request) {
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
-                chat_enabled: formData.get('chat_enabled') === 'on',
+                chat_enabled: formData.get('chat_enabled') === 'on' || formData.get('isIslandProject') === 'true',
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
@@ -491,6 +491,21 @@ export async function POST(request: Request) {
                 } catch (tagError) {
                     console.error('[POST-TRACE] 13.4 Failed to add island project tags:', tagError);
                     // Don't fail the entire request if tagging fails
+                }
+
+                // Create chat room for island projects since they have chat enabled by default
+                console.log('[POST-TRACE] 13.5 Creating chat room for island project');
+                try {
+                    await prisma.chatRoom.create({
+                        data: {
+                            projectID: createdProject.projectID,
+                            name: 'General Discussion'
+                        }
+                    });
+                    console.log('[POST-TRACE] 13.6 Chat room created successfully for island project');
+                } catch (chatRoomError) {
+                    console.error('[POST-TRACE] 13.7 Failed to create chat room for island project:', chatRoomError);
+                    // Don't fail the entire request if chat room creation fails
                 }
             }
             

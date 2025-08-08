@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
 import { useExperienceMode } from '@/lib/useExperienceMode';
+import styles from './gallery.module.css';
 
 // Dynamically import the chat modal to avoid SSR issues with socket.io
 const ProjectChatModal = dynamic(() => import('@/components/common/ProjectChatModal'), {
@@ -269,7 +270,7 @@ export default function Gallery() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${isIslandMode ? styles.islandBackground : 'bg-gray-50'}`}>
       <Header session={session} status={status} />
       <main className="container mx-auto px-4 py-8">
         {/* Filters and Search */}
@@ -592,7 +593,13 @@ export default function Gallery() {
                         className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
                       >
                         <span className="text-sm">💬</span>
-                        {project.chatCount > 0 ? (
+                        {isIslandMode ? (
+                          session?.user?.id === project.userId ? (
+                            <>Write story...</>
+                          ) : (
+                            <>Read story...</>
+                          )
+                        ) : project.chatCount > 0 ? (
                           <>Discuss ({project.chatCount > 99 ? '99+' : project.chatCount})</>
                         ) : (
                           <>Discuss...</>
@@ -627,6 +634,7 @@ export default function Gallery() {
             onClose={handleCloseChat}
             project={selectedProjectForChat}
             showToast={showToast}
+            isIslandMode={isIslandMode}
           />
         )}
         

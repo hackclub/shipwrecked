@@ -1002,7 +1002,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isIslandMode ? styles.islandBackground : ''}`}>
       {showIdentityPopup && <IDPopup />}
       {/* Impersonation Banner */}
       {impersonationData && (
@@ -1132,29 +1132,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       
       {/* Island Experience Section - replaces voyage section when in Island mode */}
       {isIslandMode && (
-        <div className={styles.progressSection}>
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
-            🏝️ Island Experience
-          </h2>
-          
-          <div className="border border-gray-300 rounded-lg p-3 sm:p-4 bg-white max-w-xl mx-auto">
-            <div className="flex flex-col items-center justify-center py-8">
-              {/* Island Themed Content */}
-              <div className="mb-6">
-                <img 
-                  src="/island2.png" 
-                  alt="Island Paradise" 
-                  className="w-24 h-24 sm:w-32 sm:h-32 mx-auto"
-                />
-              </div>
-              
-              <div className="text-center space-y-4">
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Welcome to Your Island Paradise!
-                </h3>
-              </div>
-            </div>
-          </div>
+        <div>
         </div>
       )}
       
@@ -1222,7 +1200,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       
       <div className={styles.content}>
         <div className={styles.projectList}>
-          <div className="mt-2 md:mt-6 w-full">
+          <div className={`mt-2 md:mt-6 w-full ${isIslandMode ? styles.islandPanel : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">{impersonationData ? `${impersonationData.user.name || 'User'}'s Projects` : 'Your Projects'}</h2>
               {!impersonationData && (
