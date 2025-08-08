@@ -32,12 +32,12 @@ export async function userHasTag(userId: string, tagName: string): Promise<boole
 }
 
 /**
- * Check if a user is an island attendee (has the 'attendee' tag)
+ * Check if a user is an island attendee (has the 'attending' tag)
  * @param userId - The user ID to check
  * @returns Promise<boolean> - True if user is an attendee, false otherwise
  */
 export async function isAttendee(userId: string): Promise<boolean> {
-  return userHasTag(userId, 'attendee');
+  return userHasTag(userId, 'attending');
 }
 
 /**
