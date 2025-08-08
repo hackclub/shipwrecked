@@ -2145,17 +2145,14 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
           {/* Island Project Type Selector - TOP PRIORITY - FIRST THING USERS SEE */}
           {isCreate && props.isIslandMode ? (
             <div className="mb-6 bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-blue-300 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">🏝️</span>
-                <h2 className="text-2xl font-bold text-blue-900">Choose Your Island Adventure</h2>
-              </div>
+             
               
 
               
               {/* Island Project Type Dropdown */}
               <div className="mb-4">
                 <label className="block text-lg font-bold text-blue-900 mb-3">
-                  🎯 What type of project are you embarking on? <span className="text-red-500">*</span>
+                  Pick a project type...<span className="text-red-500">*</span>
                 </label>
                 <select 
                   name="islandProjectType"
@@ -2164,7 +2161,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   className="w-full px-4 py-3 text-lg border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white font-medium"
                   required
                 >
-                  <option value="">🤔 Select your adventure type...</option>
+                  <option value="">???</option>
                   {islandProjectTypes.map((type) => (
                     <option key={type.name} value={type.name}>
                       {type.name}
@@ -2309,8 +2306,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
           {isCreate && props.isIslandMode && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-blue-800 font-medium text-base leading-relaxed">
-                🌴 Island projects are tracked through blog/vlogging rather than automated time tracking. 
-                Choose your adventure type first - this determines how you'll document your journey!
+                🌴 Island projects are tracked through blogging and storytelling as opposed to time tracking...
               </p>
             </div>
           )}
