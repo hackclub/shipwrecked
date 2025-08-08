@@ -484,14 +484,14 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         <div className="border-t p-4 sticky bottom-0 bg-white" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
           {/* In island mode, only the project owner can write */}
           {!(isIslandMode && session?.user?.id !== project.userId) ? (
-          <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
-            <div className="flex gap-2">
+          <form onSubmit={handleSendMessage} className="flex flex-col gap-2 w-full">
+            <div className="flex w-full items-center gap-2 overflow-hidden">
               <input
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-0 flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isSending || isUploading}
                 ref={messageInputRef}
                 maxLength={1000}
@@ -500,7 +500,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
                 type="button"
                 onClick={handlePickAndUploadImage}
                 disabled={isSending || isUploading}
-                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
                 title="Upload image"
               >
                 {isUploading ? '…' : '🖼️'}
@@ -508,7 +508,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
               <button
                 type="submit"
                 disabled={!newMessage.trim() || isSending || newMessage.length > 1000}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
               >
                 {isSending ? (
                   <span className="animate-spin">⟳</span>
