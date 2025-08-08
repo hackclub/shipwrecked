@@ -30,6 +30,15 @@ export async function GET(
       select: {
         chat_enabled: true,
         userId: true, // Include userId to determine author
+        projectTags: {
+          select: {
+            tag: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -40,6 +49,9 @@ export async function GET(
     if (!project.chat_enabled) {
       return NextResponse.json({ error: 'Chat is not enabled for this project' }, { status: 403 });
     }
+
+    // Check if this is an island project
+    const isIslandProject = project.projectTags.some(pt => pt.tag.name === 'island-project');
 
     // Get the chat room for this project
     const chatRoom = await prisma.chatRoom.findFirst({
@@ -66,24 +78,38 @@ export async function GET(
     }
 
     // Get messages from the chat room
-    const messages = await prisma.chatMessage.findMany({
+    const messageQueryOptions: any = {
       where: whereClause,
       orderBy: {
         createdAt: sinceTimestamp ? 'asc' : 'desc', // If since timestamp, get oldest first; otherwise newest first
       },
       take: sinceTimestamp ? undefined : 100, // If since timestamp, get all new messages; otherwise limit to 100
-    });
+    };
+
+    // Only add include clause for island projects
+    if (isIslandProject) {
+      messageQueryOptions.include = {
+        user: {
+          select: {
+            name: true
+          }
+        }
+      };
+    }
+
+    const messages = await prisma.chatMessage.findMany(messageQueryOptions);
 
     // If no since timestamp, reverse to get chronological order (oldest to newest) for display
     const chronologicalMessages = sinceTimestamp ? messages : messages.reverse();
 
-    // Format messages for the client - include isAuthor flag
+    // Format messages for the client - include isAuthor flag and user name for island projects
     const formattedMessages = chronologicalMessages.map(message => ({
       id: message.id,
       content: message.content,
       userId: message.userId,
       createdAt: message.createdAt.toISOString(),
       isAuthor: message.userId === project.userId, // Flag to indicate if message is from project author
+      userName: isIslandProject && (message as any).user ? (message as any).user.name : undefined, // Include real name for island projects
     }));
 
     return NextResponse.json(formattedMessages);
@@ -135,6 +161,15 @@ export async function POST(
           select: {
             chat_enabled: true,
             userId: true, // Include userId to determine author
+            projectTags: {
+              select: {
+                tag: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
           }
         });
 
@@ -144,6 +179,14 @@ export async function POST(
 
         if (!project.chat_enabled) {
           return NextResponse.json({ error: 'Chat is not enabled for this project' }, { status: 403 });
+        }
+
+        // Check if this is an island project
+        const isIslandProject = project.projectTags.some(pt => pt.tag.name === 'island-project');
+
+        // For island projects, only the project owner may post messages
+        if (isIslandProject && session.user.id !== project.userId) {
+          return NextResponse.json({ error: 'Only the project owner can write in island stories.' }, { status: 403 });
         }
 
         // Get or create the chat room for this project
@@ -164,13 +207,26 @@ export async function POST(
         }
 
         // Create the message
-        const message = await prisma.chatMessage.create({
+        const messageCreateOptions: any = {
           data: {
             content: body.content.trim(),
             userId: session.user.id,
             roomId: chatRoom.id,
-          },
-        });
+          }
+        };
+
+        // Only add include clause for island projects
+        if (isIslandProject) {
+          messageCreateOptions.include = {
+            user: {
+              select: {
+                name: true
+              }
+            }
+          };
+        }
+
+        const message = await prisma.chatMessage.create(messageCreateOptions);
 
         // Format message for the client
         const formattedMessage = {
@@ -179,6 +235,7 @@ export async function POST(
           userId: message.userId,
           createdAt: message.createdAt.toISOString(),
           isAuthor: message.userId === project.userId, // Flag to indicate if message is from project author
+          userName: isIslandProject && (message as any).user ? (message as any).user.name : undefined, // Include real name for island projects
         };
 
         return NextResponse.json(formattedMessage);

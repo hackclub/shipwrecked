@@ -6,6 +6,8 @@ import { createAvatar } from '@dicebear/core';
 import { thumbs } from '@dicebear/collection';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ExperienceToggle from './ExperienceToggle';
+import { useExperienceMode } from '@/lib/useExperienceMode';
 
 export type HeaderProps = {
     session: Session | null;
@@ -34,6 +36,7 @@ export default function Header({ session, status }: HeaderProps) {
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const adminMenuRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
+    const { isIslandMode } = useExperienceMode();
     
     // Fetch isShopOrdersAdmin and travel stipends on mount
     useEffect(() => {
@@ -125,37 +128,41 @@ export default function Header({ session, status }: HeaderProps) {
                         My Projects
                     </Link>
                     <Link 
-                        href="/bay/badge" 
-                        className={`transition-colors ${isActive('/bay/badge') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
-                    >
-                        Badge
-                    </Link>
-                    <Link 
                         href="/gallery" 
                         className={`transition-colors ${isActive('/gallery') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
                     >
                         Gallery
                     </Link>
-                    <Link 
-                        href="/leaderboard" 
-                        className={`transition-colors ${isActive('/leaderboard') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
-                    >
-                        Leaderboard
-                    </Link>
-                    <Link 
-                        href="/faq" 
-                        className={`transition-colors ${isActive('/faq') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
-                    >
-                        FAQ
-                    </Link>
-                    <Link 
-                        href="/settings" 
-                        className={`transition-colors ${isActive('/settings') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
-                    >
-                        Settings
-                    </Link>
+                    {!isIslandMode && (
+                        <>
+                            <Link 
+                                href="/leaderboard" 
+                                className={`transition-colors ${isActive('/leaderboard') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                            >
+                                Leaderboard
+                            </Link>
+                            <Link 
+                                href="/faq" 
+                                className={`transition-colors ${isActive('/faq') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                            >
+                                FAQ
+                            </Link>
+                            <Link 
+                                href="/bay/badge" 
+                                className={`transition-colors ${isActive('/bay/badge') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                            >
+                                Badge
+                            </Link>
+                            <Link 
+                                href="/settings" 
+                                className={`transition-colors ${isActive('/settings') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
+                            >
+                                Settings
+                            </Link>
+                        </>
+                    )}
                     {/* Show Review tab for reviewers and admins */}
-                    {isUserReviewer && (
+                    {!isIslandMode && isUserReviewer && (
                         <Link 
                             href="/review" 
                             className={`transition-colors ${isActive('/review') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
@@ -164,7 +171,7 @@ export default function Header({ session, status }: HeaderProps) {
                         </Link>
                     )}
                     {/* Eligible users can access Shop */}
-                    {canAccessShop && (
+                    {!isIslandMode && canAccessShop && (
                         <Link 
                             href="/bay/shop" 
                             className={`transition-colors ${isActive('/bay/shop') ? 'font-semibold underline underline-offset-4' : 'hover:text-cyan-100'}`}
@@ -173,7 +180,7 @@ export default function Header({ session, status }: HeaderProps) {
                         </Link>
                     )}
                     {/* Admin section with dropdown for admin users */}
-                    {isUserAdmin && (
+                    {!isIslandMode && isUserAdmin && (
                         <div className="relative" ref={adminMenuRef}>
                             <button
                                 onClick={() => setAdminMenuOpen(!adminMenuOpen)}
@@ -273,42 +280,46 @@ export default function Header({ session, status }: HeaderProps) {
                                 My Projects
                             </Link>
                             <Link 
-                                href="/bay/badge" 
-                                className={`block transition-colors ${isActive('/bay/badge') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Badge
-                            </Link>
-                            <Link 
                                 href="/gallery" 
                                 className={`block transition-colors ${isActive('/gallery') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 Gallery
                             </Link>
-                            <Link 
-                                href="/leaderboard" 
-                                className={`block transition-colors ${isActive('/leaderboard') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Leaderboard
-                            </Link>
-                            <Link 
-                                href="/faq" 
-                                className={`block transition-colors ${isActive('/faq') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                FAQ
-                            </Link>
-                            <Link 
-                                href="/settings" 
-                                className={`block transition-colors ${isActive('/settings') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Settings
-                            </Link>
+                            {!isIslandMode && (
+                                <>
+                                    <Link 
+                                        href="/leaderboard" 
+                                        className={`block transition-colors ${isActive('/leaderboard') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Leaderboard
+                                    </Link>
+                                    <Link 
+                                        href="/faq" 
+                                        className={`block transition-colors ${isActive('/faq') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        FAQ
+                                    </Link>
+                                    <Link 
+                                        href="/bay/badge" 
+                                        className={`block transition-colors ${isActive('/bay/badge') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Badge
+                                    </Link>
+                                    <Link 
+                                        href="/settings" 
+                                        className={`block transition-colors ${isActive('/settings') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Settings
+                                    </Link>
+                                </>
+                            )}
                             {/* Eligible users can access Shop in mobile menu */}
-                            {canAccessShop && (
+                            {!isIslandMode && canAccessShop && (
                                 <Link 
                                     href="/bay/shop" 
                                     className={`block transition-colors ${isActive('/bay/shop') ? 'font-semibold text-[#47D1F6]' : 'text-gray-700 hover:text-[#47D1F6]'}`}
@@ -317,8 +328,15 @@ export default function Header({ session, status }: HeaderProps) {
                                     Shop
                                 </Link>
                             )}
+                            {/* Experience Toggle for attendees in mobile menu */}
+                            {session?.user?.isAttendee && (
+                                <div className="pt-2 border-t border-gray-200">
+                                    <ExperienceToggle className="w-full justify-center" />
+                                </div>
+                            )}
+                            
                             {/* Admin section with submenu for mobile */}
-                            {isUserAdmin && (
+                            {!isIslandMode && isUserAdmin && (
                                 <div className="space-y-2">
                                     <div className="font-semibold text-gray-900">Admin</div>
                                     <Link 
@@ -366,6 +384,11 @@ export default function Header({ session, status }: HeaderProps) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 relative flex-shrink-0" ref={dropdownRef}>
+                {/* Experience Toggle for attendees only */}
+                {status === "authenticated" && session?.user?.isAttendee && (
+                    <ExperienceToggle className="hidden sm:inline-flex" />
+                )}
+                
                 {status === "authenticated" && (
                     <>
                         <img

@@ -10,6 +10,7 @@ interface ChatMessage {
   userId: string;
   createdAt: string;
   isAuthor?: boolean; // Flag to indicate if this message is from the project author
+  userName?: string; // Real user name for island projects
 }
 
 interface Project {
@@ -17,6 +18,7 @@ interface Project {
   name: string;
   description: string;
   chat_enabled: boolean;
+  userId?: string;
 }
 
 interface ProjectChatModalProps {
@@ -24,9 +26,10 @@ interface ProjectChatModalProps {
   onClose: () => void;
   project: Project;
   showToast?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  isIslandMode?: boolean;
 }
 
-export default function ProjectChatModal({ isOpen, onClose, project, showToast }: ProjectChatModalProps) {
+export default function ProjectChatModal({ isOpen, onClose, project, showToast, isIslandMode = false }: ProjectChatModalProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -318,7 +321,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
                     className="font-bold"
                     style={{ color: getUserColor(message.userId) }}
                   >
-                    {obfuscateUsername(message.userId)}
+                    {isIslandMode && message.userName ? message.userName : obfuscateUsername(message.userId)}
                   </span>
                   {message.isAuthor && (
                     <span className="text-yellow-500 ml-1" title="Project Author">
@@ -338,6 +341,8 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
 
         {/* Message Input */}
         <div className="border-t p-4">
+          {/* In island mode, only the project owner can write */}
+          {!(isIslandMode && session?.user?.id !== project.userId) ? (
           <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
             <div className="flex gap-2">
               <input
@@ -375,6 +380,9 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast }
               </span>
             </div>
           </form>
+          ) : (
+            <div className="text-sm text-gray-500">Only the project owner can write the story for island projects.</div>
+          )}
         </div>
       </div>
     </div>

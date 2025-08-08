@@ -29,6 +29,7 @@ import CompleteReviewForm from '@/components/common/CompleteReviewForm';
 import ProjectMetadataWarning from '@/components/common/ProjectMetadataWarning';
 import IDPopup from '@/app/components/identity/IDPopup';
 import PendingOrders from '@/components/common/PendingOrders';
+import { useExperienceMode } from '@/lib/useExperienceMode';
 
 
 // Force dynamic rendering to prevent prerendering errors during build
@@ -291,48 +292,53 @@ function ProjectDetail({
           <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
         </div>
         
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="text-center text-sm">
-            <p>This project contributes <strong>{projectHours}</strong> hour{projectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-            <ProjectStatus 
-              viral={projectFlags.viral} 
-              shipped={projectFlags.shipped} 
-              in_review={projectFlags.in_review}
-            />
-          </div>
-        </div>
-        
-        {/* Project Hours Details Section */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
-              <p className="text-lg font-semibold mt-1">
-                {project.hackatimeLinks && project.hackatimeLinks.length > 0 
-                  ? `${project.hackatimeLinks.reduce((sum, link) => sum + (link.rawHours || 0), 0)}h`
-                  : `${project.rawHours || 0}h`}
-              </p>
+        {/* Hours tracking sections - hidden for island projects since they use blog/vlog tracking */}
+        {!project.isIslandProject && (
+          <>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-center text-sm">
+                <p>This project contributes <strong>{projectHours}</strong> hour{projectHours !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your voyage</p>
+                <ProjectStatus 
+                  viral={projectFlags.viral} 
+                  shipped={projectFlags.shipped} 
+                  in_review={projectFlags.in_review}
+                />
+              </div>
             </div>
-            <div>
-              <span className="text-sm text-gray-500">Approved Hackatime Hours</span>
-              <p className="text-lg font-semibold mt-1">
-                {(() => {
-                  if (project.hackatimeLinks && project.hackatimeLinks.length > 0) {
-                    const totalApproved = project.hackatimeLinks.reduce((sum, link) => {
-                      return sum + (link.hoursOverride !== null && link.hoursOverride !== undefined ? link.hoursOverride : 0);
-                    }, 0);
-                    return totalApproved > 0 ? `${totalApproved}h` : '—';
-                  } else {
-                    return project.hoursOverride !== undefined && project.hoursOverride !== null 
-                      ? `${project.hoursOverride}h` 
-                      : '—';
-                  }
-                })()}
-              </p>
+            
+            {/* Project Hours Details Section */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+                  <p className="text-lg font-semibold mt-1">
+                    {project.hackatimeLinks && project.hackatimeLinks.length > 0 
+                      ? `${project.hackatimeLinks.reduce((sum, link) => sum + (link.rawHours || 0), 0)}h`
+                      : `${project.rawHours || 0}h`}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Approved Hackatime Hours</span>
+                  <p className="text-lg font-semibold mt-1">
+                    {(() => {
+                      if (project.hackatimeLinks && project.hackatimeLinks.length > 0) {
+                        const totalApproved = project.hackatimeLinks.reduce((sum, link) => {
+                          return sum + (link.hoursOverride !== null && link.hoursOverride !== undefined ? link.hoursOverride : 0);
+                        }, 0);
+                        return totalApproved > 0 ? `${totalApproved}h` : '—';
+                      } else {
+                        return project.hoursOverride !== undefined && project.hoursOverride !== null 
+                          ? `${project.hoursOverride}h` 
+                          : '—';
+                      }
+                    })()}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
         {/* Project Review Request - only visible when NOT in review mode and not already in review */}
         <ProjectReviewRequest
           projectID={project.projectID}
@@ -342,6 +348,14 @@ function ProjectDetail({
           codeUrl={project.codeUrl}
           playableUrl={project.playableUrl}
           screenshot={project.screenshot}
+          isIslandProject={project.isIslandProject || false}
+          onEditProject={() => {
+            // Use the onEdit callback to communicate with parent
+            onEdit({
+              ...project,
+              isEditing: true
+            });
+          }}
           onRequestSubmitted={(updatedProject, review) => {
             // Update projectFlags with the updated data
             setProjectFlags(prev => ({
@@ -359,13 +373,6 @@ function ProjectDetail({
             // Force a refresh of reviews
             // This would normally be handled by the ReviewSection component itself
             // but we can notify it explicitly if needed
-          }}
-          onEditProject={() => {
-            // Use the onEdit callback to communicate with parent
-            onEdit({
-              ...project,
-              isEditing: true
-            });
           }}
         />
         
@@ -404,10 +411,13 @@ function ProjectDetail({
         {!isReviewMode && (
           <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-            <div className="flex items-center">
-              <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-              <span className="text-sm text-gray-700">Viral</span>
-            </div>
+            {/* Hide Viral status for island projects */}
+            {!project.isIslandProject && (
+              <div className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <span className="text-sm text-gray-700">Viral</span>
+              </div>
+            )}
             <div className="flex items-center">
               <div className={`w-3 h-3 rounded-full mr-2 ${projectFlags.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
               <span className="text-sm text-gray-700">Shipped</span>
@@ -526,6 +536,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
   const [projectToDelete, setProjectToDelete] = useState<ProjectType | null>(null);
   const isMobile = useIsMobile();
   const { isReviewMode } = useReviewMode();
+  const { isIslandMode, isLoading: isExperienceModeLoading } = useExperienceMode();
   const [showIdentityPopup, setShowIdentityPopup] = useState(false);
   const [user, setUser] = useState<any | null>(null);
 
@@ -534,7 +545,6 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       const response = await fetch('/api/identity/me');
       const userResponse = impersonationData ? await fetch(`/api/users/${impersonationData.userId}`) : await fetch('/api/users/me');
       const userData = await userResponse.json();
-      console.log('userData', userData);
       setUser(userData);
       const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
       if (userData?.identityToken || isAdmin) {
@@ -857,19 +867,50 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
   async function getUserProjects() {
     if (impersonationData) {
-      // Use provided impersonation data
-      setProjects(impersonationData.projects);
+      // Use provided impersonation data - filter based on experience mode
+      const filteredProjects = filterProjectsByMode(impersonationData.projects, isIslandMode);
+      setProjects(filteredProjects);
       return;
     }
     
-    const response = await fetch("/api/projects");
+    // Pass experience mode to server for server-side filtering
+    const timestamp = Date.now();
+    const url = `/api/projects?isIslandMode=${isIslandMode}&_t=${timestamp}`;
+    const response = await fetch(url, {
+      cache: 'no-store', // Disable caching to ensure fresh data
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
     const data = await response.json();
+    
+    // No client-side filtering needed - server already filtered
     setProjects(data);
+  }
+  
+  // Helper function to filter projects based on experience mode
+  function filterProjectsByMode(allProjects: ProjectType[], isIslandMode: boolean): ProjectType[] {
+    return allProjects.filter(project => {
+      const hasIslandTag = project.isIslandProject || false;
+      
+      if (isIslandMode) {
+        // In island mode: show only island-tagged projects
+        return hasIslandTag;
+      } else {
+        // In voyage mode: show only non-island-tagged projects
+        return !hasIslandTag;
+      }
+    });
   }
 
   useEffect(() => {
+    // Don't fetch if experience mode is still loading
+    if (isExperienceModeLoading) {
+      return;
+    }
+    
     getUserProjects();
-  }, [impersonationData]);
+  }, [impersonationData, isIslandMode, isExperienceModeLoading]); // Re-fetch when experience mode changes
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -961,7 +1002,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
 
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isIslandMode ? styles.islandBackground : ''}`}>
       {showIdentityPopup && <IDPopup />}
       {/* Impersonation Banner */}
       {impersonationData && (
@@ -989,10 +1030,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
         </div>
       )}
       
-      <div 
-        className={styles.progressSection}
-
-      >
+      {!isIslandMode && (
+        <div 
+          className={styles.progressSection}
+        >
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 mt-2.5 md:mt-1">
           {impersonationData ? `${impersonationData.user.name ? `${impersonationData.user.name}'s Voyage` : 'User Voyage'}` : 'Your Voyage'}
         </h2>
@@ -1087,6 +1128,13 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           </div>
         </div>
       </div>
+      )}
+      
+      {/* Island Experience Section - replaces voyage section when in Island mode */}
+      {isIslandMode && (
+        <div>
+        </div>
+      )}
       
       {/* Progress Information Modal */}
       <Modal
@@ -1152,7 +1200,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
       
       <div className={styles.content}>
         <div className={styles.projectList}>
-          <div className="mt-2 md:mt-6 w-full">
+          <div className={`mt-2 md:mt-6 w-full ${isIslandMode ? styles.islandPanel : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">{impersonationData ? `${impersonationData.user.name || 'User'}'s Projects` : 'Your Projects'}</h2>
               {!impersonationData && (
@@ -1202,16 +1250,21 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   const hoursB = typeof b.hoursOverride === 'number' ? b.hoursOverride : b.rawHours || 0;
                   return hoursB - hoursA;
                 })
-                .map((project, index) => (
-                  <Project
-                    key={project.projectID}
-                    {...project}
-                    rawHours={project.rawHours}
-                    hoursOverride={project.hoursOverride ?? undefined}
-                    viral={!!project.viral}
-                    shipped={!!project.shipped}
-                    in_review={!!project.in_review}
-                    editHandler={(project) => {
+                .map((project, index) => {
+                  // Use computed island project type (no tag exposure)
+                  const islandProjectType = project.islandProjectType;
+
+                  return (
+                    <Project
+                      key={project.projectID}
+                      {...project}
+                      rawHours={project.rawHours}
+                      hoursOverride={project.hoursOverride ?? undefined}
+                      viral={!!project.viral}
+                      shipped={!!project.shipped}
+                      in_review={!!project.in_review}
+                      islandProjectType={islandProjectType || undefined}
+                      editHandler={(project) => {
                       // Check if the edit request is coming from the edit button
                       const isEditRequest = 'isEditing' in project;
                       
@@ -1242,9 +1295,10 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                       setInitialEditState(project);
                       setIsProjectEditModalOpen(true);
                     }}
-                    selected={!isMobile && selectedProjectId === project.projectID}
-                  />
-                ))}
+                      selected={!isMobile && selectedProjectId === project.projectID}
+                    />
+                  );
+                })}
               {projects.length === 0 && (
                 <div className="p-4 text-center text-gray-500">
                   No projects yet. Click "Add Project" to get started!
@@ -1506,6 +1560,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
           hideFooter={true}
           existingProjects={projects}
           isAdmin={isAdmin}
+          isIslandMode={isIslandMode}
         />
         {/* Project Detail Modal - Mobile Only */}
         <Modal
@@ -1598,48 +1653,67 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     <p className="text-base text-gray-900">{selectedProject.description || "No description provided."}</p>
                   </div>
                   
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-center text-sm">
-                      <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your island journey</p>
-                      <ProjectStatus 
-                        viral={selectedProject.viral} 
-                        shipped={selectedProject.shipped}
-                        in_review={selectedProject.in_review}
-                      />
+                  {/* Hours tracking section - hidden for island projects since they use blog/vlog tracking */}
+                  {!selectedProject.isIslandProject && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-center text-sm">
+                        <p>This project contributes <strong>{selectedProjectContribution}</strong> hour{selectedProjectContribution !== 1 && 's'} (<strong>{contributionPercentage}%</strong>) toward your voyage</p>
+                        <ProjectStatus 
+                          viral={selectedProject.viral} 
+                          shipped={selectedProject.shipped}
+                          in_review={selectedProject.in_review}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  {/* Project Hours Details Section */}
-                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
-                        <p className="text-lg font-semibold mt-1">
-                          {selectedProject.hackatimeLinks && selectedProject.hackatimeLinks.length > 0 
-                            ? `${selectedProject.hackatimeLinks.reduce((sum, link) => sum + (link.rawHours || 0), 0)}h`
-                            : `${selectedProject.rawHours || 0}h`}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500">Approved Hackatime Hours</span>
-                        <p className="text-lg font-semibold mt-1">
-                          {(() => {
-                            if (selectedProject.hackatimeLinks && selectedProject.hackatimeLinks.length > 0) {
-                              const totalApproved = selectedProject.hackatimeLinks.reduce((sum, link) => {
-                                return sum + (link.hoursOverride !== null && link.hoursOverride !== undefined ? link.hoursOverride : 0);
-                              }, 0);
-                              return totalApproved > 0 ? `${totalApproved}h` : '—';
-                            } else {
-                              return selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null 
-                                ? `${selectedProject.hoursOverride}h` 
-                                : '—';
-                            }
-                          })()}
-                        </p>
+                  {/* Project status for island projects - without viral indicator */}
+                  {selectedProject.isIslandProject && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-center text-sm">
+                        <ProjectStatus 
+                          viral={selectedProject.viral} 
+                          shipped={selectedProject.shipped}
+                          in_review={selectedProject.in_review}
+                          hideViral={true}
+                        />
                       </div>
                     </div>
-                  </div>
+                  )}
+                  
+                  {/* Project Hours Details Section - hidden for island projects */}
+                  {!selectedProject.isIslandProject && (
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm text-gray-500">Raw Hackatime Hours</span>
+                          <p className="text-lg font-semibold mt-1">
+                            {selectedProject.hackatimeLinks && selectedProject.hackatimeLinks.length > 0 
+                              ? `${selectedProject.hackatimeLinks.reduce((sum, link) => sum + (link.rawHours || 0), 0)}h`
+                              : `${selectedProject.rawHours || 0}h`}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-500">Approved Hackatime Hours</span>
+                          <p className="text-lg font-semibold mt-1">
+                            {(() => {
+                              if (selectedProject.hackatimeLinks && selectedProject.hackatimeLinks.length > 0) {
+                                const totalApproved = selectedProject.hackatimeLinks.reduce((sum, link) => {
+                                  return sum + (link.hoursOverride !== null && link.hoursOverride !== undefined ? link.hoursOverride : 0);
+                                }, 0);
+                                return totalApproved > 0 ? `${totalApproved}h` : '—';
+                              } else {
+                                return selectedProject.hoursOverride !== undefined && selectedProject.hoursOverride !== null 
+                                  ? `${selectedProject.hoursOverride}h` 
+                                  : '—';
+                              }
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {/* Project Review Request for Mobile - only visible when NOT in review mode and not already in review */}
                   <ProjectReviewRequest
                     projectID={selectedProject.projectID}
@@ -1649,6 +1723,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                     codeUrl={selectedProject.codeUrl}
                     playableUrl={selectedProject.playableUrl}
                     screenshot={selectedProject.screenshot}
+                    isIslandProject={selectedProject.isIslandProject || false}
                     onRequestSubmitted={impersonationData ? () => {
                       toast.error("Cannot submit projects for review while impersonating users");
                     } : (updatedProject, review) => {
@@ -1751,10 +1826,13 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                   {!isReviewMode && (
                     <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                       <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <span className="text-sm text-gray-700">Viral</span>
-                      </div>
+                      {/* Hide Viral status for island projects */}
+                      {!selectedProject.isIslandProject && (
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.viral ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                          <span className="text-sm text-gray-700">Viral</span>
+                        </div>
+                      )}
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full mr-2 ${selectedProject.shipped ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         <span className="text-sm text-gray-700">Shipped</span>
@@ -1819,7 +1897,7 @@ export function BayWithReviewMode({ session, status, router, impersonationData }
                       viral: !!selectedProject.viral,
                       in_review: !!selectedProject.in_review
                     }}
-                    onFlagsUpdated={(updatedProject) => {
+                    onFlagsUpdated={(updatedProject: any) => {
                       // Create a new object with the updated flags
                       const updatedSelectedProject = {
                         ...selectedProject,
@@ -1969,20 +2047,43 @@ type ProjectModalProps = Partial<ProjectType> & {
   isLoadingHackatime: boolean,
   hideFooter?: boolean,
   existingProjects?: ProjectType[],
-  isAdmin?: boolean
+  isAdmin?: boolean;
+  isIslandMode?: boolean;
 }
 
 function ProjectModal(props: ProjectModalProps): ReactElement {
   const isCreate = props.modalTitle?.toLowerCase().includes('create');
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [selectedHackatimeProjects, setSelectedHackatimeProjects] = useState<string[]>([]);
+  const [islandProjectTypes, setIslandProjectTypes] = useState<{name: string, description: string}[]>([]);
+  const [selectedIslandProjectType, setSelectedIslandProjectType] = useState<string>('');
   
   // Reset selected projects when modal opens for creation
   useEffect(() => {
     if (props.isOpen && isCreate) {
       setSelectedHackatimeProjects([]);
+      setSelectedIslandProjectType('');
     }
   }, [props.isOpen, isCreate]);
+  
+  // Load island project types when modal opens for island mode
+  useEffect(() => {
+    if (props.isOpen && props.isIslandMode && isCreate) {
+      fetch('/api/island-project-types')
+        .then(res => res.json())
+        .then(data => {
+          setIslandProjectTypes(data);
+          // Auto-select first option if available
+          if (data.length > 0) {
+            setSelectedIslandProjectType(data[0].name);
+          }
+        })
+        .catch(error => {
+          console.error('Failed to load island project types:', error);
+          setIslandProjectTypes([]);
+        });
+    }
+  }, [props.isOpen, props.isIslandMode, isCreate]);
   
   // Filter out already added projects for create mode
   const availableHackatimeProjects = useMemo(() => {
@@ -2041,40 +2142,54 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
         hideFooter={props.hideFooter || isCreate}
       >
         <form action={props.formAction} className="relative">
-          <span className="invisible h-0 w-0 overflow-hidden [&_*]:invisible [&_*]:h-0 [&_*]:w-0 [&_*]:overflow-hidden">
-            <FormInput
-              fieldName='projectID'
-              state={props.state}
-              placeholder='projectID'
-              {...(props.projectID && { defaultValue: props.projectID})}
-            >
-              {""}
-            </FormInput>
-            <FormInput
-              fieldName='shipped'
-              state={props.state}
-              placeholder='shipped'
-              defaultValue={props.shipped?.toString() || 'false'}
-            >
-              {""}
-            </FormInput>
-            <FormInput
-              fieldName='viral'
-              state={props.state}
-              placeholder='viral'
-              defaultValue={props.viral?.toString() || 'false'}
-            >
-              {""}
-            </FormInput>
-            <FormInput
-              fieldName='in_review'
-              state={props.state}
-              placeholder='in_review'
-              defaultValue={props.in_review?.toString() || 'false'}
-            >
-              {""}
-            </FormInput>
-          </span>
+          {/* Island Project Type Selector - TOP PRIORITY - FIRST THING USERS SEE */}
+          {isCreate && props.isIslandMode ? (
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-blue-300 shadow-sm">
+             
+              
+
+              
+              {/* Island Project Type Dropdown */}
+              <div className="mb-4">
+                <label className="block text-lg font-bold text-blue-900 mb-3">
+                  Pick a project type...<span className="text-red-500">*</span>
+                </label>
+                <select 
+                  name="islandProjectType"
+                  value={selectedIslandProjectType}
+                  onChange={(e) => setSelectedIslandProjectType(e.target.value)}
+                  className="w-full px-4 py-3 text-lg border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white font-medium"
+                  required
+                >
+                  <option value="">???</option>
+                  {islandProjectTypes.map((type) => (
+                    <option key={type.name} value={type.name}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Show description for selected type - LARGE AND PROMINENT */}
+                {selectedIslandProjectType && (
+                  <div className="mt-4 p-4 bg-white rounded-lg border-2 border-cyan-200 shadow-inner">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl mt-1">📋</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-cyan-900 mb-2">
+                          Your Mission:
+                        </h3>
+                        <p className="text-xl text-cyan-900 font-bold leading-relaxed tracking-wide">
+                          {islandProjectTypes.find(type => type.name === selectedIslandProjectType)?.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <input type="hidden" name="isIslandProject" value="true" />
+            </div>
+          ) : null}
           
           <div className="mb-5 bg-gray-50 p-4 rounded-lg">
             <FormInput
@@ -2140,9 +2255,12 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
 
               <div className="grid grid-cols-2 gap-4 mb-5 bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-3 col-span-2">Project Status</h3>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
-                </label>
+                {/* Hide Viral status for island projects */}
+                {!props.isIslandProject && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!props.viral} readOnly disabled /> Viral
+                  </label>
+                )}
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!props.shipped} readOnly disabled /> Shipped
                 </label>
@@ -2162,7 +2280,7 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
                   <input 
                     type="checkbox" 
                     name="chat_enabled"
-                    defaultChecked={!!props.chat_enabled}
+                    defaultChecked={props.isIslandMode ? true : !!props.chat_enabled}
                     className="ml-3 toggle-checkbox w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                 </div>
@@ -2170,7 +2288,9 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
             </>
           )}
           
-          {isCreate ? (
+
+          
+          {isCreate && !props.isIslandMode ? (
             <div className="mb-5 bg-gray-50 p-4 rounded-lg">
               <HackatimeMultiSelect
                 availableProjects={availableHackatimeProjects}
@@ -2181,6 +2301,15 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               />
             </div>
           ) : null}
+          
+          {/* Explanatory text - moved from top to near button */}
+          {isCreate && props.isIslandMode && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-blue-800 font-medium text-base leading-relaxed">
+                🌴 Island projects are tracked through blogging and storytelling as opposed to time tracking...
+              </p>
+            </div>
+          )}
           
           {/* Fixed button at bottom of modal */}
           <div 
@@ -2193,12 +2322,49 @@ function ProjectModal(props: ProjectModalProps): ReactElement {
               disabled={
                 props.pending || 
                 props.isLoadingHackatime || 
-                (isCreate && selectedHackatimeProjects.length === 0)
+                (isCreate && !props.isIslandMode && selectedHackatimeProjects.length === 0) ||
+                (isCreate && props.isIslandMode && !selectedIslandProjectType)
               }
             >
               {isCreate ? "Create Project" : "Save Changes"}
             </button>
           </div>
+          
+          {/* Hidden form fields - moved to end to prevent spacing issues */}
+          <span className="hidden">
+            <FormInput
+              fieldName='projectID'
+              state={props.state}
+              placeholder='projectID'
+              {...(props.projectID && { defaultValue: props.projectID})}
+            >
+              {""}
+            </FormInput>
+            <FormInput
+              fieldName='shipped'
+              state={props.state}
+              placeholder='shipped'
+              defaultValue={props.shipped?.toString() || 'false'}
+            >
+              {""}
+            </FormInput>
+            <FormInput
+              fieldName='viral'
+              state={props.state}
+              placeholder='viral'
+              defaultValue={props.viral?.toString() || 'false'}
+            >
+              {""}
+            </FormInput>
+            <FormInput
+              fieldName='in_review'
+              state={props.state}
+              placeholder='in_review'
+              defaultValue={props.in_review?.toString() || 'false'}
+            >
+              {""}
+            </FormInput>
+          </span>
         </form>
       </Modal>
       

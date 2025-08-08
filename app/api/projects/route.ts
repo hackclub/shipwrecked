@@ -32,6 +32,10 @@ export type ProjectType = Project & {
         rawHours: number;
         hoursOverride?: number | null;
     }[];
+    // Computed fields (no tag data exposure)
+    isIslandProject?: boolean;
+    islandProjectType?: string | null;
+    // projectTags removed - no tag exposure to bay users
 };
 
 export type ProjectInput = Omit<Project, 'projectID' | 'submitted'>
@@ -59,24 +63,58 @@ async function deleteProject(projectID: string, userId: string) {
 }
 
 // API Route handlers
-export async function GET(request: Request) { 
-    console.log('[GET] Received request to fetch projects');
+export async function GET(request: Request) {
     try {
         const user = await requireUserSession();
         console.log(`[GET] Authenticated user ${user.id}, fetching their projects`);
         
+        // Check if user is admin to determine tag exposure
+        const isAdmin = user.role === 'Admin' || user.isAdmin === true;
+        
+        // Get experience mode from query params for server-side filtering
+        const url = new URL(request.url);
+        const isIslandMode = url.searchParams.get('isIslandMode') === 'true';
+        
+        // Build where clause for server-side filtering based on experience mode
+        let whereClause: any = {
+            userId: user.id
+        };
+        
+        // ALL USERS (including admins) get filtered based on experience mode on /bay
+        if (isIslandMode) {
+            // Island mode: only show projects with 'island-project' tag
+            whereClause.projectTags = {
+                some: {
+                    tag: {
+                        name: 'island-project'
+                    }
+                }
+            };
+        } else {
+            // Voyage mode: only show projects WITHOUT 'island-project' tag
+            whereClause.NOT = {
+                projectTags: {
+                    some: {
+                        tag: {
+                            name: 'island-project'
+                        }
+                    }
+                }
+            };
+        }
+        
         // Get projects with their Hackatime links
+        // NO tag data exposed to ANY users - computed fields only
         const projects = await prisma.project.findMany({
-            where: {
-                userId: user.id
-            },
+            where: whereClause,
             include: {
                 hackatimeLinks: true
+                // NO TAG DATA EXPOSED TO ANYONE
             }
         });
         
         // Enhance the project data with computed properties
-        const enhancedProjects = projects.map((project) => {
+        const enhancedProjects = await Promise.all(projects.map(async (project) => {
             // Get the main Hackatime name (for backwards compatibility)
             const hackatimeName = project.hackatimeLinks.length > 0 
                 ? project.hackatimeLinks[0].hackatimeName 
@@ -95,17 +133,54 @@ export async function GET(request: Request) {
                 0
             );
             
-            console.log(`[GET] Project ${project.projectID} (${project.name}): calculated rawHours = ${rawHours}`);
+            // Compute isIslandProject without exposing tag data
+            const islandProjectTag = await prisma.projectTag.findFirst({
+                where: {
+                    projectID: project.projectID,
+                    tag: {
+                        name: 'island-project'
+                    }
+                }
+            });
+            const isIslandProject = !!islandProjectTag;
             
-            // Return the enhanced project with additional properties
+            // Get island project type if it's an island project
+            let islandProjectType = null;
+            if (isIslandProject) {
+                const typeTag = await prisma.projectTag.findFirst({
+                    where: {
+                        projectID: project.projectID,
+                        tag: {
+                            name: {
+                                not: 'island-project'
+                            }
+                        }
+                    },
+                    include: {
+                        tag: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                });
+                islandProjectType = typeTag?.tag.name || null;
+            }
+            
+            console.log(`[GET] Project ${project.projectID} (${project.name}): calculated rawHours = ${rawHours}, isIslandProject = ${isIslandProject}`);
+            
+            // Return the enhanced project with computed properties (NO TAG DATA)
             return {
                 ...project,
                 hackatimeName,
-                rawHours
+                rawHours,
+                isIslandProject,
+                islandProjectType
             };
-        });
+        }));
         
         console.log(`[GET] Successfully fetched ${projects.length} projects for user ${user.id}`);
+        
         metrics.increment("success.fetch_project", 1);
         return Response.json(enhancedProjects);
     } catch (err) {
@@ -161,10 +236,12 @@ export async function POST(request: Request) {
                 codeUrl: formData.get('codeUrl')?.toString() || '',
                 playableUrl: formData.get('playableUrl')?.toString() || '',
                 screenshot: formData.get('screenshot')?.toString() || '',
-                chat_enabled: formData.get('chat_enabled') === 'on',
+                chat_enabled: formData.get('chat_enabled') === 'on' || formData.get('isIslandProject') === 'true',
                 viral: formData.get('viral') === 'true',
                 shipped: formData.get('shipped') === 'true',
                 in_review: formData.get('in_review') === 'true',
+                isIslandProject: formData.get('isIslandProject') === 'true',
+                islandProjectType: formData.get('islandProjectType')?.toString() || '',
             };
         } else {
             console.log('[POST-TRACE] 5.2 Parsing as JSON');
@@ -354,9 +431,131 @@ export async function POST(request: Request) {
                 console.error('[POST-TRACE] 12.1 Failed to create audit log:', logError);
             }
             
-            console.log(`[POST-TRACE] 13. Successfully completed project creation ${createdProject.projectID}`);
+            // Auto-tag island projects
+            if (projectData.isIslandProject) {
+                console.log('[POST-TRACE] 13. Adding island project tags');
+                try {
+                    // Find or create the 'island-project' tag
+                    let islandTag = await prisma.tag.findUnique({
+                        where: { name: 'island-project' }
+                    });
+                    
+                    if (!islandTag) {
+                        islandTag = await prisma.tag.create({
+                            data: {
+                                name: 'island-project',
+                                description: 'Projects created in Island Experience mode',
+                                color: '#3B82F6'
+                            }
+                        });
+                    }
+                    
+                    // Add the general island-project tag
+                    await prisma.projectTag.create({
+                        data: {
+                            projectID: createdProject.projectID,
+                            tagId: islandTag.id
+                        }
+                    });
+                    
+                    console.log('[POST-TRACE] 13.1 Island project tag added successfully');
+                    
+                    // Add the specific project type tag if provided
+                    if (projectData.islandProjectType) {
+                        console.log(`[POST-TRACE] 13.2 Adding project type tag: ${projectData.islandProjectType}`);
+                        
+                        let projectTypeTag = await prisma.tag.findUnique({
+                            where: { name: projectData.islandProjectType.toLowerCase() }
+                        });
+                        
+                        if (!projectTypeTag) {
+                            projectTypeTag = await prisma.tag.create({
+                                data: {
+                                    name: projectData.islandProjectType.toLowerCase(),
+                                    description: `Island project type: ${projectData.islandProjectType}`,
+                                    color: '#10B981' // Green color for project types
+                                }
+                            });
+                        }
+                        
+                        // Add the project type tag
+                        await prisma.projectTag.create({
+                            data: {
+                                projectID: createdProject.projectID,
+                                tagId: projectTypeTag.id
+                            }
+                        });
+                        
+                        console.log('[POST-TRACE] 13.3 Project type tag added successfully');
+                    }
+                } catch (tagError) {
+                    console.error('[POST-TRACE] 13.4 Failed to add island project tags:', tagError);
+                    // Don't fail the entire request if tagging fails
+                }
+
+                // Create chat room for island projects since they have chat enabled by default
+                console.log('[POST-TRACE] 13.5 Creating chat room for island project');
+                try {
+                    await prisma.chatRoom.create({
+                        data: {
+                            projectID: createdProject.projectID,
+                            name: 'General Discussion'
+                        }
+                    });
+                    console.log('[POST-TRACE] 13.6 Chat room created successfully for island project');
+                } catch (chatRoomError) {
+                    console.error('[POST-TRACE] 13.7 Failed to create chat room for island project:', chatRoomError);
+                    // Don't fail the entire request if chat room creation fails
+                }
+            }
+            
+            // Fetch the complete project data including tags for the response
+            console.log(`[POST-TRACE] 14. Fetching complete project data including tags for response`);
+            
+            // Check if user is admin to determine tag exposure
+            const isAdmin = user.role === 'Admin' || user.isAdmin === true;
+            
+            const completeProject = await prisma.project.findUnique({
+                where: { projectID: createdProject.projectID },
+                include: {
+                    hackatimeLinks: true
+                    // NO TAG DATA - using computed fields only
+                }
+            });
+            
+            // Add computed fields for all users (no tag exposure)
+            let responseProject = completeProject;
+            if (completeProject) {
+                const islandProjectTag = await prisma.projectTag.findFirst({
+                    where: {
+                        projectID: completeProject.projectID,
+                        tag: { name: 'island-project' }
+                    }
+                });
+                const isIslandProject = !!islandProjectTag;
+                
+                let islandProjectType = null;
+                if (isIslandProject) {
+                    const typeTag = await prisma.projectTag.findFirst({
+                        where: {
+                            projectID: completeProject.projectID,
+                            tag: { name: { not: 'island-project' } }
+                        },
+                        include: { tag: { select: { name: true } } }
+                    });
+                    islandProjectType = typeTag?.tag.name || null;
+                }
+                
+                responseProject = {
+                    ...completeProject,
+                    isIslandProject,
+                    islandProjectType
+                } as any; // Type assertion for computed fields
+            }
+            
+            console.log(`[POST-TRACE] 15. Successfully completed project creation ${createdProject.projectID}`);
             metrics.increment("success.create_project", 1);
-            return Response.json({ success: true, data: createdProject });
+            return Response.json({ success: true, data: responseProject || createdProject });
         } catch (createError: unknown) {
             console.error('[POST-TRACE] Error in createProject:', createError);
             if (createError instanceof Error) {
@@ -782,12 +981,43 @@ export async function PUT(request: Request) {
                 where: { projectID },
                 include: {
                     hackatimeLinks: true
+                    // NO TAG DATA - using computed fields only
                 }
             });
             
+            // Add computed fields for all users (no tag exposure)
+            let responseProject = finalProject;
+            if (finalProject) {
+                const islandProjectTag = await prisma.projectTag.findFirst({
+                    where: {
+                        projectID: finalProject.projectID,
+                        tag: { name: 'island-project' }
+                    }
+                });
+                const isIslandProject = !!islandProjectTag;
+                
+                let islandProjectType = null;
+                if (isIslandProject) {
+                    const typeTag = await prisma.projectTag.findFirst({
+                        where: {
+                            projectID: finalProject.projectID,
+                            tag: { name: { not: 'island-project' } }
+                        },
+                        include: { tag: { select: { name: true } } }
+                    });
+                    islandProjectType = typeTag?.tag.name || null;
+                }
+                
+                responseProject = {
+                    ...finalProject,
+                    isIslandProject,
+                    islandProjectType
+                } as any; // Type assertion for computed fields
+            }
+            
             return Response.json({ 
                 success: true, 
-                data: finalProject || { projectID }
+                data: responseProject || { projectID }
             });
         } catch (updateError) {
             console.error(`[PUT] Prisma error updating project ${projectID}:`, updateError);
@@ -809,3 +1039,4 @@ export async function PUT(request: Request) {
         }, { status: 500 });
     }
 }
+

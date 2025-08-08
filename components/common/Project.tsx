@@ -11,10 +11,11 @@ type ProjectProps = Project & {
     rawHours?: number,
     hackatime?: string,
     editHandler?: (project: ProjectType) => void,
-    selected?: boolean
+    selected?: boolean,
+    islandProjectType?: string
 };
 
-export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hoursOverride, rawHours = 0, selected, viral, shipped, in_review }: ProjectProps) {
+export function Project({ name, description, codeUrl, playableUrl, screenshot, hackatime, submitted, projectID, editHandler, userId, hoursOverride, rawHours = 0, selected, viral, shipped, in_review, islandProjectType }: ProjectProps) {
     // Detect mobile screen size
     const isMobile = useIsMobile();
 
@@ -50,8 +51,10 @@ export function Project({ name, description, codeUrl, playableUrl, screenshot, h
             onClick={handleRowClick}
         >
             <div className="flex items-center gap-2 min-w-0 w-full">
-                <span className="text-gray-600">{displayHours}h</span>
+                {/* Hide hours for island projects since they use blog/vlog tracking */}
+                {!islandProjectType && <span className="text-gray-600">{displayHours}h</span>}
                 <span className={`font-medium flex-shrink-0 sm:truncate sm:max-w-[12rem] ${selected ? 'text-blue-700' : ''}`}>
+                    {islandProjectType && <span className="text-blue-600 font-semibold mr-2">[{islandProjectType}]</span>}
                     {name}
                     {in_review && <span className="ml-2 text-xs text-red-600 font-semibold">(IN REVIEW)</span>}
                 </span>

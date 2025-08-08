@@ -14,6 +14,7 @@ export type Project = {
     shipped: boolean
     viral: boolean
     in_review: boolean
+    chat_enabled: boolean
 }
 
 export type ProjectInput = Omit<Project, 'projectID' | 'submitted'> & {
@@ -60,6 +61,7 @@ export async function createProject(data: ProjectInput) {
             shipped: !!data.shipped,
             viral: !!data.viral,
             in_review: !!data.in_review,
+            chat_enabled: !!data.chat_enabled,
         };
         
         console.log('[createProject-TRACE] 6. Project payload created:', {

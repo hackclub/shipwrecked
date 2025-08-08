@@ -25,24 +25,42 @@ export async function withRateLimit(
   config: RateLimitConfig,
   handler: () => Promise<Response>
 ): Promise<Response> {
-  const { limited, remaining } = await checkRateLimit(config);
-  
-  if (limited) {
+  try {
+    const { limited, remaining } = await checkRateLimit(config);
+    
+    if (limited) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Too many requests',
+          retryAfter: config.window
+        }),
+        { 
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': config.window.toString(),
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
+      );
+    }
+    
+    return handler();
+  } catch (redisError) {
+    // If Redis is unavailable, fail the request to prevent abuse
+    console.error('Rate limiting failed due to Redis error:', redisError instanceof Error ? redisError.message : String(redisError));
     return new Response(
       JSON.stringify({ 
-        error: 'Too many requests',
-        retryAfter: config.window
+        error: 'Service temporarily unavailable',
+        message: 'Please try again later'
       }),
       { 
-        status: 429,
+        status: 503,
         headers: {
           'Content-Type': 'application/json',
-          'Retry-After': config.window.toString(),
-          'X-RateLimit-Remaining': remaining.toString()
+          'Retry-After': '30'
         }
       }
     );
   }
-  
-  return handler();
 } 
