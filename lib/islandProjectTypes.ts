@@ -9,6 +9,18 @@ export interface IslandProjectType {
 }
 
 /**
+ * Unescape string to handle escaped characters like \' and \"
+ */
+function unescapeString(str: string): string {
+  return str
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t");
+}
+
+/**
  * Parse the ISLAND_PROJECTS environment variable
  * Format: "name1#description1#name2#description2#..."
  */
@@ -39,7 +51,10 @@ export function parseIslandProjectTypes(): IslandProjectType[] {
       const description = parts[i + 1]?.trim();
       
       if (name && description) {
-        projectTypes.push({ name, description });
+        projectTypes.push({ 
+          name: unescapeString(name), 
+          description: unescapeString(description) 
+        });
       }
     }
     
