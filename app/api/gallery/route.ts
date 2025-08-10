@@ -18,9 +18,11 @@ export async function GET(request: Request) {
     // Check if user is admin to determine tag exposure
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     
-    // Get experience mode from query params for server-side filtering
+    // Get experience mode and challenge tags from query params for server-side filtering
     const { searchParams } = new URL(request.url);
     const isIslandMode = searchParams.get('isIslandMode') === 'true';
+    const challengeTagsParam = searchParams.get('challengeTags');
+    const selectedChallengeTags = challengeTagsParam ? challengeTagsParam.split(',').filter(tag => tag.trim()) : [];
     
     // Build where clause for server-side filtering based on experience mode
     let whereClause: any = {};
@@ -37,6 +39,27 @@ export async function GET(request: Request) {
           }
         }
       };
+      
+      // If specific challenge tags are selected, add that filter
+      // Projects must have ALL selected tags (AND logic)
+      if (selectedChallengeTags.length > 0) {
+        const challengeTagConstraints = selectedChallengeTags.map(tagName => ({
+          projectTags: {
+            some: {
+              tag: {
+                name: tagName
+              }
+            }
+          }
+        }));
+        
+        whereClause = {
+          AND: [
+            whereClause,
+            ...challengeTagConstraints
+          ]
+        };
+      }
     } else {
       // Voyage mode: only show projects WITHOUT 'island-project' tag
       whereClause = {

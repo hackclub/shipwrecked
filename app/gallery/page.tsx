@@ -49,6 +49,14 @@ interface Project {
   }[];
 }
 
+interface ChallengeTag {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  projectCount: number;
+}
+
 type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussions' | 'recentChat';
 
 // Helper function to check if a URL is a valid image
@@ -83,6 +91,10 @@ function GalleryInner() {
   const [showViral, setShowViral] = useState(false);
   const [showShipped, setShowShipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('upvotes');
+  
+  // Challenge tag filtering state
+  const [challengeTags, setChallengeTags] = useState<ChallengeTag[]>([]);
+  const [selectedChallengeTags, setSelectedChallengeTags] = useState<string[]>([]);
 
   // Upvote loading state
   const [upvotingProjects, setUpvotingProjects] = useState<Set<string>>(new Set());
@@ -111,17 +123,51 @@ function GalleryInner() {
       if (sortBy === 'hours') {
         setSortBy('upvotes'); // Default to upvotes sort in island mode
       }
+    } else {
+      // Reset challenge filters when leaving island mode
+      setSelectedChallengeTags([]);
     }
   }, [isIslandMode, sortBy]);
 
   // Calculate total projects for current experience mode (server-side filtered, so just use length)
   const totalProjectsForCurrentMode = projects.length;
 
+  // Fetch challenge tags when in island mode
+  useEffect(() => {
+    async function fetchChallengeTags() {
+      if (!isIslandMode) {
+        setChallengeTags([]);
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/gallery/challenge-tags', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setChallengeTags(data);
+        } else {
+          console.error('Failed to fetch challenge tags');
+        }
+      } catch (error) {
+        console.error('Error fetching challenge tags:', error);
+      }
+    }
+
+    if (status === 'authenticated' && !isExperienceModeLoading) {
+      fetchChallengeTags();
+    }
+  }, [status, isIslandMode, isExperienceModeLoading]);
+
   useEffect(() => {
     async function fetchProjects() {
       try {
         const timestamp = Date.now();
-        const url = `/api/gallery?isIslandMode=${isIslandMode}&_t=${timestamp}`;
+        const challengeTagsQuery = selectedChallengeTags.length > 0 ? `&challengeTags=${selectedChallengeTags.join(',')}` : '';
+        const url = `/api/gallery?isIslandMode=${isIslandMode}${challengeTagsQuery}&_t=${timestamp}`;
         
         const response = await fetch(url, {
           cache: 'no-store',
@@ -145,11 +191,11 @@ function GalleryInner() {
     if (status === 'authenticated' && !isExperienceModeLoading) {
       fetchProjects();
     }
-  }, [status, isIslandMode, isExperienceModeLoading]);
+  }, [status, isIslandMode, isExperienceModeLoading, selectedChallengeTags]);
 
   // Filter and sort projects (server-side filtering by experience mode already applied)
   const filteredAndSortedProjects = useMemo(() => {
-    let filtered = projects.filter(project => {
+    const filtered = projects.filter(project => {
       // Search filter
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = searchQuery === '' || 
@@ -444,6 +490,58 @@ function GalleryInner() {
               </div>
             </div>
           </div>
+
+          {/* Challenge Tags Filter - Only show in island mode */}
+          {isIslandMode && challengeTags.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-gray-700">
+                  Filter by Challenge Tags
+                </label>
+                {selectedChallengeTags.length > 0 && (
+                  <button
+                    onClick={() => setSelectedChallengeTags([])}
+                    className="px-3 py-1.5 text-sm font-medium rounded-full transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    Clear Tags
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {challengeTags.map((tag) => {
+                  const isSelected = selectedChallengeTags.includes(tag.name);
+                  const hasValidColor = tag.color && tag.color !== '#ffffff' && tag.color !== '#fff';
+                  
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedChallengeTags(selectedChallengeTags.filter(t => t !== tag.name));
+                        } else {
+                          setSelectedChallengeTags([...selectedChallengeTags, tag.name]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                        isSelected
+                          ? hasValidColor
+                            ? `text-white border-2 border-gray-300`
+                            : 'bg-blue-600 text-white'
+                          : hasValidColor
+                            ? `text-gray-800 border border-gray-300 hover:bg-gray-100`
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                      style={isSelected && hasValidColor ? { backgroundColor: tag.color } : 
+                             !isSelected && hasValidColor ? { backgroundColor: `${tag.color}20` } : {}}
+                      title={tag.description || undefined}
+                    >
+                      {tag.name} ({tag.projectCount})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Results Count */}
           <div className="mt-3 pt-3 border-t border-gray-200">
