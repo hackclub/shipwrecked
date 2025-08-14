@@ -6,7 +6,8 @@
     "website": "https://shipwrecked.hackclub.com/",
     "tintColor": "#22b0e3",
     "featuredApps": [
-      "com.apringle.MusicMap"
+      "com.apringle.MusicMap",
+      "com.wluca.courtside"
     ],
     "apps": [
       {
@@ -93,6 +94,41 @@
         ],
         "appPermissions": {
           "entitlements": [],
+          "privacy": {}
+        }
+      },
+      {
+        "name": "Courtside",
+        "bundleIdentifier": "com.wluca.courtside",
+        "marketplaceID": "",
+        "developerName": "wluca",
+        "subtitle": "Tennis match tracker mobile App",
+        "localizedDescription": "This is a match tracker, accompanying your tennis career.",
+        "iconURL": "https://hc-cdn.hel1.your-objectstorage.com/s/v3/db6365a279e9a5d27b35929cea48c7fce0a7d2bb_icon.png",
+        "tintColor": "#00a63e",
+        "category": "utilities",
+        "date": "2025-08-08",
+        "screenshots": [
+          "https://hc-cdn.hel1.your-objectstorage.com/s/v3/06c3bcb7e299f4e8b216a25054bd60a81adccaa2_img_8501.png",
+          "https://hc-cdn.hel1.your-objectstorage.com/s/v3/b2336c9c48781bb711a60ebdf0af659f04757d63_img_8502.png",
+          "https://hc-cdn.hel1.your-objectstorage.com/s/v3/b0f98ef4963cfcd29c03acad1ce5b52ba6c30fdf_img_8503.png",
+          "https://hc-cdn.hel1.your-objectstorage.com/s/v3/c1984ad090ed90c8cf83976e234ee51389c4d679_screenshot.png"
+        ],
+        "versions": [
+          {
+            "downloadURL": "https://github.com/Luca1905/courtside/releases/download/v1.0.0/Courtside.Build.Details.ipa",
+            "size": 35281359,
+            "version": "1.0.0",
+            "buildVersion": "11",
+            "date": "2025-08-08T00:00:00+00:00",
+            "localizedDescription": null,
+            "minOSVersion": "18.0"
+          }
+        ],
+        "appPermissions": {
+          "entitlements": [
+            "beta-reports-active"
+          ],
           "privacy": {}
         }
       }
