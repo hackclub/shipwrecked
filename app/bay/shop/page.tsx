@@ -176,12 +176,12 @@ export default function ShopPage() {
               className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
             >
               {/* Item Image */}
-              <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-12">
+              <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-2">
                 {item.image ? (
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="object-contain p-6"
+                    className="object-contain w-full h-full"
                   />
                 ) : (
                   <div className="w-24 h-24 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full flex items-center justify-center">
