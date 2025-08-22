@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession } from 'next-auth';
 
 export async function GET(request: Request, { params }: { params: { userId: string } }) {
   const { userId } = params;
   if (!userId) {
     return NextResponse.json({ error: 'User ID not provided' }, { status: 400 });
+  }
+
+  const session = await getServerSession(opts);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (session.user.id !== userId) {
+    return NextResponse.json({ error: 'Forbidden: You are not allowed to access this user' }, { status: 403 });
   }
 
   try {
