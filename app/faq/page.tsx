@@ -83,9 +83,11 @@ export default function FAQ() {
               Your progress is calculated based on your total hours of development work from Hackatime. Here's how it works:
             </p>
             <ul className="list-disc pl-6 text-gray-600 space-y-2">
-              <li>For each project, up to 15 hours are counted towards the progress bar</li>
-              <li>Each hour past 15 on a project gets added to your piggy bank</li>
-              <li>You can spend your piggy bank on travel stipends and the shop which will launch at a later date</li>
+              <li>For each project, up to 15 hours are counted towards the progress bar (only for the first 4 projects marked as shipped)</li>
+              <li>Each hour past 15 on a project gets added to your shell balance</li>
+              <li>Also shipped projects after the first 4 that are marked shipped do not count towards your progress bar but instead your shells.</li>
+              <li>You can spend your shells on items in the shop.</li>
+              <li>These items include travel stipends, additional 1 percents, most importanly the void and other items that are listed.</li>
             </ul>
           </div>
 
@@ -117,8 +119,8 @@ export default function FAQ() {
             </p>
             <ul className="list-disc pl-6 text-gray-600 space-y-2">
               <li>Complete at least 60 hours of development time (roughly 15 hours per project)</li>
-              <li>Ship 4 fully deployed projects</li>
-              <li>Make at least one of your projects go viral</li>
+              <li>Ship 4 fully deployed projects (but you can spend on 1%&quot;s with your shells</li>
+              <li>If you make at least one of your projects go viral, you will be able to get a suite on the island!</li>
             </ul>
             <p className="text-gray-600 mt-2">
               When your progress bar reaches 100%, you'll be eligible to join us on the amazing island adventure!
@@ -139,6 +141,13 @@ export default function FAQ() {
             <p className="text-gray-600 mt-2">
               This will associate your project with the hours tracked in Hackatime and update your progress accordingly.
             </p>
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold mb-3 text-gray-700">For more FAQ or information go to 
+              <a href="/info" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                shipwrecked.hackclub.com/info
+              </a>
+            </h2>
           </div>
         </div>
       </div>
