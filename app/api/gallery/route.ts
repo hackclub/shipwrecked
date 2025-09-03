@@ -164,7 +164,7 @@ export async function GET(request: Request) {
             ? link.hoursOverride
             : (typeof link.rawHours === 'number' ? link.rawHours : 0);
           
-          return sum + effectiveHours;
+          return parseFloat((sum + effectiveHours).toFixed(2));
         }, 
         0
       );
