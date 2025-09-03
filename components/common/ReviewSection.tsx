@@ -8,6 +8,7 @@ import { useReviewMode } from '@/app/contexts/ReviewModeContext';
 import ProjectFlagsEditor, { ProjectFlags } from './ProjectFlagsEditor';
 import HackatimeLanguageStats from './HackatimeLanguageStats';
 import ReviewChecklist from './ReviewChecklist';
+import LinkifiedText from './LinkifiedText';
 
 interface ReviewerInfo {
   id: string;
@@ -769,7 +770,10 @@ export default function ReviewSection({
                         )}
                       </div>
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{review.comment}</p>
+                    <LinkifiedText 
+                      text={review.comment} 
+                      className="text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere"
+                    />
                   </div>
                 </div>
               </div>
