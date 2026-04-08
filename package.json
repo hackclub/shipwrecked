@@ -37,7 +37,7 @@
     "motion": "^12.6.3",
     "next": "15.4.9",
     "next-auth": "^4.24.11",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^8.0.5",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
