@@ -30,7 +30,7 @@
     "dotenv": "^16.5.0",
     "groq-sdk": "^0.27.0",
     "ioredis": "^5.6.1",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "leaflet": "^1.9.4",
     "leaflet-rotatedmarker": "^0.2.0",
     "lenis": "^1.2.3",
