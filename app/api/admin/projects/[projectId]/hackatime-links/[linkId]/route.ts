@@ -7,10 +7,10 @@ import { removeHackatimeProjectLink } from '@/lib/hackatime-links';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ projectId: string, linkId: string }> }
+  { params }: { params: Promise<{ projectId: string; linkId: string }> },
 ) {
   const { projectId, linkId } = await params;
-  
+
   // Check authentication
   const session = await getServerSession(opts);
   if (!session?.user) {
@@ -29,9 +29,9 @@ export async function DELETE(
       where: { id: linkId },
       include: {
         project: {
-          include: { user: true }
-        }
-      }
+          include: { user: true },
+        },
+      },
     });
 
     if (!linkToRemove) {
@@ -40,7 +40,10 @@ export async function DELETE(
 
     // Verify the link belongs to the specified project
     if (linkToRemove.projectID !== projectId) {
-      return NextResponse.json({ error: 'Hackatime link does not belong to this project' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Hackatime link does not belong to this project' },
+        { status: 400 },
+      );
     }
 
     // Create audit log entry before deleting the link
@@ -58,9 +61,9 @@ export async function DELETE(
           rawHours: linkToRemove.rawHours,
           hoursOverride: linkToRemove.hoursOverride || null,
           projectName: linkToRemove.project.name,
-          projectOwnerEmail: linkToRemove.project.user?.email
-        }
-      }
+          projectOwnerEmail: linkToRemove.project.user?.email,
+        },
+      },
     });
 
     // Delete the Hackatime project link using the helper function
@@ -71,4 +74,4 @@ export async function DELETE(
     console.error('Error removing Hackatime link:', error);
     return NextResponse.json({ error: 'Failed to remove Hackatime link' }, { status: 500 });
   }
-} 
+}

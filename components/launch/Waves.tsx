@@ -1,25 +1,31 @@
 'use client';
-import { motion } from "motion/react";
-import { useContext, useMemo, useEffect } from "react";
-import { ScrollProgressContext } from "./Story";
-import Image from "next/image";
+import { motion } from 'motion/react';
+import { useContext, useMemo, useEffect } from 'react';
+import { ScrollProgressContext } from './Story';
+import Image from 'next/image';
 
-export default function Waves({ start, end }: { start: number | undefined, end: number | undefined }) {
+export default function Waves({
+  start,
+  end,
+}: {
+  start: number | undefined;
+  end: number | undefined;
+}) {
   const [scrollPercent] = useContext(ScrollProgressContext);
 
   const numFrames = 10; // Number of unique wave images (1-10)
   const totalAnimationFrames = numFrames * 2; // Total steps including reverse
 
   // Memoize image paths to avoid recalculating strings on every render
-  const imagePaths = useMemo(() => 
-    Array.from({ length: numFrames }, (_, i) => `/waves/${i + 1}.svg`),
-    [numFrames]
+  const imagePaths = useMemo(
+    () => Array.from({ length: numFrames }, (_, i) => `/waves/${i + 1}.svg`),
+    [numFrames],
   );
 
   // Preload all images when component mounts
   useEffect(() => {
     // Preload all wave images
-    imagePaths.forEach(path => {
+    imagePaths.forEach((path) => {
       const img = new window.Image(); // Use window.Image constructor for browser
       img.src = path;
     });
@@ -47,11 +53,11 @@ export default function Waves({ start, end }: { start: number | undefined, end: 
   }
 
   return (
-    <motion.div 
-      className="fixed inset-0 z-10 pointer-events-none" 
+    <motion.div
+      className="fixed inset-0 z-10 pointer-events-none"
       style={{
         opacity: currentFrameIndex !== -1 ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out' // Smooth fade in/out
+        transition: 'opacity 0.2s ease-in-out', // Smooth fade in/out
       }}
     >
       {/* Render only the currently active image */}

@@ -1,8 +1,4 @@
-export default function DashboardsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm">
@@ -21,4 +17,4 @@ export default function DashboardsLayout({
       <main>{children}</main>
     </div>
   );
-} 
+}

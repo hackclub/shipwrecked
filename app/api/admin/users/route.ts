@@ -48,15 +48,15 @@ export async function GET() {
     let userCategories: Record<string, any> = {};
     try {
       const clusterAnalysis = await getUserClusterAnalysis();
-      
+
       // Create a map of user ID to category
-      clusterAnalysis.clusters.whales.users.forEach(userId => {
+      clusterAnalysis.clusters.whales.users.forEach((userId) => {
         userCategories[userId] = { category: 'whale', description: 'High-impact creator' };
       });
-      clusterAnalysis.clusters.shippers.users.forEach(userId => {
+      clusterAnalysis.clusters.shippers.users.forEach((userId) => {
         userCategories[userId] = { category: 'shipper', description: 'Active contributor' };
       });
-      clusterAnalysis.clusters.newbies.users.forEach(userId => {
+      clusterAnalysis.clusters.newbies.users.forEach((userId) => {
         userCategories[userId] = { category: 'newbie', description: 'Getting started' };
       });
     } catch (clusterError) {
@@ -65,72 +65,72 @@ export async function GET() {
     }
 
     // Add category information to users
-    const usersWithCategories = users.map(user => ({
+    const usersWithCategories = users.map((user) => ({
       ...user,
-      category: userCategories[user.id] || null
+      category: userCategories[user.id] || null,
     }));
 
-	const usersWithProjects = await Promise.all(usersWithCategories.map(async user => {
+    const usersWithProjects = await Promise.all(
+      usersWithCategories.map(async (user) => {
         try {
-            const projects = await prisma.project.findMany({
-                where: {
-                    userId: user.id
-                },
-                include: {
-                    hackatimeLinks: true
-                }
-            });
-            
-            // Enhance the project data with computed properties
-            const enhancedProjects = (projects || []).map((project) => {
-                try {
-                    // Get the main Hackatime name (for backwards compatibility)
-                    const hackatimeName = (project.hackatimeLinks && project.hackatimeLinks.length > 0) 
-                        ? project.hackatimeLinks[0].hackatimeName 
-                        : '';
-                    
-                    // Calculate total raw hours from all links, applying individual overrides when available
-                    const rawHours = (project.hackatimeLinks || []).reduce(
-                        (sum, link) => {
-                            // Use the link's hoursOverride if it exists, otherwise use rawHours
-                            const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
-                                ? link.hoursOverride
-                                : (typeof link.rawHours === 'number' ? link.rawHours : 0);
-                            
-                            return sum + effectiveHours;
-                        }, 
-                        0
-                    );
-                    
-                    // Return the enhanced project with additional properties
-                    return {
-                        ...project,
-                        hackatimeName,
-                        rawHours
-                    };
-                } catch (projectError) {
-                    console.error('Error processing project:', project.projectID, projectError);
-                    return {
-                        ...project,
-                        hackatimeName: '',
-                        rawHours: 0
-                    };
-                }
-            });
+          const projects = await prisma.project.findMany({
+            where: {
+              userId: user.id,
+            },
+            include: {
+              hackatimeLinks: true,
+            },
+          });
 
-            return { ...user, projects: enhancedProjects };
+          // Enhance the project data with computed properties
+          const enhancedProjects = (projects || []).map((project) => {
+            try {
+              // Get the main Hackatime name (for backwards compatibility)
+              const hackatimeName =
+                project.hackatimeLinks && project.hackatimeLinks.length > 0
+                  ? project.hackatimeLinks[0].hackatimeName
+                  : '';
+
+              // Calculate total raw hours from all links, applying individual overrides when available
+              const rawHours = (project.hackatimeLinks || []).reduce((sum, link) => {
+                // Use the link's hoursOverride if it exists, otherwise use rawHours
+                const effectiveHours =
+                  link.hoursOverride !== undefined && link.hoursOverride !== null
+                    ? link.hoursOverride
+                    : typeof link.rawHours === 'number'
+                      ? link.rawHours
+                      : 0;
+
+                return sum + effectiveHours;
+              }, 0);
+
+              // Return the enhanced project with additional properties
+              return {
+                ...project,
+                hackatimeName,
+                rawHours,
+              };
+            } catch (projectError) {
+              console.error('Error processing project:', project.projectID, projectError);
+              return {
+                ...project,
+                hackatimeName: '',
+                rawHours: 0,
+              };
+            }
+          });
+
+          return { ...user, projects: enhancedProjects };
         } catch (userError) {
-            console.error('Error processing user:', user.id, userError);
-            return { ...user, projects: [] };
+          console.error('Error processing user:', user.id, userError);
+          return { ...user, projects: [] };
         }
-	}));
+      }),
+    );
 
     return NextResponse.json(usersWithProjects);
   } catch (error) {
     console.error('Error fetching users:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
-} 
+}

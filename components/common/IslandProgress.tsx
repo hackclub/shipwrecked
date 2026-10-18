@@ -25,7 +25,7 @@ interface IslandProgressProps {
   className?: string;
 }
 
-export default function IslandProgress({ className = "" }: IslandProgressProps) {
+export default function IslandProgress({ className = '' }: IslandProgressProps) {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +75,7 @@ export default function IslandProgress({ className = "" }: IslandProgressProps) 
     <div className={`bg-white rounded-lg p-6 shadow-sm ${className}`}>
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Progress to Island</h3>
-        <ProgressBar 
+        <ProgressBar
           earnedProgress={progressData.earned.totalPercentage}
           purchasedProgress={progressData.purchased.percentage}
           totalProgress={progressData.total.percentage}
@@ -90,7 +90,7 @@ export default function IslandProgress({ className = "" }: IslandProgressProps) 
           </div>
           <div className="text-gray-600">Hours Earned</div>
         </div>
-        
+
         {progressData.purchased.hours > 0 && (
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
@@ -99,7 +99,7 @@ export default function IslandProgress({ className = "" }: IslandProgressProps) 
             <div className="text-gray-600">Hours Purchased</div>
           </div>
         )}
-        
+
         <div className="text-center">
           <div className="text-2xl font-bold text-gray-900">
             {progressData.total.hours.toFixed(1)}
@@ -120,4 +120,4 @@ export default function IslandProgress({ className = "" }: IslandProgressProps) 
       )}
     </div>
   );
-} 
+}

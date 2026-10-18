@@ -27,7 +27,11 @@ interface HackatimeLanguageStatsProps {
   projectNames?: string[]; // Array of project names to filter stats by
 }
 
-export default function HackatimeLanguageStats({ className = '', userId, projectNames }: HackatimeLanguageStatsProps) {
+export default function HackatimeLanguageStats({
+  className = '',
+  userId,
+  projectNames,
+}: HackatimeLanguageStatsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<HackatimeUserStatsData | null>(null);
@@ -74,15 +78,15 @@ export default function HackatimeLanguageStats({ className = '', userId, project
         // Join project names with commas for the API
         url.searchParams.set('projectNames', projectNames.join(','));
       }
-      
+
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      
+
       if (result.error) {
         throw new Error(result.error);
       }
@@ -158,14 +162,13 @@ export default function HackatimeLanguageStats({ className = '', userId, project
         <div className="flex items-center gap-2">
           <Icon glyph="code" size={16} />
           <span>
-            {isLoading 
-              ? 'Loading...' 
-              : !userId 
-                ? 'User data unavailable' 
+            {isLoading
+              ? 'Loading...'
+              : !userId
+                ? 'User data unavailable'
                 : projectNames && projectNames.length > 0
                   ? `View Language Stats (${projectNames.length} projects)`
-                  : 'View Language Stats'
-            }
+                  : 'View Language Stats'}
           </span>
         </div>
         <Icon glyph={isOpen ? 'up-caret' : 'down-caret'} size={14} />
@@ -197,10 +200,9 @@ export default function HackatimeLanguageStats({ className = '', userId, project
               {/* Header */}
               <div className="mb-3 pb-2 border-b border-gray-200">
                 <h3 className="font-semibold text-gray-900 text-sm">
-                  {data.summary.project_filtered 
+                  {data.summary.project_filtered
                     ? `Programming Languages (Top 10)`
-                    : 'Top Programming Languages'
-                  }
+                    : 'Top Programming Languages'}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   {data.summary.human_readable_total} total • {data.summary.range}
@@ -218,7 +220,10 @@ export default function HackatimeLanguageStats({ className = '', userId, project
                   </p>
                 ) : (
                   data.languages.map((language) => (
-                    <div key={language.name} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <div
+                      key={language.name}
+                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                    >
                       <div className="flex items-center gap-2 flex-1">
                         <span className="text-lg">{getLanguageIcon(language.name)}</span>
                         <div className="flex-1 min-w-0">
@@ -231,12 +236,8 @@ export default function HackatimeLanguageStats({ className = '', userId, project
                             </span>
                           </div>
                           <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-gray-600">
-                              {language.text}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {language.digital}
-                            </span>
+                            <span className="text-xs text-gray-600">{language.text}</span>
+                            <span className="text-xs text-gray-500">{language.digital}</span>
                           </div>
                         </div>
                       </div>

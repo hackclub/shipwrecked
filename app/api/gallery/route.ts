@@ -14,19 +14,21 @@ export async function GET(request: Request) {
     const userId = session.user.id;
 
     console.log('Fetching all projects for gallery...');
-    
+
     // Check if user is admin to determine tag exposure
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
-    
+
     // Get experience mode and challenge tags from query params for server-side filtering
     const { searchParams } = new URL(request.url);
     const isIslandMode = searchParams.get('isIslandMode') === 'true';
     const challengeTagsParam = searchParams.get('challengeTags');
-    const selectedChallengeTags = challengeTagsParam ? challengeTagsParam.split(',').filter(tag => tag.trim()) : [];
-    
+    const selectedChallengeTags = challengeTagsParam
+      ? challengeTagsParam.split(',').filter((tag) => tag.trim())
+      : [];
+
     // Build where clause for server-side filtering based on experience mode
     let whereClause: any = {};
-    
+
     // ALL USERS (including admins) get filtered based on experience mode in gallery
     if (isIslandMode) {
       // Island mode: only show projects with 'island-project' tag
@@ -34,30 +36,27 @@ export async function GET(request: Request) {
         projectTags: {
           some: {
             tag: {
-              name: 'island-project'
-            }
-          }
-        }
+              name: 'island-project',
+            },
+          },
+        },
       };
-      
+
       // If specific challenge tags are selected, add that filter
       // Projects must have ALL selected tags (AND logic)
       if (selectedChallengeTags.length > 0) {
-        const challengeTagConstraints = selectedChallengeTags.map(tagName => ({
+        const challengeTagConstraints = selectedChallengeTags.map((tagName) => ({
           projectTags: {
             some: {
               tag: {
-                name: tagName
-              }
-            }
-          }
+                name: tagName,
+              },
+            },
+          },
         }));
-        
+
         whereClause = {
-          AND: [
-            whereClause,
-            ...challengeTagConstraints
-          ]
+          AND: [whereClause, ...challengeTagConstraints],
         };
       }
     } else {
@@ -67,14 +66,14 @@ export async function GET(request: Request) {
           projectTags: {
             some: {
               tag: {
-                name: 'island-project'
-              }
-            }
-          }
-        }
+                name: 'island-project',
+              },
+            },
+          },
+        },
       };
     }
-    
+
     // Fetch all projects from all users with user info, hackatime links, and upvote data
     // Server-side filtered and no tag data exposed to non-admins
     const allProjects = await prisma.project.findMany({
@@ -97,8 +96,8 @@ export async function GET(request: Request) {
             name: true,
             slack: true,
             image: true,
-            hackatimeId: true
-          }
+            hackatimeId: true,
+          },
         },
         _count: {
           select: {
@@ -106,29 +105,29 @@ export async function GET(request: Request) {
             chatRooms: {
               where: {
                 messages: {
-                  some: {}
-                }
-              }
-            }
+                  some: {},
+                },
+              },
+            },
           },
         },
         chatRooms: {
           select: {
             _count: {
               select: {
-                messages: true
-              }
+                messages: true,
+              },
             },
             messages: {
               orderBy: {
-                createdAt: 'desc'
+                createdAt: 'desc',
               },
               take: 1,
               select: {
-                createdAt: true
-              }
-            }
-          }
+                createdAt: true,
+              },
+            },
+          },
         },
       },
     });
@@ -138,7 +137,7 @@ export async function GET(request: Request) {
       where: {
         userId: userId,
         projectID: {
-          in: allProjects.map(p => p.projectID),
+          in: allProjects.map((p) => p.projectID),
         },
       },
       select: {
@@ -147,34 +146,33 @@ export async function GET(request: Request) {
     });
 
     // Create a Set for faster lookup
-    const userUpvotedProjectIds = new Set(userUpvotes.map(upvote => upvote.projectID));
+    const userUpvotedProjectIds = new Set(userUpvotes.map((upvote) => upvote.projectID));
 
     // Enhance the project data with computed properties (similar to regular projects API)
     const enhancedProjects = allProjects.map((project) => {
       // Get the main Hackatime name (for backwards compatibility)
-      const hackatimeName = project.hackatimeLinks.length > 0 
-        ? project.hackatimeLinks[0].hackatimeName 
-        : '';
-      
+      const hackatimeName =
+        project.hackatimeLinks.length > 0 ? project.hackatimeLinks[0].hackatimeName : '';
+
       // Calculate total raw hours from all links, applying individual overrides when available
-      const rawHours = project.hackatimeLinks.reduce(
-        (sum, link) => {
-          // Use the link's hoursOverride if it exists, otherwise use rawHours
-          const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
+      const rawHours = project.hackatimeLinks.reduce((sum, link) => {
+        // Use the link's hoursOverride if it exists, otherwise use rawHours
+        const effectiveHours =
+          link.hoursOverride !== undefined && link.hoursOverride !== null
             ? link.hoursOverride
-            : (typeof link.rawHours === 'number' ? link.rawHours : 0);
-          
-          return sum + effectiveHours;
-        }, 
-        0
-      );
+            : typeof link.rawHours === 'number'
+              ? link.rawHours
+              : 0;
+
+        return sum + effectiveHours;
+      }, 0);
 
       // Check if current user has upvoted this project
       const userUpvoted = userUpvotedProjectIds.has(project.projectID);
-      
+
       // Calculate total chat message count across all chat rooms for this project
       const chatCount = project.chatRooms.reduce((total, room) => total + room._count.messages, 0);
-      
+
       // Find the most recent chat message timestamp across all rooms
       let lastChatActivity: Date | null = null;
       for (const room of project.chatRooms) {
@@ -185,7 +183,7 @@ export async function GET(request: Request) {
           }
         }
       }
-      
+
       // Return the enhanced project with additional properties
       return {
         ...project,
@@ -207,4 +205,4 @@ export async function GET(request: Request) {
     console.error('Error fetching gallery projects:', error);
     return NextResponse.json({ error: 'Failed to fetch gallery projects' }, { status: 500 });
   }
-} 
+}

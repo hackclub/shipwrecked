@@ -41,13 +41,11 @@ function Loading() {
     <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
       <div className="relative flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-            Loading...
-          </p>
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">Loading...</p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function AccessDeniedHaiku() {
@@ -74,7 +72,7 @@ function AccessDeniedHaiku() {
           style={{
             opacity: visible ? 1 : 0,
             transition: 'opacity 4s ease-in',
-            display: 'inline-block'
+            display: 'inline-block',
           }}
           className="text-center"
         >
@@ -95,10 +93,10 @@ function AccessDeniedHaiku() {
 
 // Type definitions for review page
 enum UserStatus {
-  Unknown = "Unknown",
-  L1 = "L1", 
-  L2 = "L2",
-  FraudSuspect = "FraudSuspect"
+  Unknown = 'Unknown',
+  L1 = 'L1',
+  L2 = 'L2',
+  FraudSuspect = 'FraudSuspect',
 }
 
 interface User {
@@ -198,18 +196,18 @@ function wouldCompleteGoal(project: Project): boolean {
 function hasHighHours(project: Project): boolean {
   // Get the project owner's current approved hours (calculated in API using identical logic as progress bar)
   const ownerCurrentHours = project.ownerApprovedHours || 0;
-  
+
   // Check if they would hit the 60-hour cap (this requires additional calculation)
   // For now, we'll flag users with 45+ current hours as they're close to the cap
   return ownerCurrentHours >= 45;
 }
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
-  const reviewTypeLabels: Record<string, { label: string, color: string }> = {
+  const reviewTypeLabels: Record<string, { label: string; color: string }> = {
     ShippedApproval: { label: 'Shipped', color: 'blue' },
     ViralApproval: { label: 'Viral', color: 'purple' },
     HoursApproval: { label: 'Ship Updates', color: 'green' },
-    Other: { label: 'Other', color: 'gray' }
+    Other: { label: 'Other', color: 'gray' },
   };
 
   // Get the review type from the latest review or default to Other
@@ -219,12 +217,12 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   // Calculate days in review
   const calculateDaysInReview = () => {
     if (!project.latestReview?.createdAt) return null;
-    
+
     const reviewDate = new Date(project.latestReview.createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays;
   };
 
@@ -232,25 +230,32 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   const userHasHighHours = hasHighHours(project);
 
   return (
-    <div 
+    <div
       className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
       onClick={onClick}
     >
-      <div className={`p-4 border-l-4 ${color === 'blue' ? 'border-l-blue-400' : color === 'purple' ? 'border-l-purple-400' : color === 'green' ? 'border-l-green-400' : 'border-l-gray-400'}`}>
+      <div
+        className={`p-4 border-l-4 ${color === 'blue' ? 'border-l-blue-400' : color === 'purple' ? 'border-l-purple-400' : color === 'green' ? 'border-l-green-400' : 'border-l-gray-400'}`}
+      >
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold truncate">{project.name}</h3>
-          <span className={`text-xs ${
-            color === 'blue' ? 'bg-blue-100 text-blue-800' : 
-            color === 'purple' ? 'bg-purple-100 text-purple-800' : 
-            color === 'green' ? 'bg-green-100 text-green-800' : 
-            'bg-gray-100 text-gray-800'
-          } rounded-full px-2 py-1`}>
+          <span
+            className={`text-xs ${
+              color === 'blue'
+                ? 'bg-blue-100 text-blue-800'
+                : color === 'purple'
+                  ? 'bg-purple-100 text-purple-800'
+                  : color === 'green'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-800'
+            } rounded-full px-2 py-1`}
+          >
             {label}
           </span>
         </div>
-        
+
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{project.description}</p>
-        
+
         {/* Project Tags */}
         {project.projectTags && project.projectTags.length > 0 && (
           <div className="mb-3">
@@ -262,7 +267,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                   style={{
                     backgroundColor: projectTag.tag.color ? `${projectTag.tag.color}20` : '#f3f4f6',
                     borderColor: projectTag.tag.color || '#d1d5db',
-                    color: projectTag.tag.color || '#374151'
+                    color: projectTag.tag.color || '#374151',
                   }}
                   title={projectTag.tag.description || undefined}
                 >
@@ -277,47 +282,52 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
             </div>
           </div>
         )}
-        
+
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             {project.userImage ? (
-              <img 
-                src={project.userImage} 
-                alt={project.userName || ''} 
+              <img
+                src={project.userImage}
+                alt={project.userName || ''}
                 className="w-6 h-6 rounded-full mr-2"
               />
             ) : (
               <div className="w-6 h-6 rounded-full bg-gray-300 mr-2 flex items-center justify-center">
-                <span className="text-xs text-gray-600">
-                  {project.userName?.charAt(0) || '?'}
-                </span>
+                <span className="text-xs text-gray-600">{project.userName?.charAt(0) || '?'}</span>
               </div>
             )}
             <span className="text-xs text-gray-600">{project.userName}</span>
             {project.userHackatimeId && (
               <div className="ml-2">
-                <TrustStats 
-                  hackatimeId={project.userHackatimeId} 
-                  userName={project.userName || 'User'} 
-                  size="sm" 
-                  showStats={true} 
+                <TrustStats
+                  hackatimeId={project.userHackatimeId}
+                  userName={project.userName || 'User'}
+                  size="sm"
+                  showStats={true}
                 />
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-3 text-xs text-gray-500">
             {daysInReview !== null && (
               <div className="flex items-center gap-1">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  daysInReview <= 1 ? 'bg-green-100 text-green-800' :
-                  daysInReview <= 3 ? 'bg-yellow-100 text-yellow-800' :
-                  daysInReview <= 7 ? 'bg-orange-100 text-orange-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {daysInReview === 0 ? 'Today' : 
-                   daysInReview === 1 ? '1 day' : 
-                   `${daysInReview} days`}
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    daysInReview <= 1
+                      ? 'bg-green-100 text-green-800'
+                      : daysInReview <= 3
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : daysInReview <= 7
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {daysInReview === 0
+                    ? 'Today'
+                    : daysInReview === 1
+                      ? '1 day'
+                      : `${daysInReview} days`}
                 </span>
               </div>
             )}
@@ -331,9 +341,9 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
             <div className="flex items-center gap-1">
               <span>Reviews: {project.reviewCount}</span>
               {project.reviewCount >= 5 && (
-                <img 
-                  src="/thisisfine.gif" 
-                  alt="This is fine - many reviews" 
+                <img
+                  src="/thisisfine.gif"
+                  alt="This is fine - many reviews"
                   className="w-6 h-6"
                   title={`This project has ${project.reviewCount} reviews on the review thread. Be cautious!`}
                 />
@@ -354,7 +364,7 @@ function AIAnalysisSection({ project }: { project: Project }) {
 
   const fetchAnalysis = async () => {
     if (hasLoaded || !project.codeUrl) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/review/ai-analysis', {
@@ -363,7 +373,7 @@ function AIAnalysisSection({ project }: { project: Project }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          githubUrl: project.codeUrl
+          githubUrl: project.codeUrl,
         }),
       });
 
@@ -379,7 +389,7 @@ function AIAnalysisSection({ project }: { project: Project }) {
       setAnalysisData({
         summary: '',
         setupInstructions: '',
-        error: error instanceof Error ? error.message : 'Failed to load analysis'
+        error: error instanceof Error ? error.message : 'Failed to load analysis',
       });
       setHasLoaded(true);
     } finally {
@@ -409,13 +419,13 @@ function AIAnalysisSection({ project }: { project: Project }) {
           <Icon glyph="analytics" size={16} />
           <h3 className="text-sm font-medium text-gray-700">AI Project Analysis</h3>
         </div>
-        <Icon 
-          glyph={isExpanded ? "view-close" : "view-forward"} 
-          size={16} 
-          className="text-gray-500" 
+        <Icon
+          glyph={isExpanded ? 'view-close' : 'view-forward'}
+          size={16}
+          className="text-gray-500"
         />
       </button>
-      
+
       {isExpanded && (
         <div className="px-4 pb-4">
           {isLoading && (
@@ -424,13 +434,13 @@ function AIAnalysisSection({ project }: { project: Project }) {
               <span className="text-sm">Analyzing project...</span>
             </div>
           )}
-          
+
           {analysisData?.error && (
             <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
               Error: {analysisData.error}
             </div>
           )}
-          
+
           {analysisData && !analysisData.error && (
             <div className="space-y-4">
               {/* AI Warning */}
@@ -442,7 +452,7 @@ function AIAnalysisSection({ project }: { project: Project }) {
                   </span>
                 </div>
               </div>
-              
+
               {analysisData.summary && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Project Summary</h4>
@@ -451,7 +461,7 @@ function AIAnalysisSection({ project }: { project: Project }) {
                   </div>
                 </div>
               )}
-              
+
               {analysisData.setupInstructions && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Setup Instructions</h4>
@@ -468,36 +478,40 @@ function AIAnalysisSection({ project }: { project: Project }) {
   );
 }
 
-function ProjectDetail({ project, onClose, onReviewSubmitted }: { 
-  project: Project; 
+function ProjectDetail({
+  project,
+  onClose,
+  onReviewSubmitted,
+}: {
+  project: Project;
   onClose: () => void;
   onReviewSubmitted: () => void;
 }) {
   // Add debugging
   console.log('ProjectDetail selected project:', project);
-  
+
   // Calculate days in review
   const calculateDaysInReview = () => {
     if (!project.latestReview?.createdAt) return null;
-    
+
     const reviewDate = new Date(project.latestReview.createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays;
   };
 
   const daysInReview = calculateDaysInReview();
   const userHasHighHours = hasHighHours(project);
-  
+
   const [projectFlags, setProjectFlags] = useState({
     shipped: !!project.shipped,
     viral: !!project.viral,
     in_review: !!project.in_review,
     approved: !!project.approved,
   });
-  
+
   // Handle project flag updates
   const handleFlagsUpdated = (updatedProject: any) => {
     setProjectFlags({
@@ -506,7 +520,7 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
       in_review: !!updatedProject.in_review,
       approved: !!updatedProject.approved,
     });
-    
+
     // If in_review was changed to false, notify the parent component to refresh the list
     if (project.in_review && !updatedProject.in_review) {
       onReviewSubmitted();
@@ -517,29 +531,28 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
         <h2 className="text-xl font-bold">{project.name}</h2>
-        <button 
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
-        >
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
           <span className="sr-only">Close</span>
           <Icon glyph="view-close" size={24} />
         </button>
       </div>
-      
+
       <div className="p-4 space-y-4">
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
-          <p className="text-base text-gray-900">{project.description || "No description provided."}</p>
+          <p className="text-base text-gray-900">
+            {project.description || 'No description provided.'}
+          </p>
         </div>
-        
+
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Created By</h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {project.userImage ? (
-                <img 
-                  src={project.userImage} 
-                  alt={project.userName || ''} 
+                <img
+                  src={project.userImage}
+                  alt={project.userName || ''}
                   className="w-8 h-8 rounded-full mr-2"
                 />
               ) : (
@@ -553,25 +566,25 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                 <span className="text-sm">{project.userName}</span>
                 {project.userHackatimeId && (
                   <div className="mt-1">
-                    <TrustStats 
-                      hackatimeId={project.userHackatimeId} 
-                      userName={project.userName || 'User'} 
-                      size="md" 
-                      showStats={true} 
+                    <TrustStats
+                      hackatimeId={project.userHackatimeId}
+                      userName={project.userName || 'User'}
+                      size="md"
+                      showStats={true}
                     />
                   </div>
                 )}
               </div>
             </div>
-            <UserCategoryBadge 
-              userId={project.userId} 
-              hackatimeId={project.userHackatimeId || undefined} 
-              size="small" 
-              showMetrics={true} 
+            <UserCategoryBadge
+              userId={project.userId}
+              hackatimeId={project.userHackatimeId || undefined}
+              size="small"
+              showMetrics={true}
             />
           </div>
         </div>
-        
+
         {/* Project Tags Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <TagManagement
@@ -583,25 +596,33 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             compact={true}
           />
         </div>
-        
+
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="text-center text-sm">
-            <ProjectStatus 
-              viral={projectFlags.viral} 
-              shipped={projectFlags.shipped} 
+            <ProjectStatus
+              viral={projectFlags.viral}
+              shipped={projectFlags.shipped}
               in_review={projectFlags.in_review}
             />
             {daysInReview !== null && (
               <div className="mt-3 flex justify-center">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  daysInReview <= 1 ? 'bg-green-100 text-green-800' :
-                  daysInReview <= 3 ? 'bg-yellow-100 text-yellow-800' :
-                  daysInReview <= 7 ? 'bg-orange-100 text-orange-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  🕒 {daysInReview === 0 ? 'Submitted today' : 
-                      daysInReview === 1 ? 'In review for 1 day' : 
-                      `In review for ${daysInReview} days`}
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    daysInReview <= 1
+                      ? 'bg-green-100 text-green-800'
+                      : daysInReview <= 3
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : daysInReview <= 7
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  🕒{' '}
+                  {daysInReview === 0
+                    ? 'Submitted today'
+                    : daysInReview === 1
+                      ? 'In review for 1 day'
+                      : `In review for ${daysInReview} days`}
                 </span>
               </div>
             )}
@@ -614,9 +635,9 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             )}
             {project.reviewCount >= 5 && (
               <div className="mt-3 flex justify-center items-center gap-2">
-                <img 
-                  src="/thisisfine.gif" 
-                  alt="This is fine - many reviews" 
+                <img
+                  src="/thisisfine.gif"
+                  alt="This is fine - many reviews"
                   className="w-10 h-10"
                 />
                 <span className="text-sm text-orange-600 font-medium">
@@ -626,15 +647,15 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             )}
           </div>
         </div>
-        
+
         {(project.codeUrl || project.playableUrl || project.userHackatimeId) && (
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Links</h3>
             <div className="flex flex-col gap-2">
               {project.codeUrl && (
-                <a 
-                  href={project.codeUrl} 
-                  target="_blank" 
+                <a
+                  href={project.codeUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
                 >
@@ -643,9 +664,9 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                 </a>
               )}
               {project.playableUrl && (
-                <a 
-                  href={project.playableUrl} 
-                  target="_blank" 
+                <a
+                  href={project.playableUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-2"
                 >
@@ -681,18 +702,18 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             </div>
           </div>
         )}
-        
+
         {project.screenshot && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Screenshot</h3>
-            <img 
-              src={project.screenshot} 
+            <img
+              src={project.screenshot}
               alt={`Screenshot of ${project.name}`}
               className="mt-2 rounded-lg max-w-full h-auto border border-gray-200"
             />
           </div>
         )}
-        
+
         {/* Project Hours Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Project Hours</h3>
@@ -704,7 +725,8 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
                 </div>
                 {project.hoursOverride !== undefined && project.hoursOverride !== null && (
                   <div className="text-sm text-gray-600">
-                    Override: <span className="font-semibold text-blue-600">{project.hoursOverride}h</span>
+                    Override:{' '}
+                    <span className="font-semibold text-blue-600">{project.hoursOverride}h</span>
                   </div>
                 )}
                 {project.hackatimeLinks && project.hackatimeLinks.length > 0 && (
@@ -721,11 +743,11 @@ function ProjectDetail({ project, onClose, onReviewSubmitted }: {
             </div>
           </div>
         </div>
-        
+
         {/* Project Reviews Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <ReviewSection 
-            projectID={project.projectID} 
+          <ReviewSection
+            projectID={project.projectID}
             projectOwnerUserId={project.userId}
             initialFlags={projectFlags}
             onFlagsUpdated={handleFlagsUpdated}
@@ -752,7 +774,7 @@ function ReviewPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { enableReviewMode } = useReviewMode();
   const components = useMDXComponents({});
-  
+
   // Add filter state
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -767,7 +789,7 @@ function ReviewPage() {
   // Fetch projects that are in review
   useEffect(() => {
     // Only fetch if authenticated - the layout will handle proper access control
-    if (status === "authenticated") {
+    if (status === 'authenticated') {
       fetchProjectsInReview();
     }
   }, [status]);
@@ -778,7 +800,7 @@ function ReviewPage() {
       try {
         setIsLoadingTags(true);
         const response = await fetch('/api/admin/tags');
-        
+
         if (response.ok) {
           const tags = await response.json();
           setAvailableTags(tags);
@@ -791,48 +813,46 @@ function ReviewPage() {
         setIsLoadingTags(false);
       }
     }
-    
+
     if (status === 'authenticated') {
       fetchTags();
     }
   }, [status]);
-  
+
   // Apply filter when projects or filter changes
   useEffect(() => {
     let filtered = projects;
 
     // Apply text search filter
     if (searchTerm) {
-      filtered = filtered.filter(project => 
-        ((project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
+      filtered = filtered.filter(
+        (project) =>
+          (project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (project.user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()),
       );
     }
 
     // Apply tag filter
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(project => 
-        selectedTags.every(selectedTagId => 
-          project.projectTags?.some(projectTag => projectTag.tag.id === selectedTagId)
-        )
+      filtered = filtered.filter((project) =>
+        selectedTags.every((selectedTagId) =>
+          project.projectTags?.some((projectTag) => projectTag.tag.id === selectedTagId),
+        ),
       );
     }
 
     // Apply review type filter
-    if (activeFilter === "FraudSuspect") {
-      filtered = filtered.filter(project => 
-        project.user.status === UserStatus.FraudSuspect
-      );
+    if (activeFilter === 'FraudSuspect') {
+      filtered = filtered.filter((project) => project.user.status === UserStatus.FraudSuspect);
     } else if (activeFilter) {
-      filtered = filtered.filter(project => 
-        (project.latestReview?.reviewType || 'Other') === activeFilter &&
-        project.user.status !== UserStatus.FraudSuspect
+      filtered = filtered.filter(
+        (project) =>
+          (project.latestReview?.reviewType || 'Other') === activeFilter &&
+          project.user.status !== UserStatus.FraudSuspect,
       );
     } else {
-      filtered = filtered.filter(project => 
-        project.user.status !== UserStatus.FraudSuspect
-      );
+      filtered = filtered.filter((project) => project.user.status !== UserStatus.FraudSuspect);
     }
 
     setFilteredProjects(filtered);
@@ -841,7 +861,7 @@ function ReviewPage() {
   // Close modal when escape key is pressed
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
-       if (event.key === 'Escape') {
+      if (event.key === 'Escape') {
         setSelectedProject(null);
       }
     };
@@ -851,17 +871,17 @@ function ReviewPage() {
       window.removeEventListener('keydown', handleEsc);
     };
   }, []);
-  
+
   // Function to fetch projects in review - moved outside useEffect for reusability
   const fetchProjectsInReview = async () => {
     try {
       setIsLoading(true);
       const response = await fetch('/api/review');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch projects in review');
       }
-      
+
       const data = await response.json();
       setProjects(data);
       setFilteredProjects(data); // Initialize filtered projects with all projects
@@ -872,24 +892,24 @@ function ReviewPage() {
       setIsLoading(false);
     }
   };
-  
+
   // Handle review submissions and refresh the project list
   const handleReviewSubmitted = () => {
     // Close the modal
     setSelectedProject(null);
-    
+
     // Refresh the projects list
     fetchProjectsInReview();
-    
+
     // Show toast
-    toast.success("Review completed. Project removed from review list.");
+    toast.success('Review completed. Project removed from review list.');
   };
 
   // Render loading state
-  if (status === "loading") {
+  if (status === 'loading') {
     return <Loading />;
   }
-  
+
   // Authentication and access control is now handled by the layout
   return (
     <div className="min-h-screen bg-gray-50">
@@ -907,7 +927,7 @@ function ReviewPage() {
           <ProjectHistogramChart />
           <UserClusterChart />
         </div>
-        
+
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
             <div className="flex">
@@ -920,7 +940,7 @@ function ReviewPage() {
             </div>
           </div>
         )}
-        
+
         {/* Filter buttons */}
         {!isLoading && projects.length > 0 && (
           <div className="mb-6">
@@ -995,14 +1015,14 @@ function ReviewPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-gray-700 mr-2">Filter by tags:</span>
               {availableTags.map((tag) => {
-                const tagProjectCount = projects.filter(project =>
-                  project.projectTags?.some(projectTag => projectTag.tag.id === tag.id)
+                const tagProjectCount = projects.filter((project) =>
+                  project.projectTags?.some((projectTag) => projectTag.tag.id === tag.id),
                 ).length;
 
                 if (tagProjectCount === 0) return null;
 
                 const isSelected = selectedTags.includes(tag.id);
-                
+
                 // Helper function to determine if a color is light/white
                 const isLightColor = (color: string) => {
                   if (!color) return false;
@@ -1017,7 +1037,9 @@ function ReviewPage() {
                     return brightness > 200; // Threshold for "light" colors
                   }
                   // Handle named colors - assume white/light colors are problematic
-                  return ['white', 'lightgray', 'lightgrey', 'silver', 'whitesmoke'].includes(color.toLowerCase());
+                  return ['white', 'lightgray', 'lightgrey', 'silver', 'whitesmoke'].includes(
+                    color.toLowerCase(),
+                  );
                 };
 
                 const hasValidColor = tag.color && !isLightColor(tag.color);
@@ -1027,7 +1049,7 @@ function ReviewPage() {
                     key={tag.id}
                     onClick={() => {
                       if (isSelected) {
-                        setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                        setSelectedTags(selectedTags.filter((id) => id !== tag.id));
                       } else {
                         setSelectedTags([...selectedTags, tag.id]);
                       }
@@ -1041,8 +1063,13 @@ function ReviewPage() {
                           ? `text-gray-800 border border-gray-300 hover:bg-gray-100`
                           : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                     }`}
-                    style={isSelected && hasValidColor ? { backgroundColor: tag.color } : 
-                           !isSelected && hasValidColor ? { backgroundColor: `${tag.color}20` } : {}}
+                    style={
+                      isSelected && hasValidColor
+                        ? { backgroundColor: tag.color }
+                        : !isSelected && hasValidColor
+                          ? { backgroundColor: `${tag.color}20` }
+                          : {}
+                    }
                   >
                     {tag.name} ({tagProjectCount})
                   </button>
@@ -1061,18 +1088,16 @@ function ReviewPage() {
         )}
 
         <div className="relative mb-6">
-            <input
-              type="text"
-              placeholder="Search project reviews..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="absolute right-3 top-3 text-gray-400">
-              🔍
-            </span>
+          <input
+            type="text"
+            placeholder="Search project reviews..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="absolute right-3 top-3 text-gray-400">🔍</span>
         </div>
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -1084,26 +1109,26 @@ function ReviewPage() {
               <div className="col-span-full bg-white p-6 rounded-lg shadow text-center">
                 <Icon glyph="checkmark" size={48} className="mx-auto text-green-500 mb-2" />
                 <h2 className="text-xl font-semibold text-gray-800 mb-1">
-                  {projects.length === 0 ? "All caught up!" : "No matching projects"}
+                  {projects.length === 0 ? 'All caught up!' : 'No matching projects'}
                 </h2>
                 <p className="text-gray-600">
-                  {projects.length === 0 
-                    ? "There are no projects waiting for review at the moment." 
-                    : "Try a different filter to see more projects."}
+                  {projects.length === 0
+                    ? 'There are no projects waiting for review at the moment.'
+                    : 'Try a different filter to see more projects.'}
                 </p>
               </div>
             ) : (
               filteredProjects.map((project) => (
-                <ProjectCard 
-                  key={project.projectID} 
-                  project={project} 
+                <ProjectCard
+                  key={project.projectID}
+                  project={project}
                   onClick={() => setSelectedProject(project)}
                 />
               ))
             )}
           </div>
         )}
-        
+
         {/* Project Detail Modal */}
         {selectedProject && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 w-[100vw]">
@@ -1117,19 +1142,27 @@ function ReviewPage() {
                   <div className="p-4 flex-grow overflow-hidden">
                     <div className="prose prose-sm max-w-none overflow-y-auto h-full">
                       <Suspense fallback={<div>Loading guidelines...</div>}>
-                        {selectedProject.latestReview?.reviewType == 'ShippedApproval' && <MDXShippedApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'ViralApproval' && <MDXViralApproval components={components} />}
-                        {selectedProject.latestReview?.reviewType == 'HoursApproval' && <MDXShipUpdateApproval components={components} />}
-                        {(selectedProject.latestReview?.reviewType || 'Other') == 'Other' && <MDXOther components={components} />}
+                        {selectedProject.latestReview?.reviewType == 'ShippedApproval' && (
+                          <MDXShippedApproval components={components} />
+                        )}
+                        {selectedProject.latestReview?.reviewType == 'ViralApproval' && (
+                          <MDXViralApproval components={components} />
+                        )}
+                        {selectedProject.latestReview?.reviewType == 'HoursApproval' && (
+                          <MDXShipUpdateApproval components={components} />
+                        )}
+                        {(selectedProject.latestReview?.reviewType || 'Other') == 'Other' && (
+                          <MDXOther components={components} />
+                        )}
                       </Suspense>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Project detail panel */}
                 <div className="w-full md:w-1/2 h-2/3 md:h-full overflow-auto rounded-lg">
-                  <ProjectDetail 
-                    project={selectedProject} 
+                  <ProjectDetail
+                    project={selectedProject}
                     onClose={() => setSelectedProject(null)}
                     onReviewSubmitted={handleReviewSubmitted}
                   />

@@ -1,25 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { getReferralDataProvider, ReferralData } from './service';
 
 // Color mapping for different referral types
 const getSeriesColor = (name: string): string => {
   const colorMap: Record<string, string> = {
-    'direct': '#8884d8',          // Purple
-    'referred': '#ff8042',        // Coral/orange - for generic referrals (with referral ID but no type)
-    'social_media': '#82ca9d',    // Green
-    'email': '#ffc658',          // Gold
-    'friend': '#ff7300',         // Orange
-    'search': '#0088fe',         // Blue
-    'other': '#00C49F',          // Teal
-    'yt': '#FF0000',             // YouTube red
-    'p': '#00ADEE',              // Parse blue
-    'ig-bio': '#C13584',         // Instagram purple/pink
-    'ldrs': '#50AF95',           // Leaders - teal green
+    direct: '#8884d8', // Purple
+    referred: '#ff8042', // Coral/orange - for generic referrals (with referral ID but no type)
+    social_media: '#82ca9d', // Green
+    email: '#ffc658', // Gold
+    friend: '#ff7300', // Orange
+    search: '#0088fe', // Blue
+    other: '#00C49F', // Teal
+    yt: '#FF0000', // YouTube red
+    p: '#00ADEE', // Parse blue
+    'ig-bio': '#C13584', // Instagram purple/pink
+    ldrs: '#50AF95', // Leaders - teal green
   };
-  
+
   // Return mapped color or generate one for unknown types
   return colorMap[name] || `hsl(${Math.random() * 360}, 70%, 50%)`;
 };
@@ -29,7 +38,7 @@ const timeRanges = [
   { label: 'Last 3 Days', days: 3 },
   { label: 'Last 7 Days', days: 7 },
   { label: 'Last 14 Days', days: 14 },
-  { label: 'All Time', days: 0 }
+  { label: 'All Time', days: 0 },
 ];
 
 export default function ReferralsDashboard() {
@@ -45,12 +54,12 @@ export default function ReferralsDashboard() {
   // Filter data based on selected time range
   const filterDataByTimeRange = (data: ReferralData[]): ReferralData[] => {
     if (selectedRange.days === 0) return data; // "All Time"
-    
+
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - selectedRange.days);
     const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
-    
-    return data.filter(item => item.date >= cutoffDateStr);
+
+    return data.filter((item) => item.date >= cutoffDateStr);
   };
 
   useEffect(() => {
@@ -66,7 +75,7 @@ export default function ReferralsDashboard() {
         provider.getReferralsByType(),
         provider.getReferralsByReferrer(),
         provider.getAllTimeTopReferrers(),
-        provider.getReferralsByRSVPs()
+        provider.getReferralsByRSVPs(),
       ]);
       return { typeResult, referrerResult, allTimeResult, rsvpResult };
     };
@@ -110,33 +119,35 @@ export default function ReferralsDashboard() {
 
   const renderChart = (data: ReferralData[], title: string, isTypeChart = false) => {
     // Apply time range filter for type and RSVP charts
-    const filteredData = (isTypeChart || title === 'Total RSVPs') 
-      ? filterDataByTimeRange(data)
-      : data;
+    const filteredData =
+      isTypeChart || title === 'Total RSVPs' ? filterDataByTimeRange(data) : data;
 
     // Group data by name for multiple lines
-    const groupedData = filteredData.reduce((acc, item) => {
-      if (!acc[item.name]) {
-        acc[item.name] = [];
-      }
-      acc[item.name].push(item);
-      return acc;
-    }, {} as Record<string, ReferralData[]>);
+    const groupedData = filteredData.reduce(
+      (acc, item) => {
+        if (!acc[item.name]) {
+          acc[item.name] = [];
+        }
+        acc[item.name].push(item);
+        return acc;
+      },
+      {} as Record<string, ReferralData[]>,
+    );
 
     // Create a unique set of dates for the x-axis
-    const dates = Array.from(new Set(filteredData.map(item => item.date))).sort();
+    const dates = Array.from(new Set(filteredData.map((item) => item.date))).sort();
 
     // Create the final data structure for the chart
-    const chartData = dates.map(date => {
+    const chartData = dates.map((date) => {
       const point: any = { date };
       Object.entries(groupedData).forEach(([name, items]) => {
         // Only hide the 'direct' series when showDirect is false
-        // All other series (including 'referred' and specific types like 'yt') 
+        // All other series (including 'referred' and specific types like 'yt')
         // should always be shown
         if (isTypeChart && name === 'direct' && !showDirect) {
           return;
         }
-        const item = items.find(i => i.date === date);
+        const item = items.find((i) => i.date === date);
         point[name] = item?.value || 0;
       });
       return point;
@@ -150,7 +161,7 @@ export default function ReferralsDashboard() {
             <button
               onClick={() => setShowDirect(!showDirect)}
               className={`px-3 py-1 rounded text-sm font-medium ${
-                showDirect 
+                showDirect
                   ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -163,17 +174,17 @@ export default function ReferralsDashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 tickFormatter={(dateStr) => {
-                  const [year, month, day] = dateStr.split('-');
+                  const [year, month, day] = String(dateStr ?? '').split('-');
                   return `${month}/${day}`;
                 }}
               />
               <YAxis />
-              <Tooltip 
+              <Tooltip
                 labelFormatter={(dateStr) => {
-                  const [year, month, day] = dateStr.split('-');
+                  const [year, month, day] = String(dateStr ?? '').split('-');
                   return `${month}/${day}/${year}`;
                 }}
               />
@@ -206,7 +217,7 @@ export default function ReferralsDashboard() {
   const renderReferrerList = (data: ReferralData[], title: string) => {
     // Filter out 'direct' entries, sort by value (descending) and take top 50
     const sortedReferrers = [...data]
-      .filter(referrer => referrer.name !== 'direct')
+      .filter((referrer) => referrer.name !== 'direct')
       .sort((a, b) => b.value - a.value)
       .slice(0, 50);
 
@@ -247,9 +258,10 @@ export default function ReferralsDashboard() {
               onClick={() => setSelectedRange(range)}
               className={`
                 px-4 py-2 text-sm font-medium
-                ${range === selectedRange
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                ${
+                  range === selectedRange
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
                 }
                 border border-gray-200
                 first:rounded-l-lg first:border-l
@@ -270,4 +282,4 @@ export default function ReferralsDashboard() {
       </div>
     </div>
   );
-} 
+}

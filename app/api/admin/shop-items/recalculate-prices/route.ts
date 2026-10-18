@@ -11,22 +11,24 @@ export async function POST(request: NextRequest) {
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-    
+
     const user = authResult.user;
 
     const { dollarsPerHour } = await request.json();
 
     if (!dollarsPerHour || dollarsPerHour <= 0) {
-      return NextResponse.json({ 
-        error: 'Valid dollars per hour value is required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Valid dollars per hour value is required',
+        },
+        { status: 400 },
+      );
     }
 
-  
     const fixedItems = await prisma.shopItem.findMany({
-      where: { 
+      where: {
         costType: 'fixed',
-        usdCost: { gt: 0 }
+        usdCost: { gt: 0 },
       },
     });
 
@@ -36,10 +38,10 @@ export async function POST(request: NextRequest) {
     // Recalculate and update each item's price
     for (const item of fixedItems) {
       const newPrice = calculateShellPrice(item.usdCost, dollarsPerHour);
-      
+
       if (newPrice !== item.price) {
         const oldPrice = item.price;
-        
+
         await prisma.shopItem.update({
           where: { id: item.id },
           data: { price: newPrice },
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
           itemName: item.name,
           oldPrice,
           newPrice,
-          usdCost: item.usdCost
+          usdCost: item.usdCost,
         });
 
         await createAuditLog({
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
             oldPrice,
             newPrice,
             usdCost: item.usdCost,
-            reason: `Recalculated with dollarsPerHour=${dollarsPerHour}`
+            reason: `Recalculated with dollarsPerHour=${dollarsPerHour}`,
           },
         });
       }
@@ -86,14 +88,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       updatedCount,
       dollarsPerHour,
-      updateResults
+      updateResults,
     });
   } catch (error) {
     console.error('Error recalculating prices:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

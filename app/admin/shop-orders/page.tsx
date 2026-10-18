@@ -38,7 +38,9 @@ export default function ShopOrdersPage() {
   // Confirmation modal state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationOrder, setConfirmationOrder] = useState<ShopOrder | null>(null);
-  const [confirmationAction, setConfirmationAction] = useState<'fulfill' | 'reject' | 'refund' | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<
+    'fulfill' | 'reject' | 'refund' | null
+  >(null);
 
   const fetchOrders = async (filter?: string) => {
     try {
@@ -62,12 +64,12 @@ export default function ShopOrdersPage() {
 
     // Filter by status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
+      filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
     // Filter by priority
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(order => {
+      filtered = filtered.filter((order) => {
         if (priorityFilter === 'priority') {
           // Priority items are progress_to_island and travel_stipend
           return order.itemId === 'progress_to_island' || order.itemId === 'travel_stipend';
@@ -97,13 +99,13 @@ export default function ShopOrdersPage() {
 
   const confirmAction = async () => {
     if (!confirmationOrder || !confirmationAction) return;
-    
+
     hideConfirmationDialog();
     let status = 'pending';
     if (confirmationAction === 'fulfill') status = 'fulfilled';
     else if (confirmationAction === 'reject') status = 'rejected';
     else if (confirmationAction === 'refund') status = 'refunded';
-    
+
     await updateOrderStatus(confirmationOrder.id, status);
   };
 
@@ -134,7 +136,9 @@ export default function ShopOrdersPage() {
 
       // Show success message for fulfillments (progress applied)
       if (status === 'fulfilled' && data.progressApplied) {
-        setSuccessMessage(`Order fulfilled! ${data.progressApplied} hours of progress applied to user.`);
+        setSuccessMessage(
+          `Order fulfilled! ${data.progressApplied} hours of progress applied to user.`,
+        );
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
@@ -203,8 +207,8 @@ export default function ShopOrdersPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-600 mb-4">Error: {error}</h2>
-          <button 
-            onClick={() => fetchOrders(statusFilter)} 
+          <button
+            onClick={() => fetchOrders(statusFilter)}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             Retry
@@ -231,54 +235,91 @@ export default function ShopOrdersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                confirmationAction === 'fulfill' ? 'bg-green-100' : 
-                confirmationAction === 'reject' ? 'bg-red-100' : 'bg-yellow-100'
-              }`}>
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  confirmationAction === 'fulfill'
+                    ? 'bg-green-100'
+                    : confirmationAction === 'reject'
+                      ? 'bg-red-100'
+                      : 'bg-yellow-100'
+                }`}
+              >
                 <span className="text-xl">
-                  {confirmationAction === 'fulfill' ? '✅' : 
-                   confirmationAction === 'reject' ? '❌' : '💰'}
+                  {confirmationAction === 'fulfill'
+                    ? '✅'
+                    : confirmationAction === 'reject'
+                      ? '❌'
+                      : '💰'}
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Confirm {confirmationAction === 'fulfill' ? 'Fulfillment' : 
-                         confirmationAction === 'reject' ? 'Rejection' : 'Refund'}
+                Confirm{' '}
+                {confirmationAction === 'fulfill'
+                  ? 'Fulfillment'
+                  : confirmationAction === 'reject'
+                    ? 'Rejection'
+                    : 'Refund'}
               </h3>
             </div>
-            
+
             <p className="text-gray-600 mb-6">
               Are you sure you want to{' '}
               <span className="font-semibold">
-                {confirmationAction === 'fulfill' ? 'fulfill' : 
-                 confirmationAction === 'reject' ? 'reject' : 'refund'}
+                {confirmationAction === 'fulfill'
+                  ? 'fulfill'
+                  : confirmationAction === 'reject'
+                    ? 'reject'
+                    : 'refund'}
               </span>{' '}
               this order?
             </p>
-            
+
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h4 className="font-medium text-gray-900 mb-2">Order Details:</h4>
               <div className="text-sm text-gray-600 space-y-1">
-                <div><span className="font-medium">Item:</span> {confirmationOrder.itemName}</div>
-                <div><span className="font-medium">Customer:</span> {confirmationOrder.user.name} ({confirmationOrder.user.email})</div>
-                <div><span className="font-medium">Quantity:</span> {confirmationOrder.quantity}</div>
-                <div><span className="font-medium">Price:</span> {confirmationOrder.price} shells</div>
-                {confirmationAction === 'fulfill' && confirmationOrder.itemName.toLowerCase().includes('progress') && (
-                  <div><span className="font-medium">Progress to apply:</span> {confirmationOrder.quantity}%</div>
-                )}
+                <div>
+                  <span className="font-medium">Item:</span> {confirmationOrder.itemName}
+                </div>
+                <div>
+                  <span className="font-medium">Customer:</span> {confirmationOrder.user.name} (
+                  {confirmationOrder.user.email})
+                </div>
+                <div>
+                  <span className="font-medium">Quantity:</span> {confirmationOrder.quantity}
+                </div>
+                <div>
+                  <span className="font-medium">Price:</span> {confirmationOrder.price} shells
+                </div>
+                {confirmationAction === 'fulfill' &&
+                  confirmationOrder.itemName.toLowerCase().includes('progress') && (
+                    <div>
+                      <span className="font-medium">Progress to apply:</span>{' '}
+                      {confirmationOrder.quantity}%
+                    </div>
+                  )}
                 {confirmationAction === 'reject' && (
-                  <div><span className="font-medium">Shells to reimburse:</span> {confirmationOrder.price}</div>
+                  <div>
+                    <span className="font-medium">Shells to reimburse:</span>{' '}
+                    {confirmationOrder.price}
+                  </div>
                 )}
                 {confirmationAction === 'refund' && (
                   <>
-                    <div><span className="font-medium">Shells to reimburse:</span> {confirmationOrder.price}</div>
+                    <div>
+                      <span className="font-medium">Shells to reimburse:</span>{' '}
+                      {confirmationOrder.price}
+                    </div>
                     {confirmationOrder.itemName.toLowerCase().includes('progress') && (
-                      <div><span className="font-medium">Progress to remove:</span> {confirmationOrder.quantity}%</div>
+                      <div>
+                        <span className="font-medium">Progress to remove:</span>{' '}
+                        {confirmationOrder.quantity}%
+                      </div>
                     )}
                   </>
                 )}
               </div>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={hideConfirmationDialog}
@@ -289,13 +330,18 @@ export default function ShopOrdersPage() {
               <button
                 onClick={confirmAction}
                 className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition ${
-                  confirmationAction === 'fulfill' ? 'bg-green-600 hover:bg-green-700' : 
-                  confirmationAction === 'reject' ? 'bg-red-600 hover:bg-red-700' :
-                  'bg-yellow-600 hover:bg-yellow-700'
+                  confirmationAction === 'fulfill'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : confirmationAction === 'reject'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-yellow-600 hover:bg-yellow-700'
                 }`}
               >
-                {confirmationAction === 'fulfill' ? 'Fulfill Order' : 
-                 confirmationAction === 'reject' ? 'Reject Order' : 'Refund Order'}
+                {confirmationAction === 'fulfill'
+                  ? 'Fulfill Order'
+                  : confirmationAction === 'reject'
+                    ? 'Reject Order'
+                    : 'Refund Order'}
               </button>
             </div>
           </div>
@@ -364,13 +410,14 @@ export default function ShopOrdersPage() {
               <span className="text-4xl">📦</span>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {statusFilter === 'pending' && priorityFilter === 'all' ? 'All caught up!' : 'No orders found'}
+              {statusFilter === 'pending' && priorityFilter === 'all'
+                ? 'All caught up!'
+                : 'No orders found'}
             </h2>
             <p className="text-gray-600">
               {statusFilter === 'pending' && priorityFilter === 'all'
-                ? 'No pending orders to process.' 
-                : `No ${statusFilter !== 'all' ? statusFilter : ''} ${priorityFilter !== 'all' ? priorityFilter : ''} orders found.`
-              }
+                ? 'No pending orders to process.'
+                : `No ${statusFilter !== 'all' ? statusFilter : ''} ${priorityFilter !== 'all' ? priorityFilter : ''} orders found.`}
             </p>
           </div>
         ) : (
@@ -379,8 +426,8 @@ export default function ShopOrdersPage() {
               <div
                 key={order.id}
                 className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${
-                  (order.itemId === 'progress_to_island' || order.itemId === 'travel_stipend') 
-                    ? 'border-orange-300 bg-orange-50' 
+                  order.itemId === 'progress_to_island' || order.itemId === 'travel_stipend'
+                    ? 'border-orange-300 bg-orange-50'
                     : 'border-gray-200'
                 }`}
               >
@@ -392,7 +439,8 @@ export default function ShopOrdersPage() {
                         <div>
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-xl font-bold text-gray-900">{order.itemName}</h3>
-                            {(order.itemId === 'progress_to_island' || order.itemId === 'travel_stipend') && (
+                            {(order.itemId === 'progress_to_island' ||
+                              order.itemId === 'travel_stipend') && (
                               <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
                                 Priority
                               </span>
@@ -414,15 +462,17 @@ export default function ShopOrdersPage() {
                           <div className="text-xs text-gray-400">
                             {new Date(order.createdAt).toLocaleTimeString()}
                           </div>
-                          <div className={`mt-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            order.status === 'pending' 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : order.status === 'fulfilled' 
-                              ? 'bg-green-100 text-green-800'
-                              : order.status === 'refunded'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
+                          <div
+                            className={`mt-1 px-2 py-1 rounded-full text-xs font-medium ${
+                              order.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : order.status === 'fulfilled'
+                                  ? 'bg-green-100 text-green-800'
+                                  : order.status === 'refunded'
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : 'bg-red-100 text-red-800'
+                            }`}
+                          >
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </div>
                         </div>
@@ -434,11 +484,15 @@ export default function ShopOrdersPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                           <div>
                             <span className="text-gray-600">Name:</span>
-                            <span className="ml-2 font-medium text-gray-900">{order.user.name}</span>
+                            <span className="ml-2 font-medium text-gray-900">
+                              {order.user.name}
+                            </span>
                           </div>
                           <div>
                             <span className="text-gray-600">Email:</span>
-                            <span className="ml-2 font-medium text-gray-900">{order.user.email}</span>
+                            <span className="ml-2 font-medium text-gray-900">
+                              {order.user.email}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -468,7 +522,7 @@ export default function ShopOrdersPage() {
                             </>
                           )}
                         </button>
-                        
+
                         <button
                           onClick={() => showConfirmationDialog(order, 'reject')}
                           disabled={updatingOrder === order.id}
@@ -528,4 +582,4 @@ export default function ShopOrdersPage() {
       </div>
     </div>
   );
-} 
+}

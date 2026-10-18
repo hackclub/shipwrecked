@@ -1,0 +1,10 @@
+.git
+.next
+**/node_modules
+app/generated
+.env*
+!.env.example
+*.tsbuildinfo
+**/__pycache__
+**/.venv
+coverage

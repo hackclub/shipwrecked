@@ -1,19 +1,19 @@
 # Run ip2geo.py every minute
-* * * * * python3 /app/pipelines/jobs/ip2geo/ip2geo.py --airtable-api-key "$AIRTABLE_API_KEY" --airtable-base-id "$AIRTABLE_BASE_ID" --ipinfo-api-token "$IPINFO_API_TOKEN" >> /var/log/cron.log 2>&1
+* * * * * /opt/venv/bin/python /app/pipelines/jobs/ip2geo/ip2geo.py --airtable-api-key "$AIRTABLE_API_KEY" --airtable-base-id "$AIRTABLE_BASE_ID" --ipinfo-api-token "$IPINFO_API_TOKEN" >> /var/log/cron.log 2>&1
 
 # Run Hackatime sync every 5 minutes
-*/5 * * * * cd /app && tsx /app/pipelines/jobs/hackatime-sync/hackatime-sync.ts >> /var/log/cron.log 2>&1
+*/5 * * * * cd /app && /usr/local/bin/bun /app/pipelines/jobs/hackatime-sync/hackatime-sync.ts >> /var/log/cron.log 2>&1
 
 # Run Airtable RSVP update every 10 minutes
-*/10 * * * * cd /app && tsx /app/pipelines/jobs/airtable-rsvp/update-airtable-rsvp.ts >> /var/log/cron.log 2>&1
+*/10 * * * * cd /app && /usr/local/bin/bun /app/pipelines/jobs/airtable-rsvp/update-airtable-rsvp.ts >> /var/log/cron.log 2>&1
 
 # Run Airtable sync every 15 mins
-*/15 * * * * cd /app && tsx /app/pipelines/jobs/airtable-sync/index.ts >> /var/log/cron.log 2>&1
+*/15 * * * * cd /app && /usr/local/bin/bun /app/pipelines/jobs/airtable-sync/index.ts >> /var/log/cron.log 2>&1
 
 # Run Badge Verification every 30 minutes
-*/30 * * * * cd /app && tsx /app/pipelines/jobs/badge-verification/index.ts >> /var/log/cron.log 2>&1
+*/30 * * * * cd /app && /usr/local/bin/bun /app/pipelines/jobs/badge-verification/index.ts >> /var/log/cron.log 2>&1
 
 # Run duplicate tagger every 10 minutes
-*/10 * * * * cd /app && tsx /app/pipelines/jobs/duplicate-tagger/index.ts >> /var/log/cron.log 2>&1
+*/10 * * * * cd /app && /usr/local/bin/bun /app/pipelines/jobs/duplicate-tagger/index.ts >> /var/log/cron.log 2>&1
 
 # Empty line at the end of the file is required for a valid cron file 

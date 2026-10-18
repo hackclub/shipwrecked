@@ -3,20 +3,18 @@
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import { Toaster, toast } from "sonner";
+import { Toaster, toast } from 'sonner';
 
 function Loading() {
   return (
     <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
       <div className="relative flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-            Loading...
-          </p>
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">Loading...</p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function AccessDeniedHaiku() {
@@ -43,7 +41,7 @@ function AccessDeniedHaiku() {
           style={{
             opacity: visible ? 1 : 0,
             transition: 'opacity 4s ease-in',
-            display: 'inline-block'
+            display: 'inline-block',
           }}
           className="text-center"
         >
@@ -74,7 +72,7 @@ interface UserData {
 
 // Helper function to get role badge style
 function getRoleBadgeStyle(role: string) {
-  switch(role) {
+  switch (role) {
     case 'Admin':
       return 'bg-purple-100 text-purple-800';
     case 'Reviewer':
@@ -98,18 +96,18 @@ function SettingsContent() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (status !== 'authenticated' || !session?.user?.id) return;
-      
+
       try {
         setIsLoading(true);
         const response = await fetch(`/api/users/me`);
         const identityResponse = await fetch('/api/identity/me');
         const identityData = await identityResponse.json();
         setIdentityStatus(identityData.verification_status);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch user data');
         }
-        
+
         const data = await response.json();
         setUserData(data);
         console.log('Fetched user data:', data); // Debug log
@@ -119,41 +117,41 @@ function SettingsContent() {
         setIsLoading(false);
       }
     };
-    
+
     if (status === 'authenticated') {
       fetchUserData();
     }
   }, [status, session]);
 
   // Early return if not authenticated
-  if (status === "loading") return <Loading />
-  if (status === "unauthenticated") {
+  if (status === 'loading') return <Loading />;
+  if (status === 'unauthenticated') {
     return <AccessDeniedHaiku />;
   }
 
   // Function to trigger email verification
   const handleRequestVerification = async () => {
     if (!session?.user?.email) {
-      toast.error("No email associated with your account");
+      toast.error('No email associated with your account');
       return;
     }
 
     setIsRequestingVerification(true);
-    
+
     try {
       // Using the same email sign-in flow as the login page
-      await signIn("email", { 
-        email: session.user.email, 
-        redirect: false 
+      await signIn('email', {
+        email: session.user.email,
+        redirect: false,
       });
-      
-      toast.success("Verification email sent! Please check your inbox.");
-      
+
+      toast.success('Verification email sent! Please check your inbox.');
+
       // Redirect to verification page
-      router.push("/bay/login/verify");
+      router.push('/bay/login/verify');
     } catch (error) {
-      console.error("Error requesting verification:", error);
-      toast.error("Failed to send verification email. Please try again.");
+      console.error('Error requesting verification:', error);
+      toast.error('Failed to send verification email. Please try again.');
     } finally {
       setIsRequestingVerification(false);
     }
@@ -165,17 +163,17 @@ function SettingsContent() {
     try {
       // Use the Slack provider for authentication with a query param to identify return from Slack
       // Create a full absolute URL to ensure proper redirection
-      const callbackUrl = new URL("/settings", window.location.origin);
-      callbackUrl.searchParams.set("slackConnected", "true");
-      
-      await signIn("slack", { 
+      const callbackUrl = new URL('/settings', window.location.origin);
+      callbackUrl.searchParams.set('slackConnected', 'true');
+
+      await signIn('slack', {
         callbackUrl: callbackUrl.toString(),
-        redirect: true
+        redirect: true,
       });
       // Note: We don't reset isConnectingSlack here because we're redirecting away
     } catch (error) {
-      console.error("Error connecting to Slack:", error);
-      toast.error("Failed to connect to Slack. Please try again.");
+      console.error('Error connecting to Slack:', error);
+      toast.error('Failed to connect to Slack. Please try again.');
       setIsConnectingSlack(false);
     }
   };
@@ -184,7 +182,7 @@ function SettingsContent() {
     const response = await fetch('/api/identity/url');
     const data = await response.json();
     return data.url;
-  }
+  };
 
   // Determine which data to use - prefer directly fetched userData if available
   const userEmail = userData?.email || session?.user?.email;
@@ -197,25 +195,27 @@ function SettingsContent() {
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">Settings</h1>
-        
+
         <div className="space-y-8">
           <div className="pb-6">
             <div className="space-y-4">
               <div>
                 <p className="text-gray-600 mb-1">Name</p>
                 <div className="flex items-center">
-                  <p className="font-medium">{userName || "Unknown"}</p>
-                  <span className={`ml-3 px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getRoleBadgeStyle(userRole)}`}>
+                  <p className="font-medium">{userName || 'Unknown'}</p>
+                  <span
+                    className={`ml-3 px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getRoleBadgeStyle(userRole)}`}
+                  >
                     {userRole}
                   </span>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-600 mb-1">Email</p>
                 <p className="font-medium">{userEmail}</p>
               </div>
-              
+
               <div>
                 <p className="text-gray-600 mb-1">Email Verified?</p>
                 <div className="flex items-center">
@@ -233,7 +233,7 @@ function SettingsContent() {
                         disabled={isRequestingVerification}
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                       >
-                        {isRequestingVerification ? "Sending..." : "Fix this..."}
+                        {isRequestingVerification ? 'Sending...' : 'Fix this...'}
                       </button>
                     </div>
                   )}
@@ -264,13 +264,13 @@ function SettingsContent() {
                         disabled={isRequestingVerification}
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                       >
-                        {isRequestingVerification ? "Verifying..." : "Verify My Identity"}
+                        {isRequestingVerification ? 'Verifying...' : 'Verify My Identity'}
                       </button>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-600 mb-1">Slack Connected?</p>
                 <div className="flex items-center">
@@ -288,7 +288,7 @@ function SettingsContent() {
                         disabled={isConnectingSlack}
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                       >
-                        {isConnectingSlack ? "Connecting..." : "Fix this..."}
+                        {isConnectingSlack ? 'Connecting...' : 'Fix this...'}
                       </button>
                     </div>
                   )}
@@ -307,27 +307,27 @@ function SettingsContent() {
 function SettingsWithSearchParams() {
   const router = useRouter();
   const [hasHandledSlack, setHasHandledSlack] = useState(false);
-  
+
   useEffect(() => {
     const handleSlackConnection = async () => {
       // Check if we have a successful Slack connection
       const urlParams = new URLSearchParams(window.location.search);
       const slackConnected = urlParams.get('slackConnected');
-      
+
       if (slackConnected === 'true' && !hasHandledSlack) {
         setHasHandledSlack(true);
-        
+
         // Show success message
         toast.success('Slack account connected successfully!');
-        
+
         // Remove the query parameter for cleaner URL
         router.replace('/settings');
       }
     };
-    
+
     handleSlackConnection();
   }, [router, hasHandledSlack]);
-  
+
   return <SettingsContent />;
 }
 
@@ -338,4 +338,4 @@ export default function Settings() {
       <SettingsWithSearchParams />
     </Suspense>
   );
-} 
+}

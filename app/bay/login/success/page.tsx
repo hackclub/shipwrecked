@@ -1,7 +1,7 @@
-import { opts } from "@/app/api/auth/[...nextauth]/route";
-import { getRecords } from "@/lib/airtable/index";
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { getRecords } from '@/lib/airtable/index';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 
 // Login Successful Redirection Page
 //
@@ -10,7 +10,7 @@ export default async function Page() {
   const session = await getServerSession(opts);
 
   // If user not logged in, redirect to login page
-  if (!session || !session?.user) redirect("/bay/login");
+  if (!session || !session?.user) redirect('/bay/login');
 
   // FIXME: Flow Incomplete: Toriel invite
   // if (!(await checkSlackUserExists(session!.user!.email!)))
@@ -26,14 +26,14 @@ export default async function Page() {
   // const hackatimeHeartbeat = await fetchRecentHeartbeat(slackUser!.id!)
   // if (!hackatimeHeartbeat.has_heartbeat) redirect("/bay/intro/hackatime");
 
-  const records = await getRecords("Users", {
+  const records = await getRecords('Users', {
     filterByFormula: `Email = '${session!.user!.email!}'`,
     sort: [],
     maxRecords: 1,
   });
-  if (records.length < 1) redirect("/bay/intro/register");
+  if (records.length < 1) redirect('/bay/intro/register');
 
-  redirect("/bay/intro/register/complete");
+  redirect('/bay/intro/register/complete');
 
   return (
     <div className="flex justify-center items-center h-[100vh]">

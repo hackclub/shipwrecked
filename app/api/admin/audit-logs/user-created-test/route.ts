@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Check if we have any UserCreated events
     const userCreatedLogs = await prisma.auditLog.findMany({
       where: {
-        eventType: AuditLogEventType.UserCreated
+        eventType: AuditLogEventType.UserCreated,
       },
       include: {
         targetUser: {
@@ -29,36 +29,40 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
-            image: true
-          }
-        }
+            image: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
-      take: 10
+      take: 10,
     });
 
     // Get general audit log stats
     const auditLogCounts = await prisma.auditLog.groupBy({
       by: ['eventType'],
       _count: {
-        id: true
-      }
+        id: true,
+      },
     });
 
     return NextResponse.json({
       userCreatedLogs,
       auditLogCounts,
-      message: userCreatedLogs.length > 0 
-        ? `Found ${userCreatedLogs.length} user creation logs` 
-        : 'No user creation logs found yet. New user signups will appear here.'
+      message:
+        userCreatedLogs.length > 0
+          ? `Found ${userCreatedLogs.length} user creation logs`
+          : 'No user creation logs found yet. New user signups will appear here.',
     });
   } catch (error) {
     console.error('Error in test endpoint:', error);
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
-} 
+}

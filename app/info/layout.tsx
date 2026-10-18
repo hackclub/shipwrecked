@@ -1,13 +1,9 @@
-"use client";
-import { useState } from "react";
-import ContentWrapper from "@/components/docs/ContentWrapper";
-import Sidebar from "@/components/docs/Sidebar";
+'use client';
+import { useState } from 'react';
+import ContentWrapper from '@/components/docs/ContentWrapper';
+import Sidebar from '@/components/docs/Sidebar';
 
-export default function MDInfoLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MDInfoLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -15,7 +11,7 @@ export default function MDInfoLayout({
       {/* Mobile sidebar overlay */}
       <div
         className={`fixed inset-0 z-40 transition-opacity md:hidden ${
-          sidebarOpen ? "block" : "hidden"
+          sidebarOpen ? 'block' : 'hidden'
         }`}
         onClick={() => setSidebarOpen(false)}
         aria-hidden="true"
@@ -25,7 +21,7 @@ export default function MDInfoLayout({
         className={`
           md:sticky fixed z-50 inset-y-0 left-0 w-64 bg-white shadow-lg transform transition-transform duration-200
           h-screen md:static md:translate-x-0 md:shadow-none min-h-screen
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         <Sidebar setSidebarOpen={setSidebarOpen} />
@@ -45,11 +41,7 @@ export default function MDInfoLayout({
             strokeWidth={2}
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       )}

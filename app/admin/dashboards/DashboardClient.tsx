@@ -4,11 +4,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function DashboardClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardClient({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
@@ -60,17 +56,13 @@ export default function DashboardClient({
               </div>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-gray-500">
-                {session?.user?.email}
-              </span>
+              <span className="text-sm text-gray-500">{session?.user?.email}</span>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">{children}</main>
     </div>
   );
-} 
+}

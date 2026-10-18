@@ -30,29 +30,35 @@ export async function GET() {
     const globalConfigs = await prisma.globalConfig.findMany({
       where: {
         key: {
-          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour']
-        }
-      }
+          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour'],
+        },
+      },
     });
 
-    const configMap = globalConfigs.reduce((acc, config) => {
-      acc[config.key] = config.value;
-      return acc;
-    }, {} as Record<string, string>);
+    const configMap = globalConfigs.reduce(
+      (acc, config) => {
+        acc[config.key] = config.value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
     const minPercent = parseFloat(configMap.price_random_min_percent || '90');
     const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
     const globalDollarsPerHour = parseFloat(configMap.dollars_per_hour || '10');
 
     // Apply correct pricing logic
-    const publicItems = items.map(item => {
+    const publicItems = items.map((item) => {
       // If travel stipend, use calculateShellPrice with dollars_per_hour from config or global
       if (
         item.name.toLowerCase().includes('travel stipend') &&
         item.costType === 'config' &&
-        item.config && typeof item.config === 'object' && 'dollars_per_hour' in item.config
+        item.config &&
+        typeof item.config === 'object' &&
+        'dollars_per_hour' in item.config
       ) {
-        const dollarsPerHour = parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
+        const dollarsPerHour =
+          parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
         return {
           id: item.id,
           name: item.name,
@@ -88,4 +94,4 @@ export async function GET() {
     console.error('Error loading shop items:', error);
     return NextResponse.json({ error: 'Failed to load shop items' }, { status: 500 });
   }
-} 
+}

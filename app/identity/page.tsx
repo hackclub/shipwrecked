@@ -1,11 +1,11 @@
-"use client";
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+'use client';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 function IdentityCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<'loading'|'success'|'error'|'pending'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'pending'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -27,24 +27,28 @@ function IdentityCallbackContent() {
         const data = await response.json();
         console.log(data);
         if (data.access_token) {
-            const response2 = await fetch('/api/identity/me');
-            const data2 = await response2.json();
-            console.log(data2);
-          
+          const response2 = await fetch('/api/identity/me');
+          const data2 = await response2.json();
+          console.log(data2);
+
           if (data2.rejection_reason) {
             setStatus('error');
             setMessage('Your submission got rejected! Go to identity.hackclub.com to fix.');
             return;
           }
-          
+
           if (data2.verification_status === 'pending') {
             setStatus('pending');
             setMessage('Your identity verification is pending. Please wait for approval.');
             return;
           }
-          
-          setStatus(data2.verification_status === 'verified' ? 'success' :  'error');
-          setMessage(data2.verification_status === 'verified' ? 'Identity verified! You may now return to Shipwrecked.' : 'Identity verification failed. Please try again.');
+
+          setStatus(data2.verification_status === 'verified' ? 'success' : 'error');
+          setMessage(
+            data2.verification_status === 'verified'
+              ? 'Identity verified! You may now return to Shipwrecked.'
+              : 'Identity verification failed. Please try again.',
+          );
         } else {
           setStatus('error');
           setMessage('Failed to verify identity.');
@@ -69,9 +73,9 @@ function IdentityCallbackContent() {
             {message.includes('identity.hackclub.com') ? (
               <>
                 Your submission got rejected! Go to{' '}
-                <a 
-                  href="https://identity.hackclub.com" 
-                  target="_blank" 
+                <a
+                  href="https://identity.hackclub.com"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-red-800"
                 >
@@ -97,15 +101,17 @@ function IdentityCallbackContent() {
 
 export default function IdentityCallback() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded shadow max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold mb-4">Identity Verification</h1>
-          <p className="mb-4">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+          <div className="bg-white p-8 rounded shadow max-w-md w-full text-center">
+            <h1 className="text-2xl font-bold mb-4">Identity Verification</h1>
+            <p className="mb-4">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <IdentityCallbackContent />
     </Suspense>
   );
-} 
+}

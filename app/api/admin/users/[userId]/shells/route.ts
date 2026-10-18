@@ -7,11 +7,11 @@ import { calculateProgressMetrics } from '@/lib/project-client';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   // Await params before using
   const { userId } = await params;
-  
+
   // Check authentication
   const session = await getServerSession(opts);
   if (!session?.user) {
@@ -30,7 +30,7 @@ export async function PATCH(
     if (typeof adjustment !== 'number' || adjustment === 0) {
       return NextResponse.json(
         { error: 'Invalid adjustment value. Must be a non-zero number.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function PATCH(
     if (Math.abs(adjustment) > 1000) {
       return NextResponse.json(
         { error: 'Adjustment too large. Maximum adjustment is ±1000 shells.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function PATCH(
     if (reason !== undefined && (typeof reason !== 'string' || reason.trim().length === 0)) {
       return NextResponse.json(
         { error: 'Reason must be a non-empty string if provided.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,10 +56,10 @@ export async function PATCH(
       include: {
         projects: {
           include: {
-            hackatimeLinks: true
-          }
-        }
-      }
+            hackatimeLinks: true,
+          },
+        },
+      },
     });
 
     if (!targetUser) {
@@ -71,7 +71,7 @@ export async function PATCH(
       targetUser.projects,
       targetUser.purchasedProgressHours,
       targetUser.totalShellsSpent,
-      targetUser.adminShellAdjustment
+      targetUser.adminShellAdjustment,
     );
 
     // Update the user's admin shell adjustment
@@ -79,9 +79,9 @@ export async function PATCH(
       where: { id: userId },
       data: {
         adminShellAdjustment: {
-          increment: adjustment
-        }
-      }
+          increment: adjustment,
+        },
+      },
     });
 
     // Calculate new shell balance
@@ -89,7 +89,7 @@ export async function PATCH(
       targetUser.projects,
       targetUser.purchasedProgressHours,
       updatedUser.totalShellsSpent,
-      updatedUser.adminShellAdjustment
+      updatedUser.adminShellAdjustment,
     );
 
     // Log the shell modification
@@ -99,7 +99,7 @@ export async function PATCH(
       adjustment,
       reason: reason?.trim(),
       previousBalance: currentMetrics.availableShells,
-      newBalance: newMetrics.availableShells
+      newBalance: newMetrics.availableShells,
     });
 
     return NextResponse.json({
@@ -109,15 +109,11 @@ export async function PATCH(
       adjustment,
       adminShellAdjustment: updatedUser.adminShellAdjustment,
       shellBreakdown: {
-        availableShells: newMetrics.availableShells
-      }
+        availableShells: newMetrics.availableShells,
+      },
     });
-
   } catch (error) {
     console.error('Error modifying user shells:', error);
-    return NextResponse.json(
-      { error: 'Failed to modify user shells' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to modify user shells' }, { status: 500 });
   }
-} 
+}

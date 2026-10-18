@@ -2,21 +2,21 @@ import { prisma } from '@/lib/prisma';
 
 // Define the enum locally to match the Prisma schema
 export enum AuditLogEventType {
-  ProjectCreated = "ProjectCreated",
-  ProjectSubmittedForReview = "ProjectSubmittedForReview",
-  ProjectMarkedShipped = "ProjectMarkedShipped",
-  ProjectMarkedViral = "ProjectMarkedViral",
-  ProjectReviewCompleted = "ProjectReviewCompleted",
-  UserRoleChanged = "UserRoleChanged",
-  UserVerified = "UserVerified",
-  UserCreated = "UserCreated",
-  ProjectDeleted = "ProjectDeleted",
-  SlackConnected = "SlackConnected",
-  ShopOrderCreated = "ShopOrderCreated",
-  ShopOrderFulfilled = "ShopOrderFulfilled",
-  ShopOrderRejected = "ShopOrderRejected",
-  ShellModification = "ShellModification",
-  OtherEvent = "OtherEvent"
+  ProjectCreated = 'ProjectCreated',
+  ProjectSubmittedForReview = 'ProjectSubmittedForReview',
+  ProjectMarkedShipped = 'ProjectMarkedShipped',
+  ProjectMarkedViral = 'ProjectMarkedViral',
+  ProjectReviewCompleted = 'ProjectReviewCompleted',
+  UserRoleChanged = 'UserRoleChanged',
+  UserVerified = 'UserVerified',
+  UserCreated = 'UserCreated',
+  ProjectDeleted = 'ProjectDeleted',
+  SlackConnected = 'SlackConnected',
+  ShopOrderCreated = 'ShopOrderCreated',
+  ShopOrderFulfilled = 'ShopOrderFulfilled',
+  ShopOrderRejected = 'ShopOrderRejected',
+  ShellModification = 'ShellModification',
+  OtherEvent = 'OtherEvent',
 }
 
 interface CreateAuditLogParams {
@@ -38,56 +38,65 @@ export async function createAuditLog(params: CreateAuditLogParams) {
     event: params.eventType,
     project: params.projectId || 'N/A',
     targetUser: params.targetUserId,
-    actor: params.actorUserId || 'N/A'
+    actor: params.actorUserId || 'N/A',
   });
-  
+
   try {
     // Validate inputs
     if (!params.targetUserId) {
       console.error('[AUDIT-TRACE] 2. Missing required targetUserId');
       return null;
     }
-    
+
     // Prepare create data
     const createData = {
       eventType: params.eventType,
       description: params.description,
       targetUser: {
-        connect: { id: params.targetUserId }
+        connect: { id: params.targetUserId },
       },
       // Only include actorUser if actorUserId is provided
       ...(params.actorUserId && {
         actorUser: {
-          connect: { id: params.actorUserId }
-        }
+          connect: { id: params.actorUserId },
+        },
       }),
       // Only include project if projectId is provided
       ...(params.projectId && {
         project: {
-          connect: { projectID: params.projectId }
-        }
+          connect: { projectID: params.projectId },
+        },
       }),
       // Include metadata if provided
-      ...(params.metadata && { metadata: params.metadata })
+      ...(params.metadata && { metadata: params.metadata }),
     };
-    
-    console.log('[AUDIT-TRACE] 3. Prepared audit log data:', JSON.stringify({
-      ...createData,
-      metadata: params.metadata ? 'present' : 'none'
-    }, null, 2));
-    
+
+    console.log(
+      '[AUDIT-TRACE] 3. Prepared audit log data:',
+      JSON.stringify(
+        {
+          ...createData,
+          metadata: params.metadata ? 'present' : 'none',
+        },
+        null,
+        2,
+      ),
+    );
+
     // Verify inputs before making the call
     if (params.projectId) {
       try {
         console.log('[AUDIT-TRACE] 4. Verifying project exists:', params.projectId);
         const projectExists = await prisma.project.findUnique({
           where: { projectID: params.projectId },
-          select: { projectID: true }
+          select: { projectID: true },
         });
-        
+
         if (!projectExists) {
           console.error('[AUDIT-TRACE] 4.1 Project not found:', params.projectId);
-          console.warn('[AUDIT-TRACE] 4.2 Will continue with audit log but project reference may fail');
+          console.warn(
+            '[AUDIT-TRACE] 4.2 Will continue with audit log but project reference may fail',
+          );
         } else {
           console.log('[AUDIT-TRACE] 4.3 Project verified:', projectExists.projectID);
         }
@@ -95,22 +104,22 @@ export async function createAuditLog(params: CreateAuditLogParams) {
         console.error('[AUDIT-TRACE] 4.4 Error verifying project:', projectError);
       }
     }
-    
+
     // Use a try/catch inside a promise to handle errors and return null instead of throwing
     return await new Promise(async (resolve) => {
       try {
         console.log('[AUDIT-TRACE] 5. Calling prisma.auditLog.create');
-        
+
         // Use @prisma/client directly
         const result = await prisma.auditLog.create({
-          data: createData
+          data: createData,
         });
-        
+
         console.log('[AUDIT-TRACE] 6. Successfully created audit log:', result.id);
         resolve(result);
       } catch (error) {
         console.error('[AUDIT-TRACE] 7. Error in prisma.auditLog.create:', error);
-        
+
         // Add more detailed error logging
         if (error instanceof Error) {
           console.error('[AUDIT-TRACE] 7.1 Error details:', {
@@ -121,27 +130,29 @@ export async function createAuditLog(params: CreateAuditLogParams) {
               eventType: params.eventType,
               projectId: params.projectId,
               targetUserId: params.targetUserId,
-            }
+            },
           });
-          
+
           // Check for specific error types
           if (error.message.includes('Foreign key constraint failed')) {
-            console.error('[AUDIT-TRACE] 7.2 Foreign key constraint error - likely invalid projectId, userId or actorUserId');
-            
+            console.error(
+              '[AUDIT-TRACE] 7.2 Foreign key constraint error - likely invalid projectId, userId or actorUserId',
+            );
+
             // Extra verification of user IDs
             try {
               console.log('[AUDIT-TRACE] 7.3 Verifying targetUserId:', params.targetUserId);
               const targetUserExists = await prisma.user.findUnique({
                 where: { id: params.targetUserId },
-                select: { id: true }
+                select: { id: true },
               });
               console.log('[AUDIT-TRACE] 7.4 Target user exists:', !!targetUserExists);
-              
+
               if (params.actorUserId) {
                 console.log('[AUDIT-TRACE] 7.5 Verifying actorUserId:', params.actorUserId);
                 const actorUserExists = await prisma.user.findUnique({
                   where: { id: params.actorUserId },
-                  select: { id: true }
+                  select: { id: true },
                 });
                 console.log('[AUDIT-TRACE] 7.6 Actor user exists:', !!actorUserExists);
               }
@@ -150,7 +161,7 @@ export async function createAuditLog(params: CreateAuditLogParams) {
             }
           }
         }
-        
+
         resolve(null);
       }
     });
@@ -169,7 +180,7 @@ export async function logProjectEvent({
   projectId,
   userId,
   actorUserId,
-  metadata
+  metadata,
 }: {
   eventType: AuditLogEventType;
   description: string;
@@ -179,20 +190,20 @@ export async function logProjectEvent({
   metadata?: Record<string, any>;
 }) {
   console.log(`[PROJECT-AUDIT-TRACE] Logging project event: ${eventType} for project ${projectId}`);
-  
+
   // Validate projectId format
   if (!projectId || typeof projectId !== 'string') {
     console.error('[PROJECT-AUDIT-TRACE] Invalid projectId:', projectId);
     return null;
   }
-  
+
   return createAuditLog({
     eventType,
     description,
     targetUserId: userId,
     actorUserId,
     projectId,
-    metadata
+    metadata,
   });
 }
 
@@ -204,7 +215,7 @@ export async function logUserEvent({
   description,
   targetUserId,
   actorUserId,
-  metadata
+  metadata,
 }: {
   eventType: AuditLogEventType;
   description: string;
@@ -218,9 +229,9 @@ export async function logUserEvent({
     description,
     targetUserId,
     actorUserId,
-    metadata
+    metadata,
   });
-} 
+}
 
 /**
  * Helper function to create a shell modification audit log
@@ -231,7 +242,7 @@ export async function logShellModification({
   adjustment,
   reason,
   previousBalance,
-  newBalance
+  newBalance,
 }: {
   targetUserId: string;
   actorUserId: string;
@@ -241,9 +252,9 @@ export async function logShellModification({
   newBalance: number;
 }) {
   const description = `Admin ${adjustment > 0 ? 'added' : 'deducted'} ${Math.abs(adjustment)} shells. Previous balance: ${previousBalance}, New balance: ${newBalance}${reason ? `. Reason: ${reason}` : ''}`;
-  
+
   console.log(`[SHELL-AUDIT-TRACE] Logging shell modification: ${description}`);
-  
+
   return createAuditLog({
     eventType: AuditLogEventType.ShellModification,
     description,
@@ -254,7 +265,7 @@ export async function logShellModification({
       reason,
       previousBalance,
       newBalance,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
-} 
+}

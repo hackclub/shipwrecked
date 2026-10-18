@@ -37,4 +37,4 @@ export async function GET() {
     console.error('Error fetching user shop orders:', error);
     return NextResponse.json({ error: 'Failed to fetch shop orders' }, { status: 500 });
   }
-} 
+}

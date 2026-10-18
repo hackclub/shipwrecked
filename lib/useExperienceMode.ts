@@ -22,32 +22,33 @@ export function useExperienceMode(): {
 
   useEffect(() => {
     const clearExperience = searchParams.get('clearExperience');
-    
+
     // Clear cookie if coming from login redirect
     if (clearExperience === 'true') {
       // Clear the cookie
-      document.cookie = 'experience-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+      document.cookie =
+        'experience-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
     }
-    
+
     // Function to read the cookie
     const readMode = (): ExperienceMode => {
       if (typeof document === 'undefined') return 'island';
-      
+
       const savedMode = document.cookie
         .split('; ')
-        .find(row => row.startsWith('experience-mode='))
+        .find((row) => row.startsWith('experience-mode='))
         ?.split('=')[1];
-      
+
       return savedMode === 'voyage' ? 'voyage' : 'island';
     };
 
     const savedMode = readMode();
-    
+
     // If no saved mode and we have session data, set default based on attendee status
     if (!document.cookie.includes('experience-mode=') && session?.user) {
       const defaultMode: ExperienceMode = session.user.isAttendee ? 'island' : 'voyage';
       setMode(defaultMode);
-      
+
       // Save the default to cookie
       const expires = new Date();
       expires.setFullYear(expires.getFullYear() + 1);
@@ -56,7 +57,7 @@ export function useExperienceMode(): {
       // Use saved mode
       setMode(savedMode);
     }
-    
+
     setIsLoading(false);
 
     // Listen for storage events (when cookie changes in other tabs)
@@ -92,12 +93,12 @@ export function useExperienceMode(): {
  */
 export function getExperienceMode(): ExperienceMode {
   if (typeof document === 'undefined') return 'island';
-  
+
   const savedMode = document.cookie
     .split('; ')
-    .find(row => row.startsWith('experience-mode='))
+    .find((row) => row.startsWith('experience-mode='))
     ?.split('=')[1];
-  
+
   return savedMode === 'voyage' ? 'voyage' : 'island';
 }
 

@@ -30,14 +30,7 @@ const ImageWithFallback = ({ src, alt, ...props }: ImageWithFallbackProps) => {
     );
   }
 
-  return (
-    <Image
-      {...props}
-      src={imgSrc}
-      alt={alt}
-      onError={() => setError(true)}
-    />
-  );
+  return <Image {...props} src={imgSrc} alt={alt} onError={() => setError(true)} />;
 };
 
-export default ImageWithFallback; 
+export default ImageWithFallback;

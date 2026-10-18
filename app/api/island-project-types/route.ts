@@ -11,9 +11,6 @@ export async function GET() {
     return NextResponse.json(projectTypes);
   } catch (error) {
     console.error('Error fetching island project types:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch island project types' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch island project types' }, { status: 500 });
   }
 }

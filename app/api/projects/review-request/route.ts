@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.projectID) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
-    
+
     if (!body.comment) {
       return NextResponse.json({ error: 'Review comment is required' }, { status: 400 });
     }
@@ -39,14 +39,19 @@ export async function POST(request: NextRequest) {
       where: {
         projectID_userId: {
           projectID: body.projectID,
-          userId: session.user.id
-        }
+          userId: session.user.id,
+        },
       },
     });
 
     if (!project) {
-      console.warn(`User ${session.user.id} attempted to request review for non-existent or non-owned project ${body.projectID}`);
-      return NextResponse.json({ error: 'Project not found or does not belong to you' }, { status: 404 });
+      console.warn(
+        `User ${session.user.id} attempted to request review for non-existent or non-owned project ${body.projectID}`,
+      );
+      return NextResponse.json(
+        { error: 'Project not found or does not belong to you' },
+        { status: 404 },
+      );
     }
 
     // Mark the project as in review
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       ShippedApproval: '🚢 Shipped Approval',
       ViralApproval: '🔥 Viral Approval',
       HoursApproval: '⏱️ Ship Updates',
-      Other: '❓ Other Request'
+      Other: '❓ Other Request',
     };
 
     // Create the review record
@@ -87,17 +92,17 @@ export async function POST(request: NextRequest) {
       actorUserId: session.user.id,
       metadata: {
         reviewType: body.reviewType,
-        reviewId: review.id
-      }
+        reviewId: review.id,
+      },
     });
 
     return NextResponse.json({
       success: true,
       review,
-      project: updatedProject
+      project: updatedProject,
     });
   } catch (error) {
     console.error('Error submitting project for review:', error);
     return NextResponse.json({ error: 'Failed to submit project for review' }, { status: 500 });
   }
-} 
+}

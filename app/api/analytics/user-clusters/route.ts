@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
     // Check if the user is an admin or reviewer
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
-      return NextResponse.json({ error: 'Forbidden: Requires Admin or Reviewer role' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Requires Admin or Reviewer role' },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         return NextResponse.json(
           { error: 'User not found or classification failed' },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
@@ -38,13 +41,9 @@ export async function GET(request: NextRequest) {
     // Otherwise, return the full cluster analysis
     const analysis = await getUserClusterAnalysis();
     return NextResponse.json(analysis);
-
   } catch (error) {
     console.error('Error fetching user cluster analysis:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user cluster analysis' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch user cluster analysis' }, { status: 500 });
   }
 }
 
@@ -59,17 +58,20 @@ export async function POST(request: NextRequest) {
     // Check if the user is an admin or reviewer
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
-      return NextResponse.json({ error: 'Forbidden: Requires Admin or Reviewer role' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Requires Admin or Reviewer role' },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
-    
+
     if (!Array.isArray(body.userIds)) {
       return NextResponse.json(
         { error: 'Request body must contain a "userIds" field with an array of user IDs' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,24 +81,20 @@ export async function POST(request: NextRequest) {
           const classification = await classifyUser(userId);
           return {
             userId,
-            ...classification
+            ...classification,
           };
         } catch (error) {
           return {
             userId,
-            error: 'Classification failed'
+            error: 'Classification failed',
           };
         }
-      })
+      }),
     );
 
     return NextResponse.json({ classifications });
-
   } catch (error) {
     console.error('Error classifying users:', error);
-    return NextResponse.json(
-      { error: 'Failed to classify users' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to classify users' }, { status: 500 });
   }
-} 
+}

@@ -21,7 +21,8 @@ Before Shipwrecked, participants earn their spot through "The Bay" - a 3-month o
 ## Local Development
 
 ### Prerequisites
-- Docker with docker-compose
+- Bun 1.4.3 (the version in `package.json`)
+- Docker with the Compose plugin (`docker compose`)
 - Environment configuration (see below)
 
 ### Environment Setup
@@ -72,6 +73,32 @@ This feature is particularly useful for:
 - Restoring admin access if needed
 - Quickly granting temporary admin privileges for specific tasks
 
+### Package manager and checks
+
+Run commands from the repository root. The web app and `webhook-forwarder` share
+one Bun workspace and `bun.lock`; commit that lockfile after dependency updates.
+
+```sh
+bun install --frozen-lockfile
+bun run dev
+bun run lint
+bun run format:check
+bun test
+bun audit
+bun run build
+```
+
+Use `bun run lint:fix` and `bun run format` for automatic fixes. Oxlint replaces
+ESLint and Oxfmt handles formatting. Existing lint findings remain warnings.
+`bun run typecheck` reports the existing TypeScript backlog; production builds
+still use the repository's existing `ignoreBuildErrors` setting.
+
+Database integration tests run when `TEST_DATABASE_URL` points to a disposable
+PostgreSQL database whose schema has been created with
+`DATABASE_URL=... bun --bun prisma db push`. They exercise auth users, sessions,
+and one-time tokens; the default suite skips that test without the variable.
+CI provides its own disposable PostgreSQL service.
+
 ### Quick Start
 
 We provide two simple scripts for local development:
@@ -102,9 +129,7 @@ That's it! Your development environment will be running and accessible at http:/
 - Code that lands on the `main` branch is automatically deployed to https://shipwrecked-staging.hackclub.com
 - For access details, see #shipwrecked-hq in Hack Club Slack
 
-### Production Environment
-- Production is deployed at https://shipwrecked.hackclub.com
-- To deploy to production, run `./upgrade-prod.sh` after testing on staging
+
 
 ## Contributing Guidelines
 

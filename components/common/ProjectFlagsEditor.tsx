@@ -32,14 +32,14 @@ export default function ProjectFlagsEditor({
   initialViral,
   initialInReview,
   hackatimeLinks = [],
-  onChange
+  onChange,
 }: ProjectFlagsEditorProps) {
   const { isReviewMode } = useReviewMode();
   const [shipped, setShipped] = useState(initialShipped);
   const [viral, setViral] = useState(initialViral);
   const [inReview, setInReview] = useState(initialInReview);
   const [linkOverrides, setLinkOverrides] = useState<Record<string, number | undefined>>({});
-  
+
   // Track input field values separately from the actual override values
   // This prevents the input from being reset while typing
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
@@ -50,55 +50,57 @@ export default function ProjectFlagsEditor({
       console.log('Initializing link overrides from hackatimeLinks');
       const initialOverrides: Record<string, number | undefined> = {};
       const initialInputs: Record<string, string> = {};
-      
-      hackatimeLinks.forEach(link => {
+
+      hackatimeLinks.forEach((link) => {
         // Use the existing hoursOverride value from the link
         initialOverrides[link.id] = link.hoursOverride ?? undefined;
-        
+
         // Initialize input values too
-        initialInputs[link.id] = link.hoursOverride !== undefined && link.hoursOverride !== null 
-          ? String(link.hoursOverride) 
-          : '';
+        initialInputs[link.id] =
+          link.hoursOverride !== undefined && link.hoursOverride !== null
+            ? String(link.hoursOverride)
+            : '';
       });
-      
+
       // Use a function updater to avoid dependencies on linkOverrides
-      setLinkOverrides(prevOverrides => {
+      setLinkOverrides((prevOverrides) => {
         // If we already have some overrides, only update for new links
         if (Object.keys(prevOverrides).length > 0) {
           const updatedOverrides = { ...prevOverrides };
-          
+
           // Only add entries for links that don't already have overrides
-          hackatimeLinks.forEach(link => {
+          hackatimeLinks.forEach((link) => {
             if (!(link.id in prevOverrides)) {
               updatedOverrides[link.id] = link.hoursOverride ?? undefined;
             }
           });
-          
+
           return updatedOverrides;
         }
-        
+
         // Otherwise use the initial overrides
         return initialOverrides;
       });
-      
+
       // Similarly for input values
-      setInputValues(prevInputs => {
+      setInputValues((prevInputs) => {
         // If we already have some input values, preserve them
         if (Object.keys(prevInputs).length > 0) {
           const updatedInputs = { ...prevInputs };
-          
+
           // Only add entries for links that don't have input values
-          hackatimeLinks.forEach(link => {
+          hackatimeLinks.forEach((link) => {
             if (!(link.id in prevInputs)) {
-              updatedInputs[link.id] = link.hoursOverride !== undefined && link.hoursOverride !== null 
-                ? String(link.hoursOverride) 
-                : '';
+              updatedInputs[link.id] =
+                link.hoursOverride !== undefined && link.hoursOverride !== null
+                  ? String(link.hoursOverride)
+                  : '';
             }
           });
-          
+
           return updatedInputs;
         }
-        
+
         // Otherwise use the initial input values
         return initialInputs;
       });
@@ -113,11 +115,11 @@ export default function ProjectFlagsEditor({
   // Notify parent when flags change
   const handleFlagChange = (field: string, value: boolean) => {
     console.log(`[DEBUG] handleFlagChange: ${field} = ${value}`);
-    
+
     // First update the local state variables
     let updatedShipped = shipped;
     let updatedViral = viral;
-    
+
     // Update the specific flag and handle special cases
     switch (field) {
       case 'shipped':
@@ -127,7 +129,7 @@ export default function ProjectFlagsEditor({
       case 'viral':
         updatedViral = value;
         setViral(value);
-        
+
         // If viral is being enabled, automatically enable shipped as well
         if (value === true) {
           updatedShipped = true;
@@ -135,19 +137,22 @@ export default function ProjectFlagsEditor({
         }
         break;
     }
-    
+
     // Create a new flags object with the updated flag values
-    const newFlags: ProjectFlags = { 
-      shipped: updatedShipped, 
-      viral: updatedViral, 
+    const newFlags: ProjectFlags = {
+      shipped: updatedShipped,
+      viral: updatedViral,
       in_review: inReview,
       // IMPORTANT: Always create a deep copy of the linkOverrides object
-      hackatimeLinkOverrides: { ...(linkOverrides || {}) }
+      hackatimeLinkOverrides: { ...(linkOverrides || {}) },
     };
-    
-    console.log(`[DEBUG] Flag change sending full state with preserved overrides:`, JSON.stringify(newFlags));
+
+    console.log(
+      `[DEBUG] Flag change sending full state with preserved overrides:`,
+      JSON.stringify(newFlags),
+    );
     console.log(`[DEBUG] After change - shipped: ${updatedShipped}, viral: ${updatedViral}`);
-    
+
     // Send the complete update to the parent, including all hour overrides
     onChange(newFlags);
   };
@@ -155,88 +160,88 @@ export default function ProjectFlagsEditor({
   // Handle input change without immediately updating the actual override
   const handleInputChange = (linkId: string, value: string) => {
     // Update the input field value immediately for a responsive UI
-    setInputValues(prev => ({
+    setInputValues((prev) => ({
       ...prev,
-      [linkId]: value
+      [linkId]: value,
     }));
   };
-  
+
   // Handle blur event to commit the final value
   const handleInputBlur = (linkId: string, value: string) => {
     console.log(`[DEBUG] handleInputBlur: linkId=${linkId}, value="${value}"`);
-    
+
     // Convert input value to number or undefined
     let numValue: number | undefined = undefined;
-    
+
     if (value.trim() !== '') {
       const parsed = parseFloat(value);
       // Only use the value if it's a valid number
       if (!isNaN(parsed)) {
         numValue = parsed;
-        
+
         // Ensure the value is non-negative
         if (numValue < 0) numValue = 0;
-        
+
         // Limit to 2 decimal places
         numValue = parseFloat(numValue.toFixed(2));
       }
     }
-    
+
     // Get current value to compare
     const currentValue = linkOverrides[linkId];
-    
+
     console.log(`[DEBUG] Comparing values: current=${currentValue}, new=${numValue}`);
-    
+
     // Check if there's an actual change to avoid unnecessary updates
     // Treat null and undefined as equivalent
-    const isEquivalent = 
-      (currentValue === numValue) || 
-      ((currentValue === null || currentValue === undefined) && 
-       (numValue === null || numValue === undefined));
-       
+    const isEquivalent =
+      currentValue === numValue ||
+      ((currentValue === null || currentValue === undefined) &&
+        (numValue === null || numValue === undefined));
+
     if (isEquivalent) {
       console.log(`[DEBUG] No change in value, skipping update`);
       return;
     }
-    
+
     // Create a new overrides object to avoid mutating state
     const newOverrides = { ...linkOverrides };
-    
+
     if (numValue === undefined) {
-      // For blank inputs (meaning no override), make sure they're explicitly 
+      // For blank inputs (meaning no override), make sure they're explicitly
       // included in the overrides object with a value of undefined
       newOverrides[linkId] = undefined;
-      
+
       // Also update the input field to show empty string instead of "undefined"
-      setInputValues(prev => ({
+      setInputValues((prev) => ({
         ...prev,
-        [linkId]: ''
+        [linkId]: '',
       }));
     } else {
       newOverrides[linkId] = numValue;
-      
+
       // Update input field to show formatted value
-      setInputValues(prev => ({
+      setInputValues((prev) => ({
         ...prev,
-        [linkId]: String(numValue)
+        [linkId]: String(numValue),
       }));
     }
-    
+
     console.log(`[DEBUG] Updating override for ${linkId} to ${newOverrides[linkId]}`);
     console.log(`[DEBUG] Full overrides object:`, newOverrides);
-    
+
     // Update local state first
     setLinkOverrides(newOverrides);
-    
+
     // Send update to parent component with all the details
     console.log(`[DEBUG] Sending update to parent with hour override: ${linkId}=${numValue}`);
-    
+
     // Create immutable copy of updated flags to pass to parent
     const updatedFlags: ProjectFlags = {
       shipped,
       viral,
       in_review: inReview,
-      hackatimeLinkOverrides: { ...newOverrides } as Record<string, number | undefined>
+      hackatimeLinkOverrides: { ...newOverrides } as Record<string, number | undefined>,
     };
     console.log(`[DEBUG] Sending to parent:`, JSON.stringify(updatedFlags));
     onChange(updatedFlags);
@@ -245,27 +250,29 @@ export default function ProjectFlagsEditor({
   // Calculate total raw hours
   const totalRawHours = hackatimeLinks.reduce(
     (sum, link) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
-    0
+    0,
   );
 
   // Calculate total effective hours (with overrides applied)
-  const totalEffectiveHours = hackatimeLinks.reduce(
-    (sum, link) => {
-      // Only include hours that have been explicitly overridden/approved
-      const linkHours = linkOverrides[link.id] !== undefined 
-        ? linkOverrides[link.id] 
-        : (typeof link.hoursOverride === 'number' ? link.hoursOverride : undefined);
-      
-      // Only add to sum if there's an actual approved value
-      return sum + (typeof linkHours === 'number' ? linkHours : 0);
-    },
-    0
-  );
+  const totalEffectiveHours = hackatimeLinks.reduce((sum, link) => {
+    // Only include hours that have been explicitly overridden/approved
+    const linkHours =
+      linkOverrides[link.id] !== undefined
+        ? linkOverrides[link.id]
+        : typeof link.hoursOverride === 'number'
+          ? link.hoursOverride
+          : undefined;
+
+    // Only add to sum if there's an actual approved value
+    return sum + (typeof linkHours === 'number' ? linkHours : 0);
+  }, 0);
 
   return (
     <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
-      <h3 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 sm:mb-3">Review Mode: Project Status Flags</h3>
-      
+      <h3 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 sm:mb-3">
+        Review Mode: Project Status Flags
+      </h3>
+
       <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2 sm:gap-y-3">
         <div className="flex items-center space-x-2">
           <input
@@ -275,9 +282,11 @@ export default function ProjectFlagsEditor({
             onChange={() => handleFlagChange('shipped', !shipped)}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
           />
-          <label htmlFor="shipped" className="text-xs sm:text-sm font-medium text-gray-700">Shipped</label>
+          <label htmlFor="shipped" className="text-xs sm:text-sm font-medium text-gray-700">
+            Shipped
+          </label>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -286,15 +295,19 @@ export default function ProjectFlagsEditor({
             onChange={() => handleFlagChange('viral', !viral)}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
           />
-          <label htmlFor="viral" className="text-xs sm:text-sm font-medium text-gray-700">Viral</label>
+          <label htmlFor="viral" className="text-xs sm:text-sm font-medium text-gray-700">
+            Viral
+          </label>
         </div>
       </div>
-      
+
       {/* Hackatime Hours Override Section */}
       {hackatimeLinks && hackatimeLinks.length > 0 && (
         <div className="mt-4 sm:mt-6">
-          <h4 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 sm:mb-3">Hackatime Hours Approved</h4>
-          
+          <h4 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 sm:mb-3">
+            Hackatime Hours Approved
+          </h4>
+
           <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -319,11 +332,13 @@ export default function ProjectFlagsEditor({
                       {link.hackatimeName}
                     </td>
                     <td className="px-2 py-2 sm:px-3 whitespace-nowrap text-xs sm:text-sm text-gray-500 text-center">
-                      {link.rawHours !== null && typeof link.rawHours === 'number' ? `${link.rawHours}h` : '—'}
+                      {link.rawHours !== null && typeof link.rawHours === 'number'
+                        ? `${link.rawHours}h`
+                        : '—'}
                     </td>
                     <td className="px-2 py-2 sm:px-3 whitespace-nowrap text-xs sm:text-sm">
                       <div className="relative flex items-center justify-center">
-                        <input 
+                        <input
                           type="text"
                           inputMode="decimal"
                           value={inputValues[link.id] || ''}
@@ -351,12 +366,15 @@ export default function ProjectFlagsEditor({
               </tbody>
             </table>
           </div>
-          
+
           <div className="text-xs text-gray-500 mt-2">
-            <p>Enter hour values to approve the raw hours from Hackatime. Leave blank for no approval.</p>
+            <p>
+              Enter hour values to approve the raw hours from Hackatime. Leave blank for no
+              approval.
+            </p>
           </div>
         </div>
       )}
     </div>
   );
-} 
+}

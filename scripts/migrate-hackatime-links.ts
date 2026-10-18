@@ -1,18 +1,19 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
+import { createPrismaAdapter } from '../lib/prisma-adapter';
 
 import { PrismaClient } from '../app/generated/prisma/client';
 import * as fs from 'fs';
 
 // Initialize Prisma client
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 /**
  * Migration script to create HackatimeProjectLink records from existing Project.hackatime values
- * 
+ *
  * This script:
  * 1. Exports existing hackatime and rawHours data from Project model
  * 2. Creates HackatimeProjectLink records for each project
- * 
+ *
  * RUN THIS SCRIPT BEFORE REMOVING THE HACKATIME AND RAWHOURS FIELDS FROM THE SCHEMA!
  */
 async function migrateHackatimeLinks() {
@@ -27,7 +28,9 @@ async function migrateHackatimeLinks() {
       WHERE "hackatime" <> ''
     `;
 
-    console.log(`Found ${Array.isArray(projects) ? projects.length : 0} projects with Hackatime references to migrate`);
+    console.log(
+      `Found ${Array.isArray(projects) ? projects.length : 0} projects with Hackatime references to migrate`,
+    );
 
     // Create a backup of the data first
     const backupPath = './hackatime-links-backup.json';
@@ -50,12 +53,12 @@ async function migrateHackatimeLinks() {
           data: {
             projectID: project.projectID,
             hackatimeName: project.hackatime,
-            rawHours: typeof project.rawHours === 'number' ? project.rawHours : 0
-          }
+            rawHours: typeof project.rawHours === 'number' ? project.rawHours : 0,
+          },
         });
 
         successCount++;
-        
+
         if (successCount % 50 === 0) {
           console.log(`Migrated ${successCount} projects so far...`);
         }
@@ -74,8 +77,7 @@ async function migrateHackatimeLinks() {
 }
 
 // Run the migration
-migrateHackatimeLinks()
-  .catch(error => {
-    console.error('Error in migration script:', error);
-    process.exit(1);
-  }); 
+migrateHackatimeLinks().catch((error) => {
+  console.error('Error in migration script:', error);
+  process.exit(1);
+});

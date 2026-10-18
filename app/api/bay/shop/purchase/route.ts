@@ -10,11 +10,11 @@ async function getUserShellBalance(userId: string): Promise<number> {
   // Get user with all shell-related fields
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { 
+    select: {
       totalShellsSpent: true,
       adminShellAdjustment: true,
-      purchasedProgressHours: true
-    }
+      purchasedProgressHours: true,
+    },
   });
 
   if (!user) {
@@ -24,7 +24,7 @@ async function getUserShellBalance(userId: string): Promise<number> {
   // Get projects with their Hackatime links for the current user
   const projects = await prisma.project.findMany({
     where: { userId },
-    include: { hackatimeLinks: true }
+    include: { hackatimeLinks: true },
   });
 
   // Calculate shell balance using updated function that includes admin adjustment
@@ -32,9 +32,9 @@ async function getUserShellBalance(userId: string): Promise<number> {
     projects,
     user.purchasedProgressHours,
     user.totalShellsSpent,
-    user.adminShellAdjustment
+    user.adminShellAdjustment,
   );
-  
+
   return metrics.availableShells; // This now includes admin adjustment!
 }
 
@@ -71,12 +71,12 @@ export async function POST(request: NextRequest) {
 
     // Get shop item from database
     const item = await prisma.shopItem.findFirst({
-      where: { 
+      where: {
         id: itemId,
-        active: true 
+        active: true,
       },
     });
-    
+
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
@@ -85,15 +85,18 @@ export async function POST(request: NextRequest) {
     const globalConfigs = await prisma.globalConfig.findMany({
       where: {
         key: {
-          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour']
-        }
-      }
+          in: ['price_random_min_percent', 'price_random_max_percent', 'dollars_per_hour'],
+        },
+      },
     });
 
-    const configMap = globalConfigs.reduce((acc, config) => {
-      acc[config.key] = config.value;
-      return acc;
-    }, {} as Record<string, string>);
+    const configMap = globalConfigs.reduce(
+      (acc, config) => {
+        acc[config.key] = config.value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
     const minPercent = parseFloat(configMap.price_random_min_percent || '90');
     const maxPercent = parseFloat(configMap.price_random_max_percent || '110');
@@ -104,9 +107,12 @@ export async function POST(request: NextRequest) {
     if (
       item.name.toLowerCase().includes('travel stipend') &&
       item.costType === 'config' &&
-      item.config && typeof item.config === 'object' && 'dollars_per_hour' in item.config
+      item.config &&
+      typeof item.config === 'object' &&
+      'dollars_per_hour' in item.config
     ) {
-      const dollarsPerHour = parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
+      const dollarsPerHour =
+        parseFloat(String(item.config.dollars_per_hour)) || globalDollarsPerHour;
       unitPrice = calculateShellPrice(item.usdCost, dollarsPerHour);
     } else if (item.useRandomizedPricing) {
       unitPrice = calculateRandomizedPrice(user.id, item.id, item.price, minPercent, maxPercent);
@@ -118,16 +124,19 @@ export async function POST(request: NextRequest) {
     // Check if user has enough shells
     const userShells = await getUserShellBalance(user.id);
     if (userShells < totalPrice) {
-      return NextResponse.json({ 
-        error: 'Insufficient shells', 
-        currentShells: userShells,
-        requiredShells: totalPrice
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Insufficient shells',
+          currentShells: userShells,
+          requiredShells: totalPrice,
+        },
+        { status: 400 },
+      );
     }
 
     // Prepare order config for dynamic items
     function safeConfigObject(config: unknown) {
-      return (config && typeof config === 'object' && !Array.isArray(config)) ? config : {};
+      return config && typeof config === 'object' && !Array.isArray(config) ? config : {};
     }
     let orderConfig = item.config || undefined;
     if (item.costType === 'config') {
@@ -138,7 +147,8 @@ export async function POST(request: NextRequest) {
         // For island progress, store percent (quantity * hours_equal_to_one_percent_progress)
         const configObj = safeConfigObject(item.config as unknown) as Record<string, unknown>;
         const hoursEqualToOnePercentRaw = configObj.hours_equal_to_one_percent_progress;
-        const hoursEqualToOnePercent = typeof hoursEqualToOnePercentRaw === 'number' ? hoursEqualToOnePercentRaw : 0;
+        const hoursEqualToOnePercent =
+          typeof hoursEqualToOnePercentRaw === 'number' ? hoursEqualToOnePercentRaw : 0;
         const percent = quantity * hoursEqualToOnePercent;
         orderConfig = { ...configObj, percent };
       }
@@ -162,10 +172,10 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: {
         totalShellsSpent: {
-          increment: totalPrice
-        }
+          increment: totalPrice,
+        },
         // Note: purchasedProgressHours is NOT incremented here - it will be applied when the order is fulfilled
-      }
+      },
     });
 
     // Log audit event
@@ -182,14 +192,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       orderId: order.id,
       shellsSpent: totalPrice,
-      remainingShells: userShells - totalPrice
+      remainingShells: userShells - totalPrice,
     });
   } catch (error) {
     console.error('Purchase error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

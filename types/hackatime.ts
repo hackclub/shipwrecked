@@ -51,8 +51,8 @@ export interface HackatimeStatsProject {
 }
 
 export interface HacaktimeMostRecentHeartbeat {
-  has_heartbeat: boolean,
-  heartbeat: unknown
+  has_heartbeat: boolean;
+  heartbeat: unknown;
 }
 
 export interface HackatimeTrustData {

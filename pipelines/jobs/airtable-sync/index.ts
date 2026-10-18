@@ -1,11 +1,11 @@
-import Airtable, { FieldSet } from "airtable";
-import { prisma } from "../../pipeline-prisma";
+import Airtable, { FieldSet } from 'airtable';
+import { prisma } from '../../pipeline-prisma';
 import * as dotenv from 'dotenv';
 
 export async function syncAirtable() {
   dotenv.config();
-  console.log("Loaded config")
-  
+  console.log('Loaded config');
+
   // only sync shipped projects
   const projects = await prisma.project.findMany({
     where: {
@@ -31,8 +31,8 @@ export async function syncAirtable() {
   const airtable = new Airtable({
     apiKey: process.env.UNIFIED_AIRTABLE_API_KEY,
   });
-  const base = airtable.base(process.env.UNIFIED_AIRTABLE_BASE_ID || "");
-  const table = base("Approved Projects");
+  const base = airtable.base(process.env.UNIFIED_AIRTABLE_BASE_ID || '');
+  const table = base('Approved Projects');
   for (const project of projects) {
     try {
       const user = await prisma.user.findUnique({
@@ -40,15 +40,12 @@ export async function syncAirtable() {
           id: project.userId,
         },
       });
-      const response = await fetch(
-        `${process.env.IDENTITY_URL}/api/v1/me`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${user?.identityToken}`,
-          },
+      const response = await fetch(`${process.env.IDENTITY_URL}/api/v1/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${user?.identityToken}`,
         },
-      );
+      });
       const hackatimeProjects = await prisma.hackatimeProjectLink.findMany({
         where: {
           projectID: project.projectID,
@@ -69,16 +66,17 @@ export async function syncAirtable() {
 
       // if identity is verified, set status to L1 in postgres
       if (
-        identityInfoJson?.verification_status == "verified" &&
-        user?.status != "FraudSuspect" && user?.status != "L1"
+        identityInfoJson?.verification_status == 'verified' &&
+        user?.status != 'FraudSuspect' &&
+        user?.status != 'L1'
       ) {
-        console.log(`updating user ${user?.name} to L1`)
+        console.log(`updating user ${user?.name} to L1`);
         await prisma.user.update({
           where: {
             id: user?.id,
           },
           data: {
-            status: "L1",
+            status: 'L1',
           },
         });
       }
@@ -86,66 +84,75 @@ export async function syncAirtable() {
       // if identity isn't verified/found, skip
       if (
         !identityInfoJson ||
-        user?.status == "FraudSuspect" ||
-        identityInfoJson.verification_status != "verified"
+        user?.status == 'FraudSuspect' ||
+        identityInfoJson.verification_status != 'verified'
       ) {
         continue;
       }
-      const reviewers = project.reviews.filter((review) => review.reviewer.name != user?.name).map((review) => `Name: ${review.reviewer.name} Email: ${review.reviewer.email} Slack ID: ${review.reviewer.slack}`).join("\n")
-      
+      const reviewers = project.reviews
+        .filter((review) => review.reviewer.name != user?.name)
+        .map(
+          (review) =>
+            `Name: ${review.reviewer.name} Email: ${review.reviewer.email} Slack ID: ${review.reviewer.slack}`,
+        )
+        .join('\n');
+
       // Extract checklist justification from review comments
       const checklistJustification = project.reviews
         .filter((review) => review.comment.includes('Justification for approved hours:'))
         .map((review) => {
           const lines = review.comment.split('\n');
-          const justificationLine = lines.find(line => line.startsWith('Justification for approved hours:'));
-          return justificationLine ? justificationLine.replace('Justification for approved hours:', '').trim() : '';
+          const justificationLine = lines.find((line) =>
+            line.startsWith('Justification for approved hours:'),
+          );
+          return justificationLine
+            ? justificationLine.replace('Justification for approved hours:', '').trim()
+            : '';
         })
-        .filter(justification => justification.length > 0)
+        .filter((justification) => justification.length > 0)
         .join('\n\n');
-      
-      const overrideHoursSpentJustification = 
-      `${checklistJustification ? `REVIEWER JUSTIFICATION:\n${checklistJustification}\n\n` : ''}This project was reviewed by the following people:
+
+      const overrideHoursSpentJustification = `${checklistJustification ? `REVIEWER JUSTIFICATION:\n${checklistJustification}\n\n` : ''}This project was reviewed by the following people:
 
 ${reviewers}
 
 Hackatime Project Link(s):
-${hackatimeProjects.map(() => `https://hackatime.hackclub.com/admin/timeline?user_ids=${user?.hackatimeId}`).join("\n")}
+${hackatimeProjects.map(() => `https://hackatime.hackclub.com/admin/timeline?user_ids=${user?.hackatimeId}`).join('\n')}
 
 Hackatime ID: ${user?.hackatimeId}
 GitHub Repository: ${project.codeUrl}
-${project.viral ? "\nThis project was also marked as viral.\n" : ""}
+${project.viral ? '\nThis project was also marked as viral.\n' : ''}
 
 Audit Log Timeline:
-${project.auditLogs.map((log) => `- Actor: ${log.actorUser?.name}, Event: ${log.eventType}, At: ${log.createdAt}`).join("\n")}
+${project.auditLogs.map((log) => `- Actor: ${log.actorUser?.name}, Event: ${log.eventType}, At: ${log.createdAt}`).join('\n')}
 
 Comments:
-${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${review.comment}, At: ${review.createdAt}`).join("\n\n")}
+${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${review.comment}, At: ${review.createdAt}`).join('\n\n')}
 `;
 
       const fields: FieldSet = {
         Email: user?.email,
-        "Address (Line 1)": identityInfoJson.addresses[0].line_1,
-        "Address (Line 2)": identityInfoJson.addresses[0].line_2
+        'Address (Line 1)': identityInfoJson.addresses[0].line_1,
+        'Address (Line 2)': identityInfoJson.addresses[0].line_2
           ? identityInfoJson.addresses[0].line_2
-          : "",
+          : '',
         City: identityInfoJson.addresses[0].city,
         Country: identityInfoJson.addresses[0].country,
-        "State / Province": identityInfoJson.addresses[0].state
+        'State / Province': identityInfoJson.addresses[0].state
           ? identityInfoJson.addresses[0].state
-          : "",
-        "ZIP / Postal Code": identityInfoJson.addresses[0].postal_code
+          : '',
+        'ZIP / Postal Code': identityInfoJson.addresses[0].postal_code
           ? identityInfoJson.addresses[0].postal_code
-          : "",
-        "Code URL": project.codeUrl,
+          : '',
+        'Code URL': project.codeUrl,
         Birthday: identityInfoJson.birthday,
-        "First Name": identityInfoJson.first_name,
-        "Last Name": identityInfoJson.last_name,
+        'First Name': identityInfoJson.first_name,
+        'Last Name': identityInfoJson.last_name,
         Description: project.description,
-        "Override Hours Spent": sumOfApprovedHours,
-        "Override Hours Spent Justification": overrideHoursSpentJustification,
-        YSWS: ["recifGNo59RU3o6TH"],
-        "Playable URL": project.playableUrl,
+        'Override Hours Spent': sumOfApprovedHours,
+        'Override Hours Spent Justification': overrideHoursSpentJustification,
+        YSWS: ['recifGNo59RU3o6TH'],
+        'Playable URL': project.playableUrl,
         Screenshot: [
           {
             url: project.screenshot,
@@ -188,20 +195,26 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
                     airtableId: record.getId(),
                   },
                 });
-                console.log(`created Airtable record ${record.getId()}, project name: ${project?.name}`)
+                console.log(
+                  `created Airtable record ${record.getId()}, project name: ${project?.name}`,
+                );
               } catch (error) {
-                console.error(`Failed to update project with Airtable ID for project ${project.name}:`, error);
+                console.error(
+                  `Failed to update project with Airtable ID for project ${project.name}:`,
+                  error,
+                );
               }
             }
           },
         );
       }
-
     } catch (error) {
       console.error(error);
     }
   }
-  const records = (await table.select().all()).filter((record) => record.fields.ID?.toString().includes("Shipwrecked"))
+  const records = (await table.select().all()).filter((record) =>
+    record.fields.ID?.toString().includes('Shipwrecked'),
+  );
   for (const record of records) {
     const project = await prisma.project.findFirst({
       where: {
@@ -209,8 +222,8 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
       },
     });
     if (!project?.shipped && project) {
-        await table.destroy([record.getId()])
-        console.log(`destroying Airtable record ${record.getId()}, project name: ${project?.name}`)
+      await table.destroy([record.getId()]);
+      console.log(`destroying Airtable record ${record.getId()}, project name: ${project?.name}`);
     }
   }
   for (const record of records) {
@@ -221,10 +234,10 @@ ${project.reviews.map((review) => `- User: ${review.reviewer.name}, Comment: ${r
     });
     if (!project) {
       try {
-        await record.destroy()
-        console.log(`destroying Airtable record ${record.getId()}`)
+        await record.destroy();
+        console.log(`destroying Airtable record ${record.getId()}`);
       } catch (error) {
-        console.error(error)
+        console.error(error);
       }
     }
   }

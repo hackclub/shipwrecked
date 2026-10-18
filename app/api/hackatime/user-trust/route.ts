@@ -46,15 +46,18 @@ export async function GET(request: Request) {
     // Check if user is admin or reviewer
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
-      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Admin or Reviewer access required' },
+        { status: 403 },
+      );
     }
 
     // Get parameters from query
     const { searchParams } = new URL(request.url);
     const hackatimeId = searchParams.get('hackatimeId');
-    
+
     if (!hackatimeId) {
       return NextResponse.json({ error: 'hackatimeId parameter is required' }, { status: 400 });
     }
@@ -67,42 +70,44 @@ export async function GET(request: Request) {
 
     // Fetch trust data from Hackatime admin API
     const uri = `https://hackatime.hackclub.com/api/admin/v1/user/info?id=${hackatimeId}`;
-    
+
     const response = await fetch(uri, {
       headers: {
-        'Authorization': `Bearer ${HACKATIME_ADMIN_TOKEN}`,
+        Authorization: `Bearer ${HACKATIME_ADMIN_TOKEN}`,
         'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
-      }
+      },
     });
 
     if (!response.ok) {
       if (response.status === 404) {
         return NextResponse.json({ error: 'User not found in Hackatime' }, { status: 404 });
       }
-      console.error(`Error fetching Hackatime trust data: ${response.status} ${response.statusText}`);
-      return NextResponse.json({ 
-        error: 'Failed to fetch trust data from Hackatime',
-        status: response.status
-      }, { status: 500 });
+      console.error(
+        `Error fetching Hackatime trust data: ${response.status} ${response.statusText}`,
+      );
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch trust data from Hackatime',
+          status: response.status,
+        },
+        { status: 500 },
+      );
     }
 
     const data: HackatimeTrustData = await response.json();
-    
+
     // Extract relevant trust information
     const trustInfo = {
       trust_level: data.user.trust_level,
       suspected: data.user.suspected,
       banned: data.user.banned,
       admin_level: data.user.admin_level,
-      stats: data.user.stats
+      stats: data.user.stats,
     };
 
     return NextResponse.json(trustInfo);
   } catch (error) {
     console.error('Error fetching Hackatime trust data:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch trust data' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch trust data' }, { status: 500 });
   }
 }

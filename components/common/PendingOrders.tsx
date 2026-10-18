@@ -37,7 +37,7 @@ export default function PendingOrders() {
   }, []);
 
   // Filter to only show pending orders
-  const pendingOrders = orders.filter(order => order.status === 'pending');
+  const pendingOrders = orders.filter((order) => order.status === 'pending');
 
   if (loading) {
     return null; // Don't show loading state for this component
@@ -58,7 +58,8 @@ export default function PendingOrders() {
         <h3 className="font-semibold text-yellow-800">Pending Orders</h3>
       </div>
       <p className="text-sm text-yellow-700 mb-3">
-        You have {pendingOrders.length} pending order{pendingOrders.length !== 1 ? 's' : ''} that will be processed soon.
+        You have {pendingOrders.length} pending order{pendingOrders.length !== 1 ? 's' : ''} that
+        will be processed soon.
       </p>
       <div className="space-y-2">
         {pendingOrders.map((order) => (
@@ -84,4 +85,4 @@ export default function PendingOrders() {
       </div>
     </div>
   );
-} 
+}

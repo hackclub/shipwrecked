@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
     const arrayBuffer = await file.arrayBuffer();
     const buf = Buffer.from(arrayBuffer);
-    const key = `tmp:chat:${new Date().toISOString().slice(0,10)}:${session.user.id}:${randomBytes(8).toString('hex')}`;
+    const key = `tmp:chat:${new Date().toISOString().slice(0, 10)}:${session.user.id}:${randomBytes(8).toString('hex')}`;
     await redis.set(key, buf, 'EX', 60 * 10);
     await redis.hset(`${key}:meta`, { mime, size: String(buf.length) });
     await redis.expire(`${key}:meta`, 60 * 10);
@@ -34,6 +34,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
-
-
-

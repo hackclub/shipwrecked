@@ -20,10 +20,13 @@ export async function GET() {
     }
 
     const configs = await prisma.globalConfig.findMany();
-    const configMap = configs.reduce((acc, config) => {
-      acc[config.key] = config.value;
-      return acc;
-    }, {} as Record<string, string>);
+    const configMap = configs.reduce(
+      (acc, config) => {
+        acc[config.key] = config.value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
     return NextResponse.json({ config: configMap });
   } catch (error) {
@@ -51,9 +54,12 @@ export async function POST(request: NextRequest) {
     const { key, value } = await request.json();
 
     if (!key || value === undefined) {
-      return NextResponse.json({ 
-        error: 'Key and value are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Key and value are required',
+        },
+        { status: 400 },
+      );
     }
 
     const config = await prisma.globalConfig.upsert({
@@ -67,4 +73,4 @@ export async function POST(request: NextRequest) {
     console.error('Error updating global config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import ProgressBar from "@/components/common/ProgressBar";
-import Image from "next/image";
-import { redirect } from "next/navigation";
+import ProgressBar from '@/components/common/ProgressBar';
+import Image from 'next/image';
+import { redirect } from 'next/navigation';
 
 // Registration Complete Page (/bay/intro/register/complete)
 // Shows a confirmation page that the users registration has been recorded
 export default function Page() {
   function next() {
-    redirect("/");
+    redirect('/');
   }
 
   return (
@@ -23,9 +23,7 @@ export default function Page() {
           ></ProgressBar>
         </div>
         <div className="text-dark-brown bg-sand/60 border border-sand p-6 rounded-md w-full max-w-4xl backdrop-blur-md mb-2">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            Registration Complete!
-          </h1>
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">Registration Complete!</h1>
           Your registration has been submitted!
           <div className="flex justify-end mt-2">
             <button

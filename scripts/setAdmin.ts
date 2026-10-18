@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { prisma } from '../lib/prisma';
 
 async function setAdmin(email: string) {
   try {
@@ -8,7 +8,7 @@ async function setAdmin(email: string) {
     });
     console.log(`User ${user.email} has been set as an admin.`);
   } catch (error) {
-    console.error("Error setting user as admin:", error);
+    console.error('Error setting user as admin:', error);
   } finally {
     await prisma.$disconnect();
     process.exit(0);
@@ -19,7 +19,7 @@ async function setAdmin(email: string) {
 const email = process.argv[2];
 
 if (!email) {
-  console.error("Please provide an email address.");
+  console.error('Please provide an email address.');
   process.exit(1);
 }
 

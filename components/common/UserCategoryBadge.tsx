@@ -15,7 +15,7 @@ export default function UserCategoryBadge({
   hackatimeId,
   size = 'medium',
   showMetrics = false,
-  className = ''
+  className = '',
 }: UserCategoryBadgeProps) {
   const { classification, loading, error } = useUserClassification(userId);
 
@@ -32,11 +32,11 @@ export default function UserCategoryBadge({
   }
 
   const style = getUserCategoryStyle(classification.category);
-  
+
   const sizeClasses = {
     small: 'text-xs px-2 py-1',
     medium: 'text-sm px-3 py-1',
-    large: 'text-base px-4 py-2'
+    large: 'text-base px-4 py-2',
   };
 
   return (
@@ -52,7 +52,7 @@ export default function UserCategoryBadge({
         <span className="text-xs">{style.emoji}</span>
         <span>{style.label}</span>
       </span>
-      
+
       {showMetrics && (
         <div className="text-xs text-gray-500 space-x-2">
           <span className="font-mono">Hackatime ID: {hackatimeId || userId}</span>

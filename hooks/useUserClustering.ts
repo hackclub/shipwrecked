@@ -85,14 +85,14 @@ export function useUserClassification(userId?: string) {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/analytics/user-clusters?classifyUser=${targetUserId}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to classify user: ${response.statusText}`);
       }
-      
+
       const data: UserClassification = await response.json();
       setClassification(data);
     } catch (err) {
@@ -114,7 +114,7 @@ export function useUserClassification(userId?: string) {
     classification,
     loading,
     error,
-    refetch: userId ? () => fetchClassification(userId) : undefined
+    refetch: userId ? () => fetchClassification(userId) : undefined,
   };
 }
 
@@ -126,14 +126,14 @@ export function useUserClusterAnalysis() {
   const fetchAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/analytics/user-clusters');
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch user cluster analysis: ${response.statusText}`);
       }
-      
+
       const data: UserClusterAnalysis = await response.json();
       setAnalysis(data);
     } catch (err) {
@@ -153,7 +153,7 @@ export function useUserClusterAnalysis() {
     analysis,
     loading,
     error,
-    refetch: fetchAnalysis
+    refetch: fetchAnalysis,
   };
 }
 
@@ -167,7 +167,7 @@ export function getUserCategoryStyle(category: UserClassification['category']) {
         borderColor: 'border-purple-200',
         label: 'Whale',
         emoji: '🐋',
-        description: 'High-impact creator'
+        description: 'High-impact creator',
       };
     case 'shipper':
       return {
@@ -176,7 +176,7 @@ export function getUserCategoryStyle(category: UserClassification['category']) {
         borderColor: 'border-blue-200',
         label: 'Shipper',
         emoji: '🚢',
-        description: 'Active contributor'
+        description: 'Active contributor',
       };
     case 'newbie':
       return {
@@ -185,7 +185,7 @@ export function getUserCategoryStyle(category: UserClassification['category']) {
         borderColor: 'border-green-200',
         label: 'Newbie',
         emoji: '🌱',
-        description: 'Getting started'
+        description: 'Getting started',
       };
     default:
       return {
@@ -194,7 +194,7 @@ export function getUserCategoryStyle(category: UserClassification['category']) {
         borderColor: 'border-gray-200',
         label: 'Unknown',
         emoji: '❓',
-        description: 'Classification unknown'
+        description: 'Classification unknown',
       };
   }
-} 
+}

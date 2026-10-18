@@ -20,4 +20,4 @@ export async function getRSVPData(): Promise<any | null> {
     console.error('Error getting RSVP data from cache:', error);
     return null;
   }
-} 
+}

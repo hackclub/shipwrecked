@@ -21,4 +21,4 @@ export async function getCount(): Promise<number> {
     console.error('Error getting count from Redis:', error);
     return 0;
   }
-} 
+}

@@ -1,2 +1,2 @@
 // Re-export functionality from update-airtable-rsvp.ts
-export * from './update-airtable-rsvp'; 
+export * from './update-airtable-rsvp';

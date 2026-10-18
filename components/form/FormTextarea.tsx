@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode } from 'react';
 
 export default function FormTextarea({
   fieldName,
@@ -19,7 +19,7 @@ export default function FormTextarea({
         <label className="text-lg font-semibold text-left">
           {children}
           {required && <p className="text-red-500 inline">*</p>}
-        </label>{" "}
+        </label>{' '}
         <br />
         <textarea
           className="w-96 px-4 py-2 bg-gray-100 rounded outline-1 outline-gray-200"

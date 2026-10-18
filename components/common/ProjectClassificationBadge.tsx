@@ -15,7 +15,7 @@ export default function ProjectClassificationBadge({
   showPercentile = false,
   showOutlierIndicator = true,
   size = 'sm',
-  className = ''
+  className = '',
 }: ProjectClassificationBadgeProps) {
   const { classification, loading, error } = useProjectClassification(hours);
 
@@ -34,17 +34,17 @@ export default function ProjectClassificationBadge({
   }
 
   const style = getClassificationStyle(classification.classification);
-  
+
   // Size variations
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
     md: 'px-3 py-1 text-sm',
-    lg: 'px-4 py-2 text-base'
+    lg: 'px-4 py-2 text-base',
   };
 
   return (
     <div className={`inline-flex items-center gap-1 ${className}`}>
-      <span 
+      <span
         className={`
           inline-flex items-center gap-1 rounded-full font-medium border
           ${style.color} ${style.bgColor} ${style.borderColor}
@@ -53,11 +53,7 @@ export default function ProjectClassificationBadge({
         title={`${classification.description} (${classification.percentile}th percentile)`}
       >
         {style.label}
-        {showPercentile && (
-          <span className="opacity-75">
-            {classification.percentile}%
-          </span>
-        )}
+        {showPercentile && <span className="opacity-75">{classification.percentile}%</span>}
         {showOutlierIndicator && classification.isOutlier && (
           <span title="Statistical outlier" className="text-amber-500">
             ⚠️
@@ -66,4 +62,4 @@ export default function ProjectClassificationBadge({
       </span>
     </div>
   );
-} 
+}

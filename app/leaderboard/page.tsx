@@ -1,31 +1,35 @@
-"use client"
+'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
 import UserCategoryDisplay from '@/components/common/UserCategoryDisplay';
-import { calculateProgressMetrics, getProjectHackatimeHours, ProgressMetrics } from '@/app/bay/page';
+import {
+  calculateProgressMetrics,
+  getProjectHackatimeHours,
+  ProgressMetrics,
+} from '@/app/bay/page';
 import { ProjectType } from '@/app/api/projects/route';
 import { SessionWrapper } from '../bay/layout';
 import { SessionProvider, useSession } from 'next-auth/react';
 import MultiPartProgressBar, { ProgressSegment } from '@/components/common/MultiPartProgressBar';
-import { Tooltip } from 'recharts';
+import Tooltip from '@/components/common/Tooltip';
 import Modal from '@/components/common/Modal';
 
 // Force dynamic rendering to prevent prerendering errors during build
 export const dynamic = 'force-dynamic';
 
 enum UserStatus {
-  Unknown = "Unknown",
-  L1 = "L1", 
-  L2 = "L2",
-  FraudSuspect = "FraudSuspect"
+  Unknown = 'Unknown',
+  L1 = 'L1',
+  L2 = 'L2',
+  FraudSuspect = 'FraudSuspect',
 }
 
 enum UserRole {
-  User = "User",
-  Reviewer = "Reviewer", 
-  Admin = "Admin"
+  User = 'User',
+  Reviewer = 'Reviewer',
+  Admin = 'Admin',
 }
 
 interface User {
@@ -43,7 +47,7 @@ interface User {
     category: 'whale' | 'shipper' | 'newbie';
     description: string;
   } | null;
-  projects: ProjectType[],
+  projects: ProjectType[];
   identityToken?: string;
   purchasedProgressHours?: number;
   totalShellsSpent?: number;
@@ -64,7 +68,7 @@ function LeaderboardContent() {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressData, setProgressData] = useState<Record<string, unknown>>({});
   const { data: session } = useSession();
-  
+
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -113,78 +117,100 @@ function LeaderboardContent() {
     if (sortField !== field) return '↕';
     return sortOrder === 'asc' ? '↑' : '↓';
   };
-const usersWithMetrics = users.map(user => {
-  const purchasedProgressHours = user.purchasedProgressHours || 0;
-  const metrics = calculateProgressMetrics(user.projects, purchasedProgressHours);
-  return {
-    ...user,
-    metrics,
-  };
-});
-const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.metrics.viralHours) - (a.metrics.shippedHours + a.metrics.viralHours));
-  const filteredUsers = sortedUsers.filter(user => 
-    (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-    (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  ).map(user => {
-    try {
-      const purchasedProgressHours = user.purchasedProgressHours || 0;
-      return { ...user, stats: calculateProgressMetrics(user.projects || [], purchasedProgressHours) };
-    } catch (error) {
-      console.error('Error calculating progress metrics for user:', user.id, error);
-      return { 
-        ...user, 
-        stats: {
-          shippedHours: 0,
-          viralHours: 0,
-          otherHours: 0,
-          totalHours: 0,
-          totalPercentage: 0,
-          totalPercentageWithPurchased: 0,
-          rawHours: 0,
-          currency: 0,
-          purchasedProgressHours: 0,
-          totalProgressWithPurchased: 0
-        }
-      };
-    }
-  }).sort((a, b) => {
-    let result = 0;
-    
-    try {
-      switch (sortField) {
-        case 'progress':
-          result = b.stats.totalPercentageWithPurchased - a.stats.totalPercentageWithPurchased;
-          if (result === 0) {
-            // Secondary sort by viral status
-            result = +!!(b.projects || []).find(x=>x.viral) - +!!(a.projects || []).find(x=>x.viral);
-          }
-          break;
-        case 'name':
-          const nameA = (a.name || a.email || '').toLowerCase();
-          const nameB = (b.name || b.email || '').toLowerCase();
-          result = nameA.localeCompare(nameB);
-          break;
-        case 'shipped':
-          result = (b.projects.filter(project => project.shipped).length || 0) - (a.projects.filter(project => project.shipped).length || 0);
-          break;
-        case 'in_review':
-          result = (b.projects.filter(project => project.in_review).length || 0) - (a.projects.filter(project => project.in_review).length || 0);
-          break;
-        default:
-          // sort by most overrided hours
-          result = (b.metrics.shippedHours + b.metrics.viralHours + b.metrics.purchasedProgressHours) - (a.metrics.shippedHours + a.metrics.viralHours + a.metrics.purchasedProgressHours);
-          break;
-      }
-      
-      return sortOrder === 'asc' ? result : -result;
-    } catch (error) {
-      console.error('Error in sorting:', error);
-      return 0;
-    }
+  const usersWithMetrics = users.map((user) => {
+    const purchasedProgressHours = user.purchasedProgressHours || 0;
+    const metrics = calculateProgressMetrics(user.projects, purchasedProgressHours);
+    return {
+      ...user,
+      metrics,
+    };
   });
+  const sortedUsers = usersWithMetrics.sort(
+    (a, b) =>
+      b.metrics.shippedHours +
+      b.metrics.viralHours -
+      (a.metrics.shippedHours + a.metrics.viralHours),
+  );
+  const filteredUsers = sortedUsers
+    .filter(
+      (user) =>
+        (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()),
+    )
+    .map((user) => {
+      try {
+        const purchasedProgressHours = user.purchasedProgressHours || 0;
+        return {
+          ...user,
+          stats: calculateProgressMetrics(user.projects || [], purchasedProgressHours),
+        };
+      } catch (error) {
+        console.error('Error calculating progress metrics for user:', user.id, error);
+        return {
+          ...user,
+          stats: {
+            shippedHours: 0,
+            viralHours: 0,
+            otherHours: 0,
+            totalHours: 0,
+            totalPercentage: 0,
+            totalPercentageWithPurchased: 0,
+            rawHours: 0,
+            currency: 0,
+            purchasedProgressHours: 0,
+            totalProgressWithPurchased: 0,
+          },
+        };
+      }
+    })
+    .sort((a, b) => {
+      let result = 0;
 
-   // Fetch shell balance and progress data
-   useEffect(() => {
+      try {
+        switch (sortField) {
+          case 'progress':
+            result = b.stats.totalPercentageWithPurchased - a.stats.totalPercentageWithPurchased;
+            if (result === 0) {
+              // Secondary sort by viral status
+              result =
+                +!!(b.projects || []).find((x) => x.viral) -
+                +!!(a.projects || []).find((x) => x.viral);
+            }
+            break;
+          case 'name':
+            const nameA = (a.name || a.email || '').toLowerCase();
+            const nameB = (b.name || b.email || '').toLowerCase();
+            result = nameA.localeCompare(nameB);
+            break;
+          case 'shipped':
+            result =
+              (b.projects.filter((project) => project.shipped).length || 0) -
+              (a.projects.filter((project) => project.shipped).length || 0);
+            break;
+          case 'in_review':
+            result =
+              (b.projects.filter((project) => project.in_review).length || 0) -
+              (a.projects.filter((project) => project.in_review).length || 0);
+            break;
+          default:
+            // sort by most overrided hours
+            result =
+              b.metrics.shippedHours +
+              b.metrics.viralHours +
+              b.metrics.purchasedProgressHours -
+              (a.metrics.shippedHours + a.metrics.viralHours + a.metrics.purchasedProgressHours);
+            break;
+        }
+
+        return sortOrder === 'asc' ? result : -result;
+      } catch (error) {
+        console.error('Error in sorting:', error);
+        return 0;
+      }
+    });
+
+  // Fetch shell balance and progress data
+  useEffect(() => {
     const fetchShellBalance = async () => {
       if (!session?.user?.id) {
         return;
@@ -216,15 +242,21 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
           <div className="flex items-center justify-between w-full py-1 md:py-2">
             <div className="flex-grow px-2 sm:px-4 md:px-0">
               <div className="flex items-center justify-center gap-2 sm:gap-3 min-w-0">
-                <Tooltip content={`You've built ${projects != undefined ? projects.length : 0} project${projects != null && projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}>
-                  <img src="/ship2.png" alt="Ship" className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center" />
+                <Tooltip
+                  content={`You've built ${projects != undefined ? projects.length : 0} project${projects != null && projects.length !== 1 ? 's' : ''}, and grinded ${progressMetrics.rawHours} hour${progressMetrics.rawHours !== 1 ? 's' : ''} thus far`}
+                >
+                  <img
+                    src="/ship2.png"
+                    alt="Ship"
+                    className="h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center"
+                  />
                 </Tooltip>
-                <div 
-                  className="flex-grow cursor-pointer min-w-0" 
+                <div
+                  className="flex-grow cursor-pointer min-w-0"
                   onClick={() => setIsProgressModalOpen(true)}
                   title="When this progress bar reaches 100%, you're eligible for going to the island!"
                 >
-                  <MultiPartProgressBar 
+                  <MultiPartProgressBar
                     projects={projects}
                     progressMetrics={progressMetrics}
                     max={100}
@@ -235,7 +267,11 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                   />
                 </div>
                 <Tooltip content="Your prize - a fantastic island adventure with friends">
-                  <img src="/island2.png" alt="Island" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center" />
+                  <img
+                    src="/island2.png"
+                    alt="Island"
+                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center"
+                  />
                 </Tooltip>
               </div>
             </div>
@@ -244,9 +280,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
       );
     } catch (error) {
       console.error('Error calculating progress metrics:', error);
-      return (
-        <div className="text-gray-400">Error</div>
-      );
+      return <div className="text-gray-400">Error</div>;
     }
   };
 
@@ -261,7 +295,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Shipwrecked Leaderboard</h1>
       </div>
-      
+
       <div className="mb-6">
         <div className="relative">
           <input
@@ -271,12 +305,10 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="absolute right-3 top-3 text-gray-400">
-            🔍
-          </span>
+          <span className="absolute right-3 top-3 text-gray-400">🔍</span>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -287,138 +319,148 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
           <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15">
-                    #
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('name')}
-                  >
-                    <div className="flex items-center gap-1">
-                      User
-                      <span className="text-xs">{getSortIcon('name')}</span>
-                    </div>
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24">
-                    Joined
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('progress')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Progress
-                      <span className="text-xs">{getSortIcon('progress')}</span>
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('shipped')}
-                  >
-                    <div className="flex items-center gap-1">
-                      # Shipped
-                      <span className="text-xs">{getSortIcon('shipped')}</span>
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('in_review')}
-                  >
-                    <div className="flex items-center gap-1">
-                      # In Review
-                      <span className="text-xs">{getSortIcon('in_review')}</span>
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSort('in_review')}
-                  >
-                    <div className="flex items-center gap-1">
-                      clamshells
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={9} className="px-3 py-4 text-center text-gray-500">
-                      No users found
-                    </td>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-15"
+                    >
+                      #
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-40 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-1">
+                        User
+                        <span className="text-xs">{getSortIcon('name')}</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-24"
+                    >
+                      Joined
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('progress')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Progress
+                        <span className="text-xs">{getSortIcon('progress')}</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('shipped')}
+                    >
+                      <div className="flex items-center gap-1">
+                        # Shipped
+                        <span className="text-xs">{getSortIcon('shipped')}</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('in_review')}
+                    >
+                      <div className="flex items-center gap-1">
+                        # In Review
+                        <span className="text-xs">{getSortIcon('in_review')}</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-30 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('in_review')}
+                    >
+                      <div className="flex items-center gap-1">clamshells</div>
+                    </th>
                   </tr>
-                ) : (
-                  filteredUsers.map((user, index) => (
-                    <tr key={user.id}>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-500">
-                          {index + 1}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {user.image ? (
-                            <img className="h-8 w-8 rounded-full mr-2" src={user.image} alt={user.name || 'User'} />
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">
-                              <span className="text-gray-600 font-bold text-xs">{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 flex items-center gap-4">
-                              {user.name || 'Unknown'}
-                              {user.stats?.totalPercentageWithPurchased === 100 && (
-                                <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
-                                  <span>Invited</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-xs text-gray-500">
-                          {new Date(user.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: '2-digit'
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {getProgressBadge(user, user.projects)}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => project.shipped).length}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {user.projects.filter(project => project.in_review).length}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {calculateProgressMetrics(
-                            user.projects, 
-                            user.purchasedProgressHours || 0,
-                            user.totalShellsSpent || 0,
-                            user.adminShellAdjustment || 0
-                          ).availableShells}
-                        </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-3 py-4 text-center text-gray-500">
+                        No users found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredUsers.map((user, index) => (
+                      <tr key={user.id}>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-500">{index + 1}</div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {user.image ? (
+                              <img
+                                className="h-8 w-8 rounded-full mr-2"
+                                src={user.image}
+                                alt={user.name || 'User'}
+                              />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">
+                                <span className="text-gray-600 font-bold text-xs">
+                                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-gray-900 flex items-center gap-4">
+                                {user.name || 'Unknown'}
+                                {user.stats?.totalPercentageWithPurchased === 100 && (
+                                  <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                                    <span>Invited</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-xs text-gray-500">
+                            {new Date(user.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: '2-digit',
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {getProgressBadge(user, user.projects)}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {user.projects.filter((project) => project.shipped).length}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {user.projects.filter((project) => project.in_review).length}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {
+                              calculateProgressMetrics(
+                                user.projects,
+                                user.purchasedProgressHours || 0,
+                                user.totalShellsSpent || 0,
+                                user.adminShellAdjustment || 0,
+                              ).availableShells
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -431,8 +473,8 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                 <button
                   onClick={() => handleSort('name')}
                   className={`px-3 py-1 text-xs rounded-full border ${
-                    sortField === 'name' 
-                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                    sortField === 'name'
+                      ? 'bg-blue-100 border-blue-300 text-blue-800'
                       : 'bg-gray-100 border-gray-300 text-gray-700'
                   }`}
                 >
@@ -441,17 +483,16 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                 <button
                   onClick={() => handleSort('progress')}
                   className={`px-3 py-1 text-xs rounded-full border ${
-                    sortField === 'progress' 
-                      ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                    sortField === 'progress'
+                      ? 'bg-blue-100 border-blue-300 text-blue-800'
                       : 'bg-gray-100 border-gray-300 text-gray-700'
                   }`}
                 >
                   Progress {sortField === 'progress' && getSortIcon('progress')}
                 </button>
-                
               </div>
             </div>
-            
+
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <p className="text-gray-500">No users found</p>
@@ -459,30 +500,34 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {filteredUsers.map((user, index) => (
-                  <div 
+                  <div
                     key={user.id}
                     className="block bg-white rounded-lg shadow-md overflow-hidden"
                   >
                     <div className="p-4">
                       <div className="flex items-center mb-3">
-                        <div className="text-lg font-medium text-gray-500 mr-3">
-                          #{index + 1}
-                        </div>
+                        <div className="text-lg font-medium text-gray-500 mr-3">#{index + 1}</div>
                         {user.image ? (
-                          <img className="h-12 w-12 rounded-full mr-3" src={user.image} alt={user.name || 'User'} />
+                          <img
+                            className="h-12 w-12 rounded-full mr-3"
+                            src={user.image}
+                            alt={user.name || 'User'}
+                          />
                         ) : (
                           <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                            <span className="text-gray-600 font-bold">{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
+                            <span className="text-gray-600 font-bold">
+                              {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                            </span>
                           </div>
                         )}
                         <div>
                           <div className="text-base font-medium text-gray-900 flex items-center gap-1">
                             {user.name || 'Unknown'}
                             {user.stats?.totalPercentageWithPurchased === 100 && (
-                                <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
-                                  <span>Invited</span>
-                                </div>
-                              )}
+                              <div className="ml-1 align-middle inline-block bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                                <span>Invited</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -495,24 +540,26 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                         <div>
                           <span className="text-gray-500 block"># Shipped</span>
                           <span className="text-gray-800">
-                            {user.projects.filter(project => project.shipped).length}
+                            {user.projects.filter((project) => project.shipped).length}
                           </span>
                         </div>
                         <div>
                           <span className="text-gray-500 block"># In Review</span>
                           <span className="text-gray-800">
-                            {user.projects.filter(project => project.in_review).length}
+                            {user.projects.filter((project) => project.in_review).length}
                           </span>
                         </div>
                         <div>
                           <span className="text-gray-500 block">Clamshells</span>
                           <span className="text-gray-800">
-                            {calculateProgressMetrics(
-                              user.projects, 
-                              user.purchasedProgressHours || 0,
-                              user.totalShellsSpent || 0,
-                              user.adminShellAdjustment || 0
-                            ).availableShells}
+                            {
+                              calculateProgressMetrics(
+                                user.projects,
+                                user.purchasedProgressHours || 0,
+                                user.totalShellsSpent || 0,
+                                user.adminShellAdjustment || 0,
+                              ).availableShells
+                            }
                           </span>
                         </div>
                         <div>
@@ -521,7 +568,7 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
                             {new Date(user.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'short',
-                              day: 'numeric'
+                              day: 'numeric',
                             })}
                           </span>
                         </div>
@@ -535,8 +582,8 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
         </>
       )}
 
-                     {/* Progress Information Modal */}
-                     <Modal
+      {/* Progress Information Modal */}
+      <Modal
         isOpen={isProgressModalOpen}
         onClose={() => setIsProgressModalOpen(false)}
         title="Progress Information"
@@ -545,52 +592,72 @@ const sortedUsers = usersWithMetrics.sort((a, b) => (b.metrics.shippedHours + b.
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-3">Your Journey to Shipwrecked</h3>
           <p className="mb-4">
-            The progress bar shows your completion percentage towards the 60-hour goal required to qualify for Shipwrecked.
+            The progress bar shows your completion percentage towards the 60-hour goal required to
+            qualify for Shipwrecked.
           </p>
-          
+
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <h4 className="font-medium mb-2">Progress Bar Legend:</h4>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#10b981' }}></span>
+                <span
+                  className="inline-block w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: '#10b981' }}
+                ></span>
                 <strong>Green:</strong> Hours from shipped projects (projects marked as "shipped")
               </li>
               <li>
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#f59e0b' }}></span>
+                <span
+                  className="inline-block w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: '#f59e0b' }}
+                ></span>
                 <strong>Gold:</strong> Hours from viral projects
               </li>
               <li>
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#3b82f6' }}></span>
+                <span
+                  className="inline-block w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: '#3b82f6' }}
+                ></span>
                 <strong>Blue:</strong> Hours from in-progress projects (not yet shipped or viral)
               </li>
               <li>
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#ec4899' }}></span>
+                <span
+                  className="inline-block w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: '#ec4899' }}
+                ></span>
                 <strong>Pink:</strong> Hours purchased from the shop
               </li>
               <li>
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#e5e7eb' }}></span>
+                <span
+                  className="inline-block w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: '#e5e7eb' }}
+                ></span>
                 <strong>Gray:</strong> Remaining progress needed to reach 100%
               </li>
             </ul>
             <p className="mt-3 text-sm text-gray-600">
-              Hover over each segment in the progress bar to see the exact hours contributed by each category.
+              Hover over each segment in the progress bar to see the exact hours contributed by each
+              category.
             </p>
           </div>
-          
+
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <h4 className="font-medium mb-2">Requirements for Shipwrecked:</h4>
             <ol className="list-decimal pl-5 space-y-2">
               <li>
-                Complete at least 60 hours of development time (roughly 15 hours per project) and ship 4 fully deployed projects
+                Complete at least 60 hours of development time (roughly 15 hours per project) and
+                ship 4 fully deployed projects
               </li>
               <li>
-                Make at least one of your projects go viral according to our <a href="/info/go-viral" className="text-blue-600 hover:underline">defined criteria</a>
+                Make at least one of your projects go viral according to our{' '}
+                <a href="/info/go-viral" className="text-blue-600 hover:underline">
+                  defined criteria
+                </a>
               </li>
             </ol>
           </div>
         </div>
       </Modal>
-      
 
       <Toaster richColors />
     </div>
@@ -603,10 +670,10 @@ export default function Users() {
     <SessionProvider>
       <SessionWrapper>
         <Suspense fallback={<div>Loading users...</div>}>
-        <div className="min-h-screen flex flex-col p-6">
-          <LeaderboardContent />
-        </div>
-      </Suspense>
+          <div className="min-h-screen flex flex-col p-6">
+            <LeaderboardContent />
+          </div>
+        </Suspense>
       </SessionWrapper>
     </SessionProvider>
   );

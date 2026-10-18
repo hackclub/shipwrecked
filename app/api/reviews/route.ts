@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const reviewerId = session.user.id;
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.projectID || !body.comment) {
       return NextResponse.json({ error: 'Project ID and comment are required' }, { status: 400 });
@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
       },
       include: {
         user: {
-          select: { email: true }
-        }
-      }
+          select: { email: true },
+        },
+      },
     });
 
     if (!project) {
@@ -102,12 +102,14 @@ export async function POST(request: NextRequest) {
     // nah, send the review email from here
     const host = process.env.NEXTAUTH_URL;
     // Still include result text in notifications if provided in the request
-    const resultText = body.result ? `${body.result === 'approve' ? 'Approved' : (body.result === 'reject' ? 'Rejected' : 'Commented')}: ` : '';
+    const resultText = body.result
+      ? `${body.result === 'approve' ? 'Approved' : body.result === 'reject' ? 'Rejected' : 'Commented'}: `
+      : '';
     const updateContent = `Review Update for ${project.name} just came in! ${resultText}Check it out at https://${host}/bay`;
 
     const date = new Date();
-    const datetime = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} - ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-          
+    const datetime = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} - ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
     await sendNotificationEmail(project.user.email, project.name, datetime, updateContent);
 
     return NextResponse.json(review, { status: 201 });
@@ -160,4 +162,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting review:', error);
     return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 });
   }
-} 
+}

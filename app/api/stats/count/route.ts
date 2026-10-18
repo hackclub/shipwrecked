@@ -7,7 +7,7 @@ export async function GET() {
     {
       window: 1, //second
       maxRequests: 3, //# allowable requests over window
-      keyPrefix: 'api/stats/count'
+      keyPrefix: 'api/stats/count',
     },
     async () => {
       try {
@@ -19,6 +19,6 @@ export async function GET() {
         console.error('Error fetching cached stats:', error);
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
       }
-    }
+    },
   );
-} 
+}

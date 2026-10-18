@@ -15,25 +15,25 @@ export async function GET(request: Request) {
     // Get all linked Hackatime project names from all users
     const linkedProjects = await prisma.hackatimeProjectLink.findMany({
       select: {
-        hackatimeName: true
-      }
+        hackatimeName: true,
+      },
     });
-    
+
     // Extract just the project names to a string array
-    const linkedProjectNames = linkedProjects.map(link => link.hackatimeName);
-    
+    const linkedProjectNames = linkedProjects.map((link) => link.hackatimeName);
+
     // Remove duplicates
     const uniqueLinkedProjects = [...new Set(linkedProjectNames)];
-    
+
     return NextResponse.json({
       linkedProjects: uniqueLinkedProjects,
-      count: uniqueLinkedProjects.length
+      count: uniqueLinkedProjects.length,
     });
   } catch (error) {
     console.error('Error fetching linked Hackatime projects:', error);
     return NextResponse.json(
       { error: 'Failed to fetch linked Hackatime projects' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

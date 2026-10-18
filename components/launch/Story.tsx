@@ -1,18 +1,18 @@
-"use client";
-import { motion, useMotionValue, animate, AnimationPlaybackControls } from "motion/react";
-import { createContext, useEffect, useState, useRef } from "react";
-import Shore from "./Shore";
-import Info from "./Info";
-import Waves from "./Waves";
-import Bay from "./Bay";
-import CallToAction from "./CallToAction";
-import TriggerButton from "./TriggerButton";
-import ShareButton from "@/components/common/ShareButton";
-import { PrefillData } from "@/types/prefill";
+'use client';
+import { motion, useMotionValue, animate, AnimationPlaybackControls } from 'motion/react';
+import { createContext, useEffect, useState, useRef } from 'react';
+import Shore from './Shore';
+import Info from './Info';
+import Waves from './Waves';
+import Bay from './Bay';
+import CallToAction from './CallToAction';
+import TriggerButton from './TriggerButton';
+import ShareButton from '@/components/common/ShareButton';
+import { PrefillData } from '@/types/prefill';
 
 export const ScrollProgressContext = createContext<
   [number, (n: number, duration?: number) => void]
->([0, () => { }]);
+>([0, () => {}]);
 
 export default function Story({ prefillData }: { prefillData: PrefillData }) {
   const [scrollPercent, setScrollPercent] = useState(0);
@@ -40,13 +40,11 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
 
   useEffect(() => {
     // Sync motion value to scrollPercent
-    const unsubscribe = motionValue.on("change", (latest: number) => {
+    const unsubscribe = motionValue.on('change', (latest: number) => {
       setScrollPercent(latest);
       // set scrolltop to match scrollpercent
       const scrollTop =
-        latest *
-        (document.documentElement.scrollHeight -
-          document.documentElement.clientHeight);
+        latest * (document.documentElement.scrollHeight - document.documentElement.clientHeight);
       window.scrollTo({
         top: scrollTop,
       });
@@ -63,9 +61,9 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
       setScrollPercent(scrollTop / (scrollHeight - clientHeight));
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -77,20 +75,18 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
 
     // Start new animation and store the control
     currentAnimationRef.current = animate(motionValue, percent, {
-      type: "spring",
+      type: 'spring',
       duration: duration || 5,
-      ease: "easeIn", // 'cubic-bezier(0.83, 0, 0.17, 1)'
+      ease: 'easeIn', // 'cubic-bezier(0.83, 0, 0.17, 1)'
       bounce: 0,
     });
 
     // correct for scrollTop
     const scrollTop =
-      percent *
-      (document.documentElement.scrollHeight -
-        document.documentElement.clientHeight);
+      percent * (document.documentElement.scrollHeight - document.documentElement.clientHeight);
     window.scrollTo({
       top: scrollTop,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   };
 
@@ -98,7 +94,7 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
     scrollPercent >= start && scrollPercent < end;
 
   const activeWaveBounds = WAVE_BOUNDS.find(
-    ([start, end]) => scrollPercent >= start && scrollPercent <= end
+    ([start, end]) => scrollPercent >= start && scrollPercent <= end,
   ) || [undefined, undefined];
 
   return (
@@ -112,14 +108,16 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
       >
         {scrollPercent < sections.cta.start && (
           <div className="absolute top-8 right-8 z-50">
-            <TriggerButton targetPercent={1} waves>Sign up</TriggerButton>
+            <TriggerButton targetPercent={1} waves>
+              Sign up
+            </TriggerButton>
           </div>
         )}
         {scrollPercent >= sections.cta.start && (
           <motion.a
             href="/bay/login"
             className="py-3 md:px-6 px-4 uppercase italic bg-yellow text-dark-blue border border-sand whitespace-nowrap text-sm md:text-lg font-bold transition-all duration-300 hover:border-dark-blue hover:scale-105 backdrop-blur-sm rounded-full cursor-pointer active:scale-95 flex items-center gap-3 pulse-glow z-50 fixed top-8 right-8"
-            style={{display: 'inline-block'}}
+            style={{ display: 'inline-block' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -127,45 +125,32 @@ export default function Story({ prefillData }: { prefillData: PrefillData }) {
           </motion.a>
         )}
         <div>
-          {animateSectionIfWithinBounds(
-            sections.shore.start,
-            sections.shore.end
-          ) && <Shore next={sections.info.start + WAVE_OFFSET} />}
+          {animateSectionIfWithinBounds(sections.shore.start, sections.shore.end) && (
+            <Shore next={sections.info.start + WAVE_OFFSET} />
+          )}
 
-          {animateSectionIfWithinBounds(
-            sections.info.start,
-            sections.info.end
-          ) && (
-              <Info
-                previous={sections.shore.end - WAVE_OFFSET}
-                next={sections.bay.start + WAVE_OFFSET}
-                start={sections.info.start}
-                end={sections.info.end}
-              />
-            )}
+          {animateSectionIfWithinBounds(sections.info.start, sections.info.end) && (
+            <Info
+              previous={sections.shore.end - WAVE_OFFSET}
+              next={sections.bay.start + WAVE_OFFSET}
+              start={sections.info.start}
+              end={sections.info.end}
+            />
+          )}
 
-          {animateSectionIfWithinBounds(
-            sections.bay.start,
-            sections.bay.end
-          ) && (
-              <Bay
-                previous={sections.bay.end - WAVE_OFFSET}
-                next={sections.cta.start + WAVE_OFFSET}
-                start={sections.bay.start}
-                end={sections.bay.end}
-              />
-            )}
+          {animateSectionIfWithinBounds(sections.bay.start, sections.bay.end) && (
+            <Bay
+              previous={sections.bay.end - WAVE_OFFSET}
+              next={sections.cta.start + WAVE_OFFSET}
+              start={sections.bay.start}
+              end={sections.bay.end}
+            />
+          )}
 
-          {(animateSectionIfWithinBounds(
-            sections.cta.start,
-            sections.cta.end
-          ) ||
+          {(animateSectionIfWithinBounds(sections.cta.start, sections.cta.end) ||
             scrollPercent === 1) && (
-              <CallToAction 
-                previous={sections.bay.end - WAVE_OFFSET} 
-                prefillData={prefillData}
-              />
-            )}
+            <CallToAction previous={sections.bay.end - WAVE_OFFSET} prefillData={prefillData} />
+          )}
 
           <Waves start={activeWaveBounds[0]} end={activeWaveBounds[1]} />
         </div>

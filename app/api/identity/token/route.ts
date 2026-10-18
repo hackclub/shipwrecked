@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     // ID Service Parameters
     const params = {
       code,
       client_id: process.env.IDENTITY_CLIENT_ID,
       client_secret: process.env.IDENTITY_CLIENT_SECRET,
       redirect_uri: `${process.env.NEXTAUTH_URL}/identity`,
-      grant_type: "authorization_code",
+      grant_type: 'authorization_code',
     };
 
     // Exchange code (from url params) for token
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await response.json();
-    
+
     // Update user with token
     await prisma.user.update({
       where: {
@@ -43,9 +43,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("token identity data", data);
+    console.log('token identity data', data);
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : error }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : error },
+      { status: 500 },
+    );
   }
-} 
+}

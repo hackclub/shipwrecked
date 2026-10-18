@@ -14,22 +14,18 @@ interface UserCategoryDisplayProps {
 export default function UserCategoryDisplay({
   category,
   size = 'medium',
-  className = ''
+  className = '',
 }: UserCategoryDisplayProps) {
   if (!category) {
-    return (
-      <span className={`text-xs text-gray-400 ${className}`}>
-        No data
-      </span>
-    );
+    return <span className={`text-xs text-gray-400 ${className}`}>No data</span>;
   }
 
   const style = getUserCategoryStyle(category.category);
-  
+
   const sizeClasses = {
     small: 'text-xs px-2 py-1',
     medium: 'text-sm px-3 py-1',
-    large: 'text-base px-4 py-2'
+    large: 'text-base px-4 py-2',
   };
 
   return (
@@ -45,4 +41,4 @@ export default function UserCategoryDisplay({
       <span>{style.label}</span>
     </span>
   );
-} 
+}

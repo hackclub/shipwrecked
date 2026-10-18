@@ -51,14 +51,16 @@ export function useProjectClassification(hours?: number) {
 
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/analytics/project-histogram?classifyHours=${projectHours}`);
-      
+      const response = await fetch(
+        `/api/analytics/project-histogram?classifyHours=${projectHours}`,
+      );
+
       if (!response.ok) {
         throw new Error(`Failed to classify project hours: ${response.statusText}`);
       }
-      
+
       const data: ProjectClassification = await response.json();
       setClassification(data);
     } catch (err) {
@@ -80,7 +82,7 @@ export function useProjectClassification(hours?: number) {
     classification,
     loading,
     error,
-    refetch: hours !== undefined ? () => fetchClassification(hours) : undefined
+    refetch: hours !== undefined ? () => fetchClassification(hours) : undefined,
   };
 }
 
@@ -92,14 +94,14 @@ export function useHistogramAnalysis() {
   const fetchAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/analytics/project-histogram');
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch histogram analysis: ${response.statusText}`);
       }
-      
+
       const data: HistogramAnalysis = await response.json();
       setAnalysis(data);
     } catch (err) {
@@ -119,7 +121,7 @@ export function useHistogramAnalysis() {
     analysis,
     loading,
     error,
-    refetch: fetchAnalysis
+    refetch: fetchAnalysis,
   };
 }
 
@@ -131,42 +133,42 @@ export function getClassificationStyle(classification: ProjectClassification['cl
         color: 'text-red-600',
         bgColor: 'bg-red-50',
         borderColor: 'border-red-200',
-        label: 'Very Low'
+        label: 'Very Low',
       };
     case 'low':
       return {
         color: 'text-orange-600',
         bgColor: 'bg-orange-50',
         borderColor: 'border-orange-200',
-        label: 'Below Average'
+        label: 'Below Average',
       };
     case 'normal':
       return {
         color: 'text-green-600',
         bgColor: 'bg-green-50',
         borderColor: 'border-green-200',
-        label: 'Average'
+        label: 'Average',
       };
     case 'high':
       return {
         color: 'text-blue-600',
         bgColor: 'bg-blue-50',
         borderColor: 'border-blue-200',
-        label: 'Above Average'
+        label: 'Above Average',
       };
     case 'very-high':
       return {
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
         borderColor: 'border-purple-200',
-        label: 'Very High'
+        label: 'Very High',
       };
     default:
       return {
         color: 'text-gray-600',
         bgColor: 'bg-gray-50',
         borderColor: 'border-gray-200',
-        label: 'Unknown'
+        label: 'Unknown',
       };
   }
-} 
+}

@@ -5,7 +5,7 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     // Check for valid session - user must be logged in
@@ -85,4 +85,4 @@ export async function POST(
     console.error('Error handling upvote:', error);
     return NextResponse.json({ error: 'Failed to process upvote' }, { status: 500 });
   }
-} 
+}

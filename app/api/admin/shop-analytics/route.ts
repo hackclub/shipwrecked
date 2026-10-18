@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     let startDate: Date | undefined;
-    
+
     switch (timeRange) {
       case '1h':
         startDate = new Date(now.getTime() - 60 * 60 * 1000);
@@ -38,12 +38,12 @@ export async function GET(request: NextRequest) {
       fulfilledAt?: { gte: Date };
       itemId?: string;
     } = {
-      status: 'fulfilled' // Only count fulfilled orders
+      status: 'fulfilled', // Only count fulfilled orders
     };
 
     if (startDate) {
       whereClause.fulfilledAt = {
-        gte: startDate
+        gte: startDate,
       };
     }
 
@@ -58,18 +58,17 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             name: true,
-            email: true
-          }
-        }
+            email: true,
+          },
+        },
       },
       orderBy: {
-        fulfilledAt: 'desc'
-      }
+        fulfilledAt: 'desc',
+      },
     });
 
-
     const shopItems = await prisma.shopItem.findMany();
-    const itemMap = new Map(shopItems.map(item => [item.id, item]));
+    const itemMap = new Map(shopItems.map((item) => [item.id, item]));
 
     // Calculate analytics
     let totalShells = 0;
@@ -81,7 +80,7 @@ export async function GET(request: NextRequest) {
       if (!item) continue;
 
       const orderUsd = computeOrderUsdValue(item, order);
-      
+
       totalShells += order.price;
       totalUsd += orderUsd;
 
@@ -94,8 +93,7 @@ export async function GET(request: NextRequest) {
       itemBreakdown[order.itemId].count += 1;
     }
 
-
-    const phi = (1 + Math.sqrt(5)) / 2; 
+    const phi = (1 + Math.sqrt(5)) / 2;
     const shellsPerHour = phi * 10;
     const payoutRatePerShell = totalShells > 0 ? totalUsd / totalShells : 0;
     const payoutRate = payoutRatePerShell * shellsPerHour; // Convert to $ / hr
@@ -111,7 +109,7 @@ export async function GET(request: NextRequest) {
         shells: data.shells,
         usd: data.usd,
         count: data.count,
-        payoutRate: itemPayoutRate
+        payoutRate: itemPayoutRate,
       };
     });
 
@@ -122,11 +120,10 @@ export async function GET(request: NextRequest) {
       payoutRate,
       orderCount: orders.length,
       itemAnalytics,
-      recentOrders: orders.slice(0, 10) 
+      recentOrders: orders.slice(0, 10),
     });
-
   } catch (error) {
     console.error('Error fetching shop analytics:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

@@ -12,7 +12,7 @@ export default function MultiPartProgressBarExample() {
       label: 'Shipped Projects',
       tooltip: '15 hours from shipped projects',
       animated: false,
-      status: 'completed'
+      status: 'completed',
     },
     {
       value: 25,
@@ -20,7 +20,7 @@ export default function MultiPartProgressBarExample() {
       label: 'In Progress',
       tooltip: '25 hours from in-progress projects',
       animated: true,
-      status: 'in-progress'
+      status: 'in-progress',
     },
     {
       value: 10,
@@ -28,8 +28,8 @@ export default function MultiPartProgressBarExample() {
       label: 'Viral Projects',
       tooltip: '10 hours from viral projects',
       animated: false,
-      status: 'completed'
-    }
+      status: 'completed',
+    },
   ]);
 
   // Example: Progress bar showing a comparison between goal and actual progress
@@ -40,7 +40,7 @@ export default function MultiPartProgressBarExample() {
       label: 'Remaining',
       tooltip: '35 hours remaining to reach goal',
       animated: false,
-      status: 'pending'
+      status: 'pending',
     },
     {
       value: 65,
@@ -48,8 +48,8 @@ export default function MultiPartProgressBarExample() {
       label: 'Completed',
       tooltip: '65 hours completed',
       animated: true,
-      status: 'completed'
-    }
+      status: 'completed',
+    },
   ]);
 
   // Example: Progress bar with multiple small segments
@@ -58,7 +58,7 @@ export default function MultiPartProgressBarExample() {
     { value: 15, color: '#f59e0b', label: 'Project B', tooltip: 'Project B: 15 hours' },
     { value: 12, color: '#10b981', label: 'Project C', tooltip: 'Project C: 12 hours' },
     { value: 8, color: '#3b82f6', label: 'Project D', tooltip: 'Project D: 8 hours' },
-    { value: 5, color: '#8b5cf6', label: 'Project E', tooltip: 'Project E: 5 hours' }
+    { value: 5, color: '#8b5cf6', label: 'Project E', tooltip: 'Project E: 5 hours' },
   ]);
 
   return (
@@ -68,8 +68,8 @@ export default function MultiPartProgressBarExample() {
         <p className="text-sm text-gray-600 mb-3">
           Shows distribution of hours across different project statuses.
         </p>
-        <MultiPartProgressBar 
-          segments={projectHours} 
+        <MultiPartProgressBar
+          segments={projectHours}
           height={16}
           showLabels={true}
           showPercentages={true}
@@ -79,11 +79,9 @@ export default function MultiPartProgressBarExample() {
 
       <div>
         <h3 className="text-lg font-medium mb-2">Progress Toward Goal (100 hours)</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          Shows progress toward the 100-hour goal.
-        </p>
-        <MultiPartProgressBar 
-          segments={progressData} 
+        <p className="text-sm text-gray-600 mb-3">Shows progress toward the 100-hour goal.</p>
+        <MultiPartProgressBar
+          segments={progressData}
           max={100}
           height={12}
           showLabels={true}
@@ -96,7 +94,7 @@ export default function MultiPartProgressBarExample() {
         <p className="text-sm text-gray-600 mb-3">
           Shows hours distribution across different projects.
         </p>
-        <MultiPartProgressBar 
+        <MultiPartProgressBar
           segments={detailedProgress}
           height={20}
           showLabels={true}
@@ -105,4 +103,4 @@ export default function MultiPartProgressBarExample() {
       </div>
     </div>
   );
-} 
+}

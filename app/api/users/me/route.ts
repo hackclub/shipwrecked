@@ -5,7 +5,10 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { isShopAdminWhitelisted } from '@/lib/shop-admin-auth';
 
 // Whitelist of admin users who can access shop orders (legacy)
-const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '').split(',').map(e => e.trim()).filter(Boolean);
+const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '')
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean);
 
 export async function GET() {
   // Check authentication
@@ -17,11 +20,11 @@ export async function GET() {
   try {
     // Get the user ID from the session
     const userId = session.user.id;
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found in session' }, { status: 400 });
     }
-    
+
     // Fetch the user's fresh data from the database
     const user = await prisma.user.findUnique({
       where: {
@@ -55,9 +58,6 @@ export async function GET() {
     return NextResponse.json({ ...user, isShopOrdersAdmin, isShopAdmin });
   } catch (error) {
     console.error('Error fetching user:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
   }
-} 
+}

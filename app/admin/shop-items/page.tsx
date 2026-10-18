@@ -63,7 +63,7 @@ export default function ShopItemsPage() {
   const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
     minPercent: '90',
-    maxPercent: '110'
+    maxPercent: '110',
   });
   const [dollarsPerHour, setDollarsPerHour] = useState<string>('');
   const [isShopAdmin, setIsShopAdmin] = useState(false);
@@ -90,11 +90,16 @@ export default function ShopItemsPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState(TIME_RANGES[3]);
-  const [itemStats, setItemStats] = useState<Record<string, {
-    unitsSold: number;
-    totalRevenue: number;
-    avgPrice: number;
-  }>>({});
+  const [itemStats, setItemStats] = useState<
+    Record<
+      string,
+      {
+        unitsSold: number;
+        totalRevenue: number;
+        avgPrice: number;
+      }
+    >
+  >({});
 
   useEffect(() => {
     fetchData();
@@ -121,9 +126,8 @@ export default function ShopItemsPage() {
       } catch {}
       const usdCost = parseFloat(formData.usdCost);
       const phi = (1 + Math.sqrt(5)) / 2;
-      
-      if (configObj.dollars_per_hour && !isNaN(usdCost)) {
 
+      if (configObj.dollars_per_hour && !isNaN(usdCost)) {
         const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
         const hours = usdCost / itemDollarsPerHour; // Convert USD to hours using item's rate
         const shells = Math.round(hours * phi * 10);
@@ -203,13 +207,13 @@ export default function ShopItemsPage() {
       if (configResponse.ok) {
         const configData = await configResponse.json();
         setGlobalConfig(configData.config);
-        
+
         // Initialize pricing config state
         setPricingConfig({
           minPercent: configData.config.price_random_min_percent || '90',
-          maxPercent: configData.config.price_random_max_percent || '110'
+          maxPercent: configData.config.price_random_max_percent || '110',
         });
-        
+
         // Initialize dollars per hour state
         setDollarsPerHour(configData.config.dollars_per_hour || '');
       }
@@ -220,16 +224,14 @@ export default function ShopItemsPage() {
     }
   };
 
-
-
   const savePricingConfig = async () => {
     try {
       setError(null);
       console.log('Saving pricing config:', pricingConfig);
-      
+
       const oldDollarsPerHour = parseFloat(globalConfig.dollars_per_hour || '0');
       const newDollarsPerHour = parseFloat(dollarsPerHour || '0');
-      
+
       // Update dollars per hour
       if (dollarsPerHour !== (globalConfig.dollars_per_hour || '')) {
         const dollarsResponse = await fetch('/api/admin/global-config', {
@@ -237,24 +239,24 @@ export default function ShopItemsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: 'dollars_per_hour', value: dollarsPerHour }),
         });
-        
+
         const dollarsResult = await dollarsResponse.json();
         console.log('Dollars per hour response:', dollarsResult);
-        
+
         if (!dollarsResponse.ok) {
           throw new Error(dollarsResult.error || 'Failed to update dollars per hour');
         }
-        
+
         // Recalculate prices for fixed items when dollars per hour changes
         if (oldDollarsPerHour !== newDollarsPerHour && newDollarsPerHour > 0) {
           console.log('Recalculating prices for fixed items...');
-          
+
           const recalculateResponse = await fetch('/api/admin/shop-items/recalculate-prices', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dollarsPerHour: newDollarsPerHour }),
           });
-          
+
           if (!recalculateResponse.ok) {
             const recalculateResult = await recalculateResponse.json();
             console.warn('Price recalculation failed:', recalculateResult.error);
@@ -265,47 +267,47 @@ export default function ShopItemsPage() {
           }
         }
       }
-      
+
       // Update min percent
       const minResponse = await fetch('/api/admin/global-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'price_random_min_percent', value: pricingConfig.minPercent }),
       });
-      
+
       const minResult = await minResponse.json();
       console.log('Min percent response:', minResult);
-      
+
       if (!minResponse.ok) {
         throw new Error(minResult.error || 'Failed to update min percent');
       }
-      
+
       // Update max percent
       const maxResponse = await fetch('/api/admin/global-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'price_random_max_percent', value: pricingConfig.maxPercent }),
       });
-      
+
       const maxResult = await maxResponse.json();
       console.log('Max percent response:', maxResult);
-      
+
       if (!maxResponse.ok) {
         throw new Error(maxResult.error || 'Failed to update max percent');
       }
-      
+
       // Update the global config state to reflect the new values
-      setGlobalConfig(prev => ({
+      setGlobalConfig((prev) => ({
         ...prev,
         dollars_per_hour: dollarsPerHour,
         price_random_min_percent: pricingConfig.minPercent,
-        price_random_max_percent: pricingConfig.maxPercent
+        price_random_max_percent: pricingConfig.maxPercent,
       }));
-      
+
       console.log('Successfully saved configuration');
       setSuccessMessage('Global configuration saved successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
-      
+
       // Refresh items to show updated prices
       await fetchData();
     } catch (err) {
@@ -316,10 +318,10 @@ export default function ShopItemsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const config = formData.config ? JSON.parse(formData.config) : null;
-      
+
       // Auto-calculate shell price for fixed (non-dynamic) items only
       let finalPrice = parseInt(formData.price);
       const usdCost = parseFloat(formData.usdCost);
@@ -340,10 +342,8 @@ export default function ShopItemsPage() {
         useRandomizedPricing: formData.useRandomizedPricing,
       };
 
-      const url = editingItem 
-        ? `/api/admin/shop-items/${editingItem.id}`
-        : '/api/admin/shop-items';
-      
+      const url = editingItem ? `/api/admin/shop-items/${editingItem.id}` : '/api/admin/shop-items';
+
       const method = editingItem ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -358,10 +358,19 @@ export default function ShopItemsPage() {
       }
 
       // Reset form and close modal
-      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
+      setFormData({
+        name: '',
+        description: '',
+        image: '',
+        price: '',
+        usdCost: '',
+        costType: 'fixed',
+        config: '',
+        useRandomizedPricing: true,
+      });
       setEditingItem(null);
       setShowAddModal(false);
-      
+
       // Refresh items
       await fetchData();
     } catch (err) {
@@ -448,7 +457,16 @@ export default function ShopItemsPage() {
         <button
           onClick={() => {
             setEditingItem(null);
-            setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
+            setFormData({
+              name: '',
+              description: '',
+              image: '',
+              price: '',
+              usdCost: '',
+              costType: 'fixed',
+              config: '',
+              useRandomizedPricing: true,
+            });
             setShowAddModal(true);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -476,7 +494,7 @@ export default function ShopItemsPage() {
               Used to auto-calculate shell prices for non-special items
             </span>
           </div>
-          
+
           <div className="border-t pt-4">
             <h3 className="text-lg font-medium text-gray-900 mb-3">Randomized Pricing</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -488,7 +506,9 @@ export default function ShopItemsPage() {
                   max="200"
                   step="1"
                   value={pricingConfig.minPercent}
-                  onChange={(e) => setPricingConfig({ ...pricingConfig, minPercent: e.target.value })}
+                  onChange={(e) =>
+                    setPricingConfig({ ...pricingConfig, minPercent: e.target.value })
+                  }
                   className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 w-20"
                   placeholder="90"
                 />
@@ -502,7 +522,9 @@ export default function ShopItemsPage() {
                   max="500"
                   step="1"
                   value={pricingConfig.maxPercent}
-                  onChange={(e) => setPricingConfig({ ...pricingConfig, maxPercent: e.target.value })}
+                  onChange={(e) =>
+                    setPricingConfig({ ...pricingConfig, maxPercent: e.target.value })
+                  }
                   className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 w-20"
                   placeholder="110"
                 />
@@ -510,7 +532,8 @@ export default function ShopItemsPage() {
               </div>
             </div>
             <p className="text-sm text-gray-500 mb-3">
-              Each user gets randomized pricing hourly within this range. For example, 90-110% means 10% off to 10% more expensive.
+              Each user gets randomized pricing hourly within this range. For example, 90-110% means
+              10% off to 10% more expensive.
             </p>
             <div className="flex justify-end">
               <button
@@ -589,32 +612,36 @@ export default function ShopItemsPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-900">${item.usdCost?.toFixed(2) || '0.00'}</span>
+                  <span className="text-sm text-gray-900">
+                    ${item.usdCost?.toFixed(2) || '0.00'}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    item.costType === 'config'
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      item.costType === 'config'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
                     {item.costType === 'config' ? 'Special' : 'Auto-calculated'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    item.useRandomizedPricing
-                      ? 'bg-orange-100 text-orange-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      item.useRandomizedPricing
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
                     {item.useRandomizedPricing ? 'Randomized' : 'Static'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      item.active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      item.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {item.active ? 'Active' : 'Inactive'}
@@ -682,7 +709,9 @@ export default function ShopItemsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Image URL (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Image URL (optional)
+                  </label>
                   <input
                     type="url"
                     value={formData.image}
@@ -691,7 +720,9 @@ export default function ShopItemsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">USD Cost (per unit)</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    USD Cost (per unit)
+                  </label>
                   <input
                     type="number"
                     required
@@ -702,7 +733,8 @@ export default function ShopItemsPage() {
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    This is the base USD price for one unit of this item. This includes manual fullfillment costs (e.g shipping).
+                    This is the base USD price for one unit of this item. This includes manual
+                    fullfillment costs (e.g shipping).
                   </p>
                 </div>
                 <div>
@@ -710,7 +742,9 @@ export default function ShopItemsPage() {
                   <select
                     required
                     value={formData.costType}
-                    onChange={(e) => setFormData({ ...formData, costType: e.target.value as 'fixed' | 'config' })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, costType: e.target.value as 'fixed' | 'config' })
+                    }
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="fixed">Fixed</option>
@@ -722,10 +756,15 @@ export default function ShopItemsPage() {
                     type="checkbox"
                     id="useRandomizedPricing"
                     checked={formData.useRandomizedPricing}
-                    onChange={(e) => setFormData({ ...formData, useRandomizedPricing: e.target.checked })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, useRandomizedPricing: e.target.checked })
+                    }
                     className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="useRandomizedPricing" className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="useRandomizedPricing"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Use randomized pricing
                   </label>
                   <div className="ml-2">
@@ -736,7 +775,9 @@ export default function ShopItemsPage() {
                 </div>
                 {formData.costType === 'config' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Config (JSON, required for dynamic cost)</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Config (JSON, required for dynamic cost)
+                    </label>
                     <textarea
                       required
                       value={formData.config}
@@ -746,66 +787,101 @@ export default function ShopItemsPage() {
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (custom hourly rate for this item)<br/>
-                      For island progress: <code>{'{"hours_equal_to_one_percent_progress": 0.6}'}</code> (hours per 1% progress, price = round(hours × φ × 10))
-                    </p>
-                  </div>
-                )}
-                {formData.costType !== 'config' && formData.usdCost && globalConfig.dollars_per_hour && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800">
-                      <strong>Auto-calculated shell price:</strong> {calculateShellPrice(parseFloat(formData.usdCost), parseFloat(globalConfig.dollars_per_hour))} shells
+                      For travel stipend: <code>{'{"dollars_per_hour": 10}'}</code> (custom hourly
+                      rate for this item)
                       <br />
-                      <span className="text-xs">Formula: (${parseFloat(formData.usdCost)} ÷ {parseFloat(globalConfig.dollars_per_hour)}) × φ × 10 = {calculateShellPrice(parseFloat(formData.usdCost), parseFloat(globalConfig.dollars_per_hour))} shells</span>
+                      For island progress:{' '}
+                      <code>{'{"hours_equal_to_one_percent_progress": 0.6}'}</code> (hours per 1%
+                      progress, price = round(hours × φ × 10))
                     </p>
                   </div>
                 )}
-                {formData.costType === 'config' && formData.config && (() => {
-                  try {
-                    const configObj = JSON.parse(formData.config || '{}');
-                    
-                    if (configObj.dollars_per_hour && formData.usdCost) {
-                      const usdCost = parseFloat(formData.usdCost);
-                      const phi = (1 + Math.sqrt(5)) / 2;
-                      const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
-                      const hours = usdCost / itemDollarsPerHour;
-                      const shells = Math.round(hours * phi * 10);
-                      return (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-sm text-green-800">
-                            <strong>Auto-calculated shell price (Travel Stipend):</strong> {shells} shells
-                            <br />
-                            <span className="text-xs">Auto-calculated: {shells} shells</span>
-                          </p>
-                        </div>
-                      );
+                {formData.costType !== 'config' &&
+                  formData.usdCost &&
+                  globalConfig.dollars_per_hour && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        <strong>Auto-calculated shell price:</strong>{' '}
+                        {calculateShellPrice(
+                          parseFloat(formData.usdCost),
+                          parseFloat(globalConfig.dollars_per_hour),
+                        )}{' '}
+                        shells
+                        <br />
+                        <span className="text-xs">
+                          Formula: (${parseFloat(formData.usdCost)} ÷{' '}
+                          {parseFloat(globalConfig.dollars_per_hour)}) × φ × 10 ={' '}
+                          {calculateShellPrice(
+                            parseFloat(formData.usdCost),
+                            parseFloat(globalConfig.dollars_per_hour),
+                          )}{' '}
+                          shells
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                {formData.costType === 'config' &&
+                  formData.config &&
+                  (() => {
+                    try {
+                      const configObj = JSON.parse(formData.config || '{}');
+
+                      if (configObj.dollars_per_hour && formData.usdCost) {
+                        const usdCost = parseFloat(formData.usdCost);
+                        const phi = (1 + Math.sqrt(5)) / 2;
+                        const itemDollarsPerHour = parseFloat(configObj.dollars_per_hour as string);
+                        const hours = usdCost / itemDollarsPerHour;
+                        const shells = Math.round(hours * phi * 10);
+                        return (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p className="text-sm text-green-800">
+                              <strong>Auto-calculated shell price (Travel Stipend):</strong>{' '}
+                              {shells} shells
+                              <br />
+                              <span className="text-xs">Auto-calculated: {shells} shells</span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      if (configObj.hours_equal_to_one_percent_progress && formData.usdCost) {
+                        const hours = configObj.hours_equal_to_one_percent_progress as number;
+                        const phi = (1 + Math.sqrt(5)) / 2;
+                        const shells = Math.round(hours * phi * 10);
+                        return (
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <p className="text-sm text-purple-800">
+                              <strong>Auto-calculated shell price (Island Progress):</strong>{' '}
+                              {shells} shells
+                              <br />
+                              <span className="text-xs">
+                                Formula: {hours} hours × φ × 10 = {(hours * phi * 10).toFixed(1)} →
+                                round = {shells} shells
+                              </span>
+                            </p>
+                          </div>
+                        );
+                      }
+                    } catch {
+                      // Invalid JSON, don't show anything
                     }
-                    if (configObj.hours_equal_to_one_percent_progress && formData.usdCost) {
-                      const hours = configObj.hours_equal_to_one_percent_progress as number;
-                      const phi = (1 + Math.sqrt(5)) / 2;
-                      const shells = Math.round(hours * phi * 10);
-                      return (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                          <p className="text-sm text-purple-800">
-                            <strong>Auto-calculated shell price (Island Progress):</strong> {shells} shells
-                            <br />
-                            <span className="text-xs">Formula: {hours} hours × φ × 10 = {(hours * phi * 10).toFixed(1)} → round = {shells} shells</span>
-                          </p>
-                        </div>
-                      );
-                    }
-                  } catch {
-                    // Invalid JSON, don't show anything
-                  }
-                  return null;
-                })()}
+                    return null;
+                  })()}
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => {
                       setShowAddModal(false);
                       setEditingItem(null);
-                      setFormData({ name: '', description: '', image: '', price: '', usdCost: '', costType: 'fixed', config: '', useRandomizedPricing: true });
+                      setFormData({
+                        name: '',
+                        description: '',
+                        image: '',
+                        price: '',
+                        usdCost: '',
+                        costType: 'fixed',
+                        config: '',
+                        useRandomizedPricing: true,
+                      });
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   >
@@ -825,4 +901,4 @@ export default function ShopItemsPage() {
       )}
     </div>
   );
-} 
+}

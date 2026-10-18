@@ -1,16 +1,14 @@
-version: '3.8'
-
 services:
   app:
     extends:
       file: docker-compose.yaml
       service: app
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/shipwrecked
       - REDIS_URL=redis://redis:6379
     ports:
-      - "9991:9991"
+      - '9991:9991'
     depends_on:
       - postgres
       - redis
@@ -23,7 +21,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=shipwrecked
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     deploy:
@@ -36,10 +34,10 @@ services:
           memory: 256M
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     deploy:
       resources:
         limits:
@@ -50,4 +48,4 @@ services:
           memory: 128M
 
 volumes:
-  postgres_data: 
+  postgres_data:

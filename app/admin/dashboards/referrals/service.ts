@@ -28,7 +28,7 @@ export interface ReferralData {
 // Helper function to format date consistently in local timezone
 function formatDate(date: Date): string {
   // Adjust for local timezone
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
 }
 
@@ -45,22 +45,22 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   private intervalId: NodeJS.Timeout | null = null;
 
   constructor() {
-    console.log("AirtableReferralDataProvider constructor");
+    console.log('AirtableReferralDataProvider constructor');
     // Start polling immediately
     this.startPolling();
   }
 
   private async fetchAndCacheRSVPs() {
     try {
-      console.log("Trying to fetch....");
+      console.log('Trying to fetch....');
       const { rsvps } = await fetchRSVPs();
       console.log('Received RSVPs from server:', rsvps.length);
-      
+
       // Cache the raw RSVPs
       await fetch('/api/referrals/cache', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rsvps)
+        body: JSON.stringify(rsvps),
       });
     } catch (error) {
       console.error('Error fetching RSVPs:', error);
@@ -70,7 +70,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   private startPolling() {
     // Fetch immediately
     this.fetchAndCacheRSVPs();
-    
+
     // Then fetch every minute
     this.intervalId = setInterval(() => {
       this.fetchAndCacheRSVPs();
@@ -88,37 +88,40 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   async getReferralsByType(): Promise<ReferralData[]> {
     try {
       const response = await fetch('/api/referrals/cache');
-      const rsvps = await response.json() as RSVP[];
+      const rsvps = (await response.json()) as RSVP[];
       if (!rsvps?.length) return [];
 
       // Group RSVPs by type and date
-      const referralsByTypeAndDate = rsvps.reduce((acc: Record<string, Record<string, number>>, rsvp: RSVP) => {
-        // Determine the type:
-        // - If it has a referral type, use that exact type (yt, p, etc.)
-        // - If it has no referral code, it's true "direct"
-        // - If it has a referral code but no type, it's "referred"
-        let type;
-        
-        if (rsvp.referralType) {
-          // Keep exact case and use the referral type as-is
-          type = rsvp.referralType;
-        } else if (!rsvp.referralCode) {
-          // No referral code = truly direct traffic
-          type = 'direct';
-        } else {
-          // Has referral code but no type
-          type = 'referred';
-        }
-        
-        const date = new Date(rsvp.createdAt);
-        const dayKey = formatDate(date);
-        
-        if (!acc[type]) {
-          acc[type] = {};
-        }
-        acc[type][dayKey] = (acc[type][dayKey] || 0) + 1;
-        return acc;
-      }, {});
+      const referralsByTypeAndDate = rsvps.reduce(
+        (acc: Record<string, Record<string, number>>, rsvp: RSVP) => {
+          // Determine the type:
+          // - If it has a referral type, use that exact type (yt, p, etc.)
+          // - If it has no referral code, it's true "direct"
+          // - If it has a referral code but no type, it's "referred"
+          let type;
+
+          if (rsvp.referralType) {
+            // Keep exact case and use the referral type as-is
+            type = rsvp.referralType;
+          } else if (!rsvp.referralCode) {
+            // No referral code = truly direct traffic
+            type = 'direct';
+          } else {
+            // Has referral code but no type
+            type = 'referred';
+          }
+
+          const date = new Date(rsvp.createdAt);
+          const dayKey = formatDate(date);
+
+          if (!acc[type]) {
+            acc[type] = {};
+          }
+          acc[type][dayKey] = (acc[type][dayKey] || 0) + 1;
+          return acc;
+        },
+        {},
+      );
 
       // Flatten into array of ReferralData
       const result: ReferralData[] = [];
@@ -127,7 +130,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
           result.push({
             name: type,
             value: count,
-            date
+            date,
           });
         });
       });
@@ -143,7 +146,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   async getReferralsByReferrer(): Promise<ReferralData[]> {
     try {
       const response = await fetch('/api/referrals/cache');
-      const rsvps = await response.json() as RSVP[];
+      const rsvps = (await response.json()) as RSVP[];
       if (!rsvps?.length) return [];
 
       // Calculate date range for past 24 hours
@@ -166,14 +169,14 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 
       // Convert to array and sort by count (descending)
       const todayKey = formatDate(now);
-      
+
       return Object.entries(referralsByReferrer)
         .map(([name, value]) => ({
           name,
           value,
-          date: todayKey
+          date: todayKey,
         }))
-        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3')
+        .filter((referrer) => referrer.name !== 'direct' && referrer.name !== '3')
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
     } catch (error) {
@@ -185,7 +188,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   async getAllTimeTopReferrers(): Promise<ReferralData[]> {
     try {
       const response = await fetch('/api/referrals/cache');
-      const rsvps = await response.json() as RSVP[];
+      const rsvps = (await response.json()) as RSVP[];
       if (!rsvps?.length) return [];
 
       // Group all RSVPs by referrer
@@ -198,14 +201,14 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
       }, {});
 
       const todayKey = formatDate(new Date());
-      
+
       return Object.entries(referralsByReferrer)
         .map(([name, value]) => ({
           name,
           value,
-          date: todayKey
+          date: todayKey,
         }))
-        .filter(referrer => referrer.name !== 'direct' && referrer.name !== '3')
+        .filter((referrer) => referrer.name !== 'direct' && referrer.name !== '3')
         .sort((a, b) => b.value - a.value)
         .slice(0, 50);
     } catch (error) {
@@ -217,14 +220,14 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
   async getReferralsByRSVPs(): Promise<ReferralData[]> {
     try {
       const response = await fetch('/api/referrals/cache');
-      const rsvps = await response.json() as RSVP[];
+      const rsvps = (await response.json()) as RSVP[];
       if (!rsvps?.length) return [];
 
       // Group RSVPs by day
       const rsvpsByDay = rsvps.reduce((acc: Record<string, number>, rsvp: RSVP) => {
         const date = new Date(rsvp.createdAt);
         const dayKey = formatDate(date);
-        
+
         acc[dayKey] = (acc[dayKey] || 0) + 1;
         return acc;
       }, {});
@@ -235,7 +238,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
         .map(([date, value]) => ({
           name: 'Total RSVPs',
           value,
-          date
+          date,
         }));
     } catch (error) {
       console.error('Error getting RSVP data:', error);
@@ -247,7 +250,7 @@ export class AirtableReferralDataProvider implements ReferralDataProvider {
 // Mock implementation - this would be replaced with Airtable or other data source
 export class MockReferralDataProvider implements ReferralDataProvider {
   async getReferralsByType(): Promise<ReferralData[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return [
       { name: 'Social Media', value: 20, date: '2024-03-01' },
       { name: 'Social Media', value: 35, date: '2024-03-08' },
@@ -257,12 +260,12 @@ export class MockReferralDataProvider implements ReferralDataProvider {
       { name: 'Email', value: 45, date: '2024-03-15' },
       { name: 'Direct', value: 10, date: '2024-03-01' },
       { name: 'Direct', value: 20, date: '2024-03-08' },
-      { name: 'Direct', value: 30, date: '2024-03-15' }
+      { name: 'Direct', value: 30, date: '2024-03-15' },
     ];
   }
 
   async getReferralsByReferrer(): Promise<ReferralData[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return [
       { name: 'John Doe', value: 8, date: '2024-03-01' },
       { name: 'John Doe', value: 15, date: '2024-03-08' },
@@ -272,25 +275,25 @@ export class MockReferralDataProvider implements ReferralDataProvider {
       { name: 'Jane Smith', value: 20, date: '2024-03-15' },
       { name: 'Bob Johnson', value: 3, date: '2024-03-01' },
       { name: 'Bob Johnson', value: 8, date: '2024-03-08' },
-      { name: 'Bob Johnson', value: 15, date: '2024-03-15' }
+      { name: 'Bob Johnson', value: 15, date: '2024-03-15' },
     ];
   }
 
   async getReferralsByRSVPs(): Promise<ReferralData[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return [
       { name: 'Total RSVPs', value: 40, date: '2024-03-01' },
       { name: 'Total RSVPs', value: 65, date: '2024-03-08' },
-      { name: 'Total RSVPs', value: 45, date: '2024-03-15' }
+      { name: 'Total RSVPs', value: 45, date: '2024-03-15' },
     ];
   }
 
   async getAllTimeTopReferrers(): Promise<ReferralData[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return [
       { name: 'John Doe', value: 25, date: '2024-03-15' },
       { name: 'Jane Smith', value: 20, date: '2024-03-15' },
-      { name: 'Bob Johnson', value: 15, date: '2024-03-15' }
+      { name: 'Bob Johnson', value: 15, date: '2024-03-15' },
     ];
   }
 }
@@ -300,4 +303,4 @@ export function getReferralDataProvider(): ReferralDataProvider {
   // In the future, this could return different implementations based on environment
   // or configuration
   return new AirtableReferralDataProvider();
-} 
+}

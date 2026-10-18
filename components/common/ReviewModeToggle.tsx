@@ -20,4 +20,4 @@ export default function ReviewModeToggle() {
       <span>{isReviewMode ? 'Exit Review Mode' : 'Enter Review Mode'}</span>
     </button>
   );
-} 
+}

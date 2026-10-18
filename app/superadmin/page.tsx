@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -15,16 +15,16 @@ export default function SuperAdminPage() {
   // Function to handle superadmin auth attempt
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password.trim()) {
       setError('Password is required');
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
       setError('');
-      
+
       const response = await fetch('/api/superadmin/auth', {
         method: 'POST',
         headers: {
@@ -32,22 +32,21 @@ export default function SuperAdminPage() {
         },
         body: JSON.stringify({ password }),
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Authentication failed');
       }
-      
+
       // Update the session to include the admin role
       await update();
-      
+
       toast.success('Admin privileges granted!');
-      
+
       // Redirect to admin dashboard after a brief delay
       setTimeout(() => {
         router.push('/admin');
       }, 1000);
-      
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
       toast.error('Authentication failed');
@@ -55,7 +54,7 @@ export default function SuperAdminPage() {
       setIsSubmitting(false);
     }
   };
-  
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -63,7 +62,7 @@ export default function SuperAdminPage() {
       </div>
     );
   }
-  
+
   if (status !== 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -94,7 +93,7 @@ export default function SuperAdminPage() {
             Enter the super admin password to gain administrator privileges.
           </p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -111,7 +110,7 @@ export default function SuperAdminPage() {
             />
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
           </div>
-          
+
           <button
             type="submit"
             disabled={isSubmitting}
@@ -126,4 +125,4 @@ export default function SuperAdminPage() {
       <Toaster richColors />
     </div>
   );
-} 
+}

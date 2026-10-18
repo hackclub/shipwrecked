@@ -15,7 +15,7 @@ import styles from './gallery.module.css';
 
 // Dynamically import the chat modal to avoid SSR issues with socket.io
 const ProjectChatModal = dynamic(() => import('@/components/common/ProjectChatModal'), {
-  ssr: false
+  ssr: false,
 });
 
 interface Project {
@@ -62,11 +62,11 @@ type SortOption = 'hasImage' | 'hours' | 'alphabetical' | 'upvotes' | 'discussio
 // Helper function to check if a URL is a valid image
 const isValidImageUrl = (url: string): boolean => {
   if (!url || typeof url !== 'string') return false;
-  
+
   const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'];
   const lowerUrl = url.toLowerCase();
-  
-  return imageExtensions.some(ext => lowerUrl.includes(ext));
+
+  return imageExtensions.some((ext) => lowerUrl.includes(ext));
 };
 
 function GalleryInner() {
@@ -75,23 +75,23 @@ function GalleryInner() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
-  
+
   // Toast function
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToastMessage(message);
     setToastType(type);
   };
-  
+
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [showViral, setShowViral] = useState(false);
   const [showShipped, setShowShipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('upvotes');
-  
+
   // Challenge tag filtering state
   const [challengeTags, setChallengeTags] = useState<ChallengeTag[]>([]);
   const [selectedChallengeTags, setSelectedChallengeTags] = useState<string[]>([]);
@@ -139,13 +139,13 @@ function GalleryInner() {
         setChallengeTags([]);
         return;
       }
-      
+
       try {
         const response = await fetch('/api/gallery/challenge-tags', {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' }
+          headers: { 'Cache-Control': 'no-cache' },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setChallengeTags(data);
@@ -166,14 +166,17 @@ function GalleryInner() {
     async function fetchProjects() {
       try {
         const timestamp = Date.now();
-        const challengeTagsQuery = selectedChallengeTags.length > 0 ? `&challengeTags=${selectedChallengeTags.join(',')}` : '';
+        const challengeTagsQuery =
+          selectedChallengeTags.length > 0
+            ? `&challengeTags=${selectedChallengeTags.join(',')}`
+            : '';
         const url = `/api/gallery?isIslandMode=${isIslandMode}${challengeTagsQuery}&_t=${timestamp}`;
-        
+
         const response = await fetch(url, {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' }
+          headers: { 'Cache-Control': 'no-cache' },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
@@ -195,10 +198,11 @@ function GalleryInner() {
 
   // Filter and sort projects (server-side filtering by experience mode already applied)
   const filteredAndSortedProjects = useMemo(() => {
-    const filtered = projects.filter(project => {
+    const filtered = projects.filter((project) => {
       // Search filter
       const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch =
+        searchQuery === '' ||
         project.name.toLowerCase().includes(searchLower) ||
         project.description?.toLowerCase().includes(searchLower);
 
@@ -263,7 +267,7 @@ function GalleryInner() {
   const handleUpvote = async (projectID: string) => {
     if (upvotingProjects.has(projectID)) return; // Prevent double-clicking
 
-    setUpvotingProjects(prev => new Set(prev).add(projectID));
+    setUpvotingProjects((prev) => new Set(prev).add(projectID));
 
     try {
       const response = await fetch(`/api/projects/${projectID}/upvote`, {
@@ -272,29 +276,32 @@ function GalleryInner() {
 
       if (response.ok) {
         const result = await response.json();
-        
+
         // Update the project in the state
-        setProjects(prevProjects => 
-          prevProjects.map(project => 
+        setProjects((prevProjects) =>
+          prevProjects.map((project) =>
             project.projectID === projectID
               ? {
                   ...project,
                   upvoteCount: result.upvoteCount,
                   userUpvoted: result.upvoted,
                 }
-              : project
-          )
+              : project,
+          ),
         );
       } else {
         let errText = 'Failed to upvote project';
-        try { const d = await response.json(); if (d?.error) errText = d.error; } catch {}
+        try {
+          const d = await response.json();
+          if (d?.error) errText = d.error;
+        } catch {}
         showToast(errText, 'error');
         console.error('Failed to upvote project');
       }
     } catch (error) {
       console.error('Error upvoting project:', error);
     } finally {
-      setUpvotingProjects(prev => {
+      setUpvotingProjects((prev) => {
         const newSet = new Set(prev);
         newSet.delete(projectID);
         return newSet;
@@ -302,7 +309,7 @@ function GalleryInner() {
     }
   };
 
-  if (status === "loading" || isExperienceModeLoading) {
+  if (status === 'loading' || isExperienceModeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-600">Loading...</p>
@@ -310,7 +317,7 @@ function GalleryInner() {
     );
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-600">Please sign in to view the gallery.</p>
@@ -338,9 +345,9 @@ function GalleryInner() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <Icon 
-                  glyph="search" 
-                  size={16} 
+                <Icon
+                  glyph="search"
+                  size={16}
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 />
               </div>
@@ -378,9 +385,7 @@ function GalleryInner() {
 
             {/* Sort Options */}
             <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort by
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
               <div className="flex flex-wrap gap-2">
                 <label className="w-18">
                   <input
@@ -391,11 +396,14 @@ function GalleryInner() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'upvotes'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
+                  <div
+                    className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'upvotes'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontSize: '11px' }}
+                  >
                     Upvotes
                   </div>
                 </label>
@@ -408,11 +416,14 @@ function GalleryInner() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'hasImage'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
+                  <div
+                    className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'hasImage'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontSize: '11px' }}
+                  >
                     Images
                   </div>
                 </label>
@@ -427,11 +438,14 @@ function GalleryInner() {
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
                       className="sr-only"
                     />
-                    <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                      sortBy === 'hours'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`} style={{ fontSize: '11px' }}>
+                    <div
+                      className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                        sortBy === 'hours'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      style={{ fontSize: '11px' }}
+                    >
                       Hours
                     </div>
                   </label>
@@ -445,11 +459,14 @@ function GalleryInner() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'alphabetical'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
+                  <div
+                    className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'alphabetical'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontSize: '11px' }}
+                  >
                     A-Z
                   </div>
                 </label>
@@ -462,11 +479,14 @@ function GalleryInner() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'discussions'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
+                  <div
+                    className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'discussions'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontSize: '11px' }}
+                  >
                     Chats
                   </div>
                 </label>
@@ -479,11 +499,14 @@ function GalleryInner() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="sr-only"
                   />
-                  <div className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
-                    sortBy === 'recentChat'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`} style={{ fontSize: '11px' }}>
+                  <div
+                    className={`cursor-pointer px-1 py-2 text-xs font-medium rounded-lg text-center transition-colors whitespace-nowrap overflow-hidden ${
+                      sortBy === 'recentChat'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontSize: '11px' }}
+                  >
                     New Chats
                   </div>
                 </label>
@@ -510,14 +533,17 @@ function GalleryInner() {
               <div className="flex flex-wrap gap-2">
                 {challengeTags.map((tag) => {
                   const isSelected = selectedChallengeTags.includes(tag.name);
-                  const hasValidColor = tag.color && tag.color !== '#ffffff' && tag.color !== '#fff';
-                  
+                  const hasValidColor =
+                    tag.color && tag.color !== '#ffffff' && tag.color !== '#fff';
+
                   return (
                     <button
                       key={tag.id}
                       onClick={() => {
                         if (isSelected) {
-                          setSelectedChallengeTags(selectedChallengeTags.filter(t => t !== tag.name));
+                          setSelectedChallengeTags(
+                            selectedChallengeTags.filter((t) => t !== tag.name),
+                          );
                         } else {
                           setSelectedChallengeTags([...selectedChallengeTags, tag.name]);
                         }
@@ -531,8 +557,13 @@ function GalleryInner() {
                             ? `text-gray-800 border border-gray-300 hover:bg-gray-100`
                             : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                       }`}
-                      style={isSelected && hasValidColor ? { backgroundColor: tag.color } : 
-                             !isSelected && hasValidColor ? { backgroundColor: `${tag.color}20` } : {}}
+                      style={
+                        isSelected && hasValidColor
+                          ? { backgroundColor: tag.color }
+                          : !isSelected && hasValidColor
+                            ? { backgroundColor: `${tag.color}20` }
+                            : {}
+                      }
                       title={tag.description || undefined}
                     >
                       {tag.name} ({tag.projectCount})
@@ -562,21 +593,23 @@ function GalleryInner() {
         ) : filteredAndSortedProjects.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">
-              {projects.length === 0 ? 'No projects found.' : 'No projects match your current filters.'}
+              {projects.length === 0
+                ? 'No projects found.'
+                : 'No projects match your current filters.'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedProjects.map((project) => (
-              <div 
-                key={project.projectID} 
+              <div
+                key={project.projectID}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* Project Screenshot */}
                 <div className="relative h-48 w-full">
                   {project.screenshot ? (
                     <ImageWithFallback
-                      src={project.screenshot} 
+                      src={project.screenshot}
                       alt={project.name}
                       fill
                       className="object-cover"
@@ -596,58 +629,67 @@ function GalleryInner() {
                         {project.name}
                       </h3>
                       {project.rawHours > 0 && (
-                            <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                              {project.rawHours}h
-                            </span>
-                          )}
+                        <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                          {project.rawHours}h
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                          <Image 
-                            src={project.user.image ? project.user.image : createAvatar(thumbs, { seed: project.userId }).toDataUri()} 
-                            alt={project.user.name || ''} 
-                            width={20}
-                            height={20}
-                            className="w-5 h-5 rounded-full"
-                          />
-                          <span className="text-sm text-gray-600">
-                            {project.user.slack ? (
-                              <a 
-                                href={`https://hackclub.slack.com/app_redirect?channel=${project.user.slack}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline decoration-blue-500 decoration-wavy"
-                              >
-                                {project.user.name || 'Anonymous'}
-                              </a>
-                            ) : (
-                              project.user.name || 'Anonymous'
-                            )}
-                          </span>
-                          
+                        <Image
+                          src={
+                            project.user.image
+                              ? project.user.image
+                              : createAvatar(thumbs, { seed: project.userId }).toDataUri()
+                          }
+                          alt={project.user.name || ''}
+                          width={20}
+                          height={20}
+                          className="w-5 h-5 rounded-full"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {project.user.slack ? (
+                            <a
+                              href={`https://hackclub.slack.com/app_redirect?channel=${project.user.slack}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline decoration-blue-500 decoration-wavy"
+                            >
+                              {project.user.name || 'Anonymous'}
+                            </a>
+                          ) : (
+                            project.user.name || 'Anonymous'
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {/* Upvote button */}
                         <button
                           onClick={() => handleUpvote(project.projectID)}
-                          disabled={upvotingProjects.has(project.projectID) || session?.user?.id === project.userId}
-                          title={session?.user?.id === project.userId ? 'You cannot upvote your own project' : undefined}
+                          disabled={
+                            upvotingProjects.has(project.projectID) ||
+                            session?.user?.id === project.userId
+                          }
+                          title={
+                            session?.user?.id === project.userId
+                              ? 'You cannot upvote your own project'
+                              : undefined
+                          }
                           className={`flex items-center justify-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-all min-w-[60px] ${
                             project.userUpvoted
                               ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           } ${
-                            upvotingProjects.has(project.projectID) || session?.user?.id === project.userId
+                            upvotingProjects.has(project.projectID) ||
+                            session?.user?.id === project.userId
                               ? 'opacity-50 cursor-not-allowed'
                               : 'cursor-pointer hover:scale-105'
                           }`}
                         >
-                          <span 
+                          <span
                             className={`text-lg ${
-                              project.userUpvoted
-                                ? 'text-yellow-500'
-                                : 'text-gray-400'
+                              project.userUpvoted ? 'text-yellow-500' : 'text-gray-400'
                             }`}
                           >
                             ★
@@ -659,17 +701,15 @@ function GalleryInner() {
                   </div>
 
                   {project.description && (
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {project.description}
-                    </p>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{project.description}</p>
                   )}
 
                   {/* Project Links */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {project.codeUrl && (
-                      <a 
-                        href={project.codeUrl} 
-                        target="_blank" 
+                      <a
+                        href={project.codeUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
                       >
@@ -678,9 +718,9 @@ function GalleryInner() {
                       </a>
                     )}
                     {project.playableUrl && (
-                      <a 
-                        href={project.playableUrl} 
-                        target="_blank" 
+                      <a
+                        href={project.playableUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
                       >
@@ -739,14 +779,10 @@ function GalleryInner() {
             isIslandMode={isIslandMode}
           />
         )}
-        
+
         {/* Toast notifications */}
         {toastMessage && (
-          <Toast
-            message={toastMessage}
-            type={toastType}
-            onClose={() => setToastMessage(null)}
-          />
+          <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
         )}
       </main>
     </div>
@@ -755,7 +791,13 @@ function GalleryInner() {
 
 export default function Gallery() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-600">Loading...</p></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      }
+    >
       <GalleryInner />
     </Suspense>
   );

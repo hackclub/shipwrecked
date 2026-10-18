@@ -41,8 +41,8 @@ interface ReviewSectionProps {
   }>;
 }
 
-export default function ReviewSection({ 
-  projectID, 
+export default function ReviewSection({
+  projectID,
   projectOwnerUserId,
   initialFlags,
   onFlagsUpdated,
@@ -62,56 +62,56 @@ export default function ReviewSection({
   // Add state for checklist completion and justification
   const [isChecklistComplete, setIsChecklistComplete] = useState(false);
   const [checklistJustification, setChecklistJustification] = useState('');
-  
+
   // State to track flag changes
   const [flagsChanged, setFlagsChanged] = useState(false);
   const [currentFlags, setCurrentFlags] = useState<ProjectFlags>({
     shipped: initialFlags?.shipped || false,
     viral: initialFlags?.viral || false,
     in_review: initialFlags?.in_review || false,
-    hackatimeLinkOverrides: {}
+    hackatimeLinkOverrides: {},
   });
   const [originalFlags, setOriginalFlags] = useState<ProjectFlags>({
     shipped: initialFlags?.shipped || false,
     viral: initialFlags?.viral || false,
     in_review: initialFlags?.in_review || false,
-    hackatimeLinkOverrides: {}
+    hackatimeLinkOverrides: {},
   });
 
   // Initialize flags just once when component mounts
   useEffect(() => {
     console.log('[DEBUG] ReviewSection initializing flags on mount');
-    
+
     if (!initialFlags) return;
-    
+
     // Create a new object for hackatimeLinkOverrides from hackatimeLinks
     const linkOverrides: Record<string, number | undefined> = {};
-    
+
     // Fill it with existing values from hackatimeLinks
     if (hackatimeLinks && hackatimeLinks.length > 0) {
-      hackatimeLinks.forEach(link => {
+      hackatimeLinks.forEach((link) => {
         linkOverrides[link.id] = link.hoursOverride === null ? undefined : link.hoursOverride;
       });
     }
-    
+
     // Set initial flags once
     const baseFlags = {
       shipped: initialFlags.shipped,
       viral: initialFlags.viral,
       in_review: initialFlags.in_review,
     };
-    
+
     // Set both state values with the same initial values
     setOriginalFlags({
       ...baseFlags,
-      hackatimeLinkOverrides: {...linkOverrides}
+      hackatimeLinkOverrides: { ...linkOverrides },
     });
-    
+
     setCurrentFlags({
       ...baseFlags,
-      hackatimeLinkOverrides: {...linkOverrides}
+      hackatimeLinkOverrides: { ...linkOverrides },
     });
-    
+
     // No changes initially
     setFlagsChanged(false);
   }, []); // Only run once on mount
@@ -119,14 +119,14 @@ export default function ReviewSection({
   // Fetch reviews for the project
   const fetchReviews = async () => {
     if (!projectID) return;
-    
+
     try {
       setIsFetchingReviews(true);
       const response = await fetch(`/api/reviews?projectId=${projectID}`);
       if (!response.ok) {
         throw new Error('Failed to fetch reviews');
       }
-      
+
       const data = await response.json();
       setReviews(data);
     } catch (error) {
@@ -141,7 +141,7 @@ export default function ReviewSection({
   useEffect(() => {
     fetchReviews();
   }, [projectID]);
-  
+
   // Handle flag changes from ProjectFlagsEditor
   const handleFlagsChange = (flags: ProjectFlags) => {
     // Simply update the current flags state
@@ -149,69 +149,76 @@ export default function ReviewSection({
       shipped: flags.shipped,
       viral: flags.viral,
       in_review: flags.in_review,
-      hackatimeLinkOverrides: flags.hackatimeLinkOverrides ? {...flags.hackatimeLinkOverrides} : {}
+      hackatimeLinkOverrides: flags.hackatimeLinkOverrides
+        ? { ...flags.hackatimeLinkOverrides }
+        : {},
     });
-    
+
     // Check if any flags have changed
     const hasShippedChanged = flags.shipped !== originalFlags.shipped;
     const hasViralChanged = flags.viral !== originalFlags.viral;
     const hasInReviewChanged = flags.in_review !== originalFlags.in_review;
-    
+
     // Check if any hours have changed
     const origOverrides = originalFlags.hackatimeLinkOverrides || {};
     const newOverrides = flags.hackatimeLinkOverrides || {};
-    
+
     let hasHourChanges = false;
     const allKeys = new Set([...Object.keys(origOverrides), ...Object.keys(newOverrides)]);
-    
+
     for (const key of allKeys) {
       if (origOverrides[key] !== newOverrides[key]) {
         hasHourChanges = true;
         break;
       }
     }
-    
-    const hasAnyChanges = hasShippedChanged || hasViralChanged || hasInReviewChanged || hasHourChanges;
-    
+
+    const hasAnyChanges =
+      hasShippedChanged || hasViralChanged || hasInReviewChanged || hasHourChanges;
+
     // Update flagsChanged based on any changes
     setFlagsChanged(hasAnyChanges);
-    
+
     // Call onFlagsUpdated if there are changes and a callback exists
     if (hasAnyChanges && onFlagsUpdated) {
       onFlagsUpdated(flags);
     }
   };
-  
+
   // Generate a description of flag changes for the review comment
   const getFlagChangesDescription = (): string => {
     const changes: string[] = [];
-    
+
     console.log('[DEBUG] getFlagChangesDescription comparing flags:', {
       original: originalFlags,
-      current: currentFlags
+      current: currentFlags,
     });
-    
+
     // Always check flag changes regardless of the flagsChanged state
     if (currentFlags.shipped !== originalFlags.shipped) {
-      changes.push(`Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`);
+      changes.push(
+        `Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`,
+      );
     }
-    
+
     if (currentFlags.viral !== originalFlags.viral) {
       console.log('[DEBUG] Viral flag change detected:', {
         original: originalFlags.viral,
-        current: currentFlags.viral
+        current: currentFlags.viral,
       });
-      changes.push(`Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`);
+      changes.push(
+        `Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`,
+      );
     }
-    
+
     // Check for changes in Hackatime link overrides
     const originalOverrides = originalFlags.hackatimeLinkOverrides || {};
     const currentOverrides = currentFlags.hackatimeLinkOverrides || {};
-    
+
     const linkChanges: string[] = [];
-    
+
     // Force check all hackatime links for any differences
-    hackatimeLinks.forEach(link => {
+    hackatimeLinks.forEach((link) => {
       // Handle null, undefined, or absent values consistently
       const getNumberValue = (obj: Record<string, unknown>, key: string): number | undefined => {
         const value = obj[key];
@@ -220,16 +227,16 @@ export default function ReviewSection({
         // Ensure we're working with numbers
         return typeof value === 'number' ? value : undefined;
       };
-      
+
       const originalValue = getNumberValue(originalOverrides, link.id);
       const currentValue = getNumberValue(currentOverrides, link.id);
-      
+
       console.log(`[DEBUG] Comparing hours for ${link.hackatimeName}:`, {
         original: originalValue,
         current: currentValue,
-        equal: originalValue === currentValue
+        equal: originalValue === currentValue,
       });
-      
+
       // IMPORTANT: Force comparison of numerical values carefully
       const isValueDifferent = (() => {
         // If both are undefined/null, they're equal
@@ -239,46 +246,52 @@ export default function ReviewSection({
         // Compare the actual numerical values with small epsilon for floating point precision
         return Math.abs(originalValue - currentValue) > 0.001;
       })();
-      
+
       if (isValueDifferent) {
         // Format the hours values with proper units for display
         const originalDisplay = originalValue !== undefined ? `${originalValue}h` : 'none';
         const currentDisplay = currentValue !== undefined ? `${currentValue}h` : 'none';
-        
-        console.log(`[DEBUG] Found override change: ${link.hackatimeName}: ${originalDisplay} → ${currentDisplay}`);
+
+        console.log(
+          `[DEBUG] Found override change: ${link.hackatimeName}: ${originalDisplay} → ${currentDisplay}`,
+        );
         linkChanges.push(`${link.hackatimeName}: ${originalDisplay} → ${currentDisplay}`);
       }
     });
-    
+
     if (linkChanges.length > 0) {
       console.log(`[DEBUG] Found ${linkChanges.length} link changes:`, linkChanges);
       if (linkChanges.length === 1) {
         changes.push(`Hours Approved: ${linkChanges[0]}`);
       } else {
         // For multiple link changes, use a more structured format
-        changes.push(`Hours Approved:\n` + 
-          linkChanges.map(change => `  • ${change}`).join('\n')
-        );
+        changes.push(`Hours Approved:\n` + linkChanges.map((change) => `  • ${change}`).join('\n'));
       }
     }
-    
+
     if (currentFlags.in_review !== originalFlags.in_review) {
-      changes.push(`In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`);
+      changes.push(
+        `In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`,
+      );
     }
-    
+
     // Add "Review completed" indicator if the project was in review
     const reviewCompleted = originalFlags.in_review && !currentFlags.in_review;
-    
+
     console.log(`[DEBUG] Changes:`, {
       changesCount: changes.length,
       reviewCompleted,
-      changes
+      changes,
     });
-    
+
     if (changes.length === 0 && !reviewCompleted) return '';
-    
+
     if (reviewCompleted) {
-      return '\n\n[✓ Review completed' + (changes.length > 0 ? '. Status changes: ' + changes.join(', ') : '') + ']';
+      return (
+        '\n\n[✓ Review completed' +
+        (changes.length > 0 ? '. Status changes: ' + changes.join(', ') : '') +
+        ']'
+      );
     } else {
       return '\n\n[Status changes: ' + changes.join(', ') + ']';
     }
@@ -287,63 +300,63 @@ export default function ReviewSection({
   // Submit a new review
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate that a result is selected
     if (!reviewResult) {
       toast.error('Please select a review result');
       return;
     }
-    
+
     // If approving and checklist hasn't been completed, show it
     if (reviewResult === 'approve' && !isChecklistComplete) {
       setShowChecklist(true);
       return;
     }
-    
+
     // Validate that rejections have a comment
     if ((reviewResult === 'reject' || reviewResult === 'comment') && !newComment.trim()) {
       toast.error('Please provide a comment');
       return;
     }
-    
+
     try {
       setIsLoading(true);
-      
+
       // Store whether the project was in review before changes
       const wasInReview = originalFlags.in_review;
-      
+
       // Set in_review to false when submitting a review if approved or rejected
       const updatedFlags = {
         ...currentFlags,
         in_review: reviewResult === 'comment',
       };
-      
+
       // Check if flags are different after setting in_review to false
       const hasChanges =
         updatedFlags.shipped !== originalFlags.shipped ||
         updatedFlags.viral !== originalFlags.viral ||
         updatedFlags.in_review !== originalFlags.in_review;
-      
+
       // Deep compare hackatimeLinkOverrides
       const updatedOverrides = updatedFlags.hackatimeLinkOverrides || {};
       const originalOverrides = originalFlags.hackatimeLinkOverrides || {};
       const allKeys = new Set([
         ...Object.keys(updatedOverrides),
-        ...Object.keys(originalOverrides)
+        ...Object.keys(originalOverrides),
       ]);
-      
-      const hasOverrideChanges = Array.from(allKeys).some(key => {
+
+      const hasOverrideChanges = Array.from(allKeys).some((key) => {
         const original = originalOverrides[key] === null ? undefined : originalOverrides[key];
         const updated = updatedOverrides[key] === null ? undefined : updatedOverrides[key];
         return original !== updated;
       });
-      
+
       const hasAnyChanges = hasChanges || hasOverrideChanges;
-      
+
       // Update current flags and mark as changed
       setCurrentFlags(updatedFlags);
       setFlagsChanged(hasAnyChanges || wasInReview);
-      
+
       // Update flags if they've changed or if review is completed
       if (hasAnyChanges || wasInReview) {
         // Make sure we're explicitly including the hackatimeLinkOverrides
@@ -353,11 +366,11 @@ export default function ReviewSection({
           shipped: updatedFlags.shipped,
           viral: updatedFlags.viral,
           in_review: updatedFlags.in_review,
-          hackatimeLinkOverrides: updatedFlags.hackatimeLinkOverrides || {}
+          hackatimeLinkOverrides: updatedFlags.hackatimeLinkOverrides || {},
         };
-        
+
         console.log('Sending review update with payload:', requestBody);
-        
+
         const flagsResponse = await fetch('/api/projects/flags', {
           method: 'PATCH',
           headers: {
@@ -365,37 +378,43 @@ export default function ReviewSection({
           },
           body: JSON.stringify(requestBody),
         });
-        
+
         if (!flagsResponse.ok) {
           throw new Error('Failed to update project flags');
         }
-        
+
         const updatedProject = await flagsResponse.json();
-        
+
         // Notify parent component of the flag updates
         if (onFlagsUpdated) {
           onFlagsUpdated(updatedProject);
         }
-        
+
         // Update original flags to match current flags
         setOriginalFlags(updatedFlags);
         setFlagsChanged(false);
       }
-      
+
       // Combine the checklist justification with the comment if approving
       let finalComment = newComment.trim();
       if (reviewResult === 'approve' && checklistJustification) {
-        finalComment = `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
+        finalComment =
+          `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
       }
-      
+
       // Then submit the review with result and flag changes noted in the comment
-      const resultPrefix = reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : '💬 Commented');
+      const resultPrefix =
+        reviewResult === 'approve'
+          ? '✅ Approved'
+          : reviewResult === 'reject'
+            ? '❌ Rejected'
+            : '💬 Commented';
       const commentContent = finalComment ? `\n${finalComment}` : '';
       const flagChanges = getFlagChangesDescription();
       const reviewCompleted = !flagChanges && wasInReview ? '\n\n[✓ Review completed]' : '';
-      
+
       const finalReviewComment = `${resultPrefix}${commentContent}${flagChanges}${reviewCompleted}`;
-      
+
       const reviewResponse = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
@@ -409,15 +428,15 @@ export default function ReviewSection({
           justification: reviewResult === 'approve' ? checklistJustification : undefined,
         }),
       });
-      
+
       if (!reviewResponse.ok) {
         throw new Error('Failed to submit review');
       }
-      
+
       const newReview = await reviewResponse.json();
 
-      console.log(reviews)
-      
+      console.log(reviews);
+
       // Add the new review to the top of the list
       setReviews([newReview, ...reviews]);
       setNewComment('');
@@ -457,13 +476,13 @@ export default function ReviewSection({
       const response = await fetch(`/api/reviews?id=${reviewId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete review');
       }
-      
+
       // Remove the deleted review from the list
-      setReviews(reviews.filter(review => review.id !== reviewId));
+      setReviews(reviews.filter((review) => review.id !== reviewId));
       toast.success('Review deleted successfully');
     } catch (error) {
       console.error('Error deleting review:', error);
@@ -473,7 +492,7 @@ export default function ReviewSection({
       setShowDeleteConfirm(null);
     }
   };
-  
+
   // Check if the current user is the reviewer
   const isCurrentUserReviewer = (reviewerId: string) => {
     return session?.user?.id === reviewerId;
@@ -498,14 +517,14 @@ export default function ReviewSection({
         {/* Hackatime Language Stats Dropdown - only visible in review mode */}
         {isReviewMode && (
           <div className="w-full sm:w-80">
-            <HackatimeLanguageStats 
-              userId={projectOwnerUserId} 
-              projectNames={hackatimeLinks?.map(link => link.hackatimeName) || []}
+            <HackatimeLanguageStats
+              userId={projectOwnerUserId}
+              projectNames={hackatimeLinks?.map((link) => link.hackatimeName) || []}
             />
           </div>
         )}
       </div>
-      
+
       {/* Project Flags Editor */}
       {isReviewMode && initialFlags && (
         <div className="mb-6">
@@ -517,21 +536,22 @@ export default function ReviewSection({
             hackatimeLinks={hackatimeLinks}
             onChange={handleFlagsChange}
           />
-          
+
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700">
-            <p>Add a review comment and click <strong>Submit Review</strong> below to save these changes.</p>
+            <p>
+              Add a review comment and click <strong>Submit Review</strong> below to save these
+              changes.
+            </p>
           </div>
         </div>
       )}
-      
+
       {/* Add new review form - only visible in review mode */}
       {isReviewMode && (
         <form onSubmit={handleSubmitReview} className="mb-6">
           {/* Review Result Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Review Result*
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Review Result*</label>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
@@ -542,7 +562,11 @@ export default function ReviewSection({
                     : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <Icon glyph="checkmark" size={16} className={reviewResult === 'approve' ? 'text-green-600' : 'text-gray-500'} />
+                <Icon
+                  glyph="checkmark"
+                  size={16}
+                  className={reviewResult === 'approve' ? 'text-green-600' : 'text-gray-500'}
+                />
                 <span>Approve</span>
               </button>
               <button
@@ -554,7 +578,11 @@ export default function ReviewSection({
                     : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <Icon glyph="important" size={16} className={reviewResult === 'reject' ? 'text-red-600' : 'text-gray-500'} />
+                <Icon
+                  glyph="important"
+                  size={16}
+                  className={reviewResult === 'reject' ? 'text-red-600' : 'text-gray-500'}
+                />
                 <span>Reject</span>
               </button>
               <button
@@ -566,18 +594,26 @@ export default function ReviewSection({
                     : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <Icon glyph="message" size={16} className={reviewResult === 'reject' ? 'text-gray-600' : 'text-gray-500'} />
+                <Icon
+                  glyph="message"
+                  size={16}
+                  className={reviewResult === 'reject' ? 'text-gray-600' : 'text-gray-500'}
+                />
                 <span>Comment</span>
               </button>
             </div>
             {reviewResult === 'reject' && (
-              <p className="mt-1 text-xs text-red-600">A comment explaining the rejection reason is required.</p>
+              <p className="mt-1 text-xs text-red-600">
+                A comment explaining the rejection reason is required.
+              </p>
             )}
             {reviewResult === 'comment' && (
               <p className="mt-1 text-xs text-gray-600">A comment is required.</p>
             )}
             {reviewResult === 'approve' && !isChecklistComplete && (
-              <p className="mt-1 text-xs text-green-600">✓ You will need to complete a review checklist before approval</p>
+              <p className="mt-1 text-xs text-green-600">
+                ✓ You will need to complete a review checklist before approval
+              </p>
             )}
             {reviewResult === 'approve' && isChecklistComplete && (
               <p className="mt-1 text-xs text-green-600">✓ Review checklist completed</p>
@@ -596,7 +632,9 @@ export default function ReviewSection({
 
           <div className="mb-3">
             <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
-              {(reviewResult === 'reject' || reviewResult === 'comment') ? 'Comment (required)' : 'Comment (optional)'}
+              {reviewResult === 'reject' || reviewResult === 'comment'
+                ? 'Comment (required)'
+                : 'Comment (optional)'}
             </label>
             <textarea
               id="comment"
@@ -608,12 +646,13 @@ export default function ReviewSection({
                   ? 'border-red-300 focus:ring-red-500'
                   : 'border-gray-300 focus:ring-blue-500'
               }`}
-              placeholder={reviewResult === 'reject' 
-                ? "Please explain why this project is being rejected and what changes are needed"
-                : (reviewResult === 'approve'
-                  ? "Add any comments about your approval (optional)"
-                  : "Add your comment here..."
-                )}
+              placeholder={
+                reviewResult === 'reject'
+                  ? 'Please explain why this project is being rejected and what changes are needed'
+                  : reviewResult === 'approve'
+                    ? 'Add any comments about your approval (optional)'
+                    : 'Add your comment here...'
+              }
               disabled={isLoading}
             />
           </div>
@@ -627,63 +666,82 @@ export default function ReviewSection({
             }
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Submitting...' : (flagsChanged ? 'Submit Review with Flag Changes' : 'Submit Review')}
+            {isLoading
+              ? 'Submitting...'
+              : flagsChanged
+                ? 'Submit Review with Flag Changes'
+                : 'Submit Review'}
           </button>
-          
+
           {/* Preview */}
           <div className="mt-2 text-xs text-blue-600">
             <p>Preview:</p>
             <pre className="mt-1 p-2 bg-gray-50 rounded text-xs whitespace-pre-wrap">
-              {reviewResult === 'approve' ? '✅ Approved' : (reviewResult === 'reject' ? '❌ Rejected' : (reviewResult === 'comment' ? '💬 Commented' : ''))}
+              {reviewResult === 'approve'
+                ? '✅ Approved'
+                : reviewResult === 'reject'
+                  ? '❌ Rejected'
+                  : reviewResult === 'comment'
+                    ? '💬 Commented'
+                    : ''}
               {(() => {
                 let commentText = newComment.trim();
                 if (reviewResult === 'approve' && checklistJustification) {
-                  commentText = `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
+                  commentText =
+                    `Justification for approved hours: ${checklistJustification}\n\n${newComment.trim()}`.trim();
                 }
                 return commentText ? '\n' + commentText : '';
               })()}
-              
+
               {/* Direct simple comparison of flags */}
               {(() => {
                 // Track changes
                 const changes: string[] = [];
-                
+
                 // Check for basic flag changes
                 if (currentFlags.shipped !== originalFlags.shipped) {
-                  changes.push(`Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`);
+                  changes.push(
+                    `Shipped: ${originalFlags.shipped ? 'Yes' : 'No'} → ${currentFlags.shipped ? 'Yes' : 'No'}`,
+                  );
                 }
-                
+
                 if (currentFlags.viral !== originalFlags.viral) {
-                  changes.push(`Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`);
+                  changes.push(
+                    `Viral: ${originalFlags.viral ? 'Yes' : 'No'} → ${currentFlags.viral ? 'Yes' : 'No'}`,
+                  );
                 }
-                
+
                 if (currentFlags.in_review !== originalFlags.in_review) {
-                  changes.push(`In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`);
+                  changes.push(
+                    `In Review: ${originalFlags.in_review ? 'Yes' : 'No'} → ${currentFlags.in_review ? 'Yes' : 'No'}`,
+                  );
                 }
-                
+
                 // Check hour changes
                 const origOverrides = originalFlags.hackatimeLinkOverrides || {};
                 const currOverrides = currentFlags.hackatimeLinkOverrides || {};
-                
+
                 const hourChanges: string[] = [];
-                
+
                 // Simple comparison of each link's hours
-                hackatimeLinks.forEach(link => {
+                hackatimeLinks.forEach((link) => {
                   const origValue = origOverrides[link.id];
                   const currValue = currOverrides[link.id];
-                  
+
                   if (origValue !== currValue) {
-                    hourChanges.push(`${link.hackatimeName}: ${origValue !== undefined ? origValue + 'h' : 'none'} → ${currValue !== undefined ? currValue + 'h' : 'none'}`);
+                    hourChanges.push(
+                      `${link.hackatimeName}: ${origValue !== undefined ? origValue + 'h' : 'none'} → ${currValue !== undefined ? currValue + 'h' : 'none'}`,
+                    );
                   }
                 });
-                
+
                 // Add hour changes
                 if (hourChanges.length === 1) {
                   changes.push(`Hours Approved: ${hourChanges[0]}`);
                 } else if (hourChanges.length > 1) {
-                  changes.push(`Hours Approved:\n` + hourChanges.map(c => `  • ${c}`).join('\n'));
+                  changes.push(`Hours Approved:\n` + hourChanges.map((c) => `  • ${c}`).join('\n'));
                 }
-                
+
                 // Return formatted changes or review completed message
                 if (changes.length > 0) {
                   return `\n\n[Status changes: ${changes.join(', ')}]`;
@@ -697,7 +755,7 @@ export default function ReviewSection({
           </div>
         </form>
       )}
-      
+
       {/* List of reviews */}
       <div className="space-y-4">
         {isFetchingReviews ? (
@@ -706,7 +764,9 @@ export default function ReviewSection({
             <p className="mt-2 text-gray-600">Loading reviews...</p>
           </div>
         ) : reviews.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No reviews yet. {isReviewMode ? 'Be the first to review this project!' : ''}</p>
+          <p className="text-gray-500 text-center py-4">
+            No reviews yet. {isReviewMode ? 'Be the first to review this project!' : ''}
+          </p>
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
@@ -722,20 +782,26 @@ export default function ReviewSection({
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1">
                       <div className="flex items-center">
-                        <h5 className="font-medium">{review.reviewer.name || review.reviewer.email}</h5>
+                        <h5 className="font-medium">
+                          {review.reviewer.name || review.reviewer.email}
+                        </h5>
                         {review.result && (
-                          <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                            review.result === 'approve' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span
+                            className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+                              review.result === 'approve'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
                             {review.result === 'approve' ? 'Approved' : 'Rejected'}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
-                        
+                        <span className="text-xs text-gray-500">
+                          {formatDate(review.createdAt)}
+                        </span>
+
                         {/* Delete button - only visible in review mode and for the user's own reviews */}
                         {isReviewMode && isCurrentUserReviewer(review.reviewerId) && (
                           <>
@@ -779,4 +845,4 @@ export default function ReviewSection({
       </div>
     </div>
   );
-} 
+}

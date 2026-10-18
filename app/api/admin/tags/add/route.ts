@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!entityType || !entityId || !tagName) {
       return NextResponse.json(
         { error: 'Missing required fields: entityType, entityId, and tagName are required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,30 +33,24 @@ export async function POST(request: Request) {
     if (entityType !== 'user' && entityType !== 'project') {
       return NextResponse.json(
         { error: 'Invalid entityType. Must be "user" or "project"' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Verify entity exists
     if (entityType === 'user') {
       const userExists = await prisma.user.findUnique({
-        where: { id: entityId }
+        where: { id: entityId },
       });
       if (!userExists) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
     } else {
       const projectExists = await prisma.project.findFirst({
-        where: { projectID: entityId }
+        where: { projectID: entityId },
       });
       if (!projectExists) {
-        return NextResponse.json(
-          { error: 'Project not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
     }
 
@@ -65,7 +59,7 @@ export async function POST(request: Request) {
 
     // Find or create the tag
     let tag = await prisma.tag.findUnique({
-      where: { name: normalizedTagName }
+      where: { name: normalizedTagName },
     });
 
     if (!tag) {
@@ -74,8 +68,8 @@ export async function POST(request: Request) {
         data: {
           name: normalizedTagName,
           description: tagDescription || null,
-          color: tagColor || null
-        }
+          color: tagColor || null,
+        },
       });
       console.log(`Created new tag: ${normalizedTagName}`);
     }
@@ -87,25 +81,25 @@ export async function POST(request: Request) {
         where: {
           userId_tagId: {
             userId: entityId,
-            tagId: tag.id
-          }
-        }
+            tagId: tag.id,
+          },
+        },
       });
     } else {
       existingAssociation = await prisma.projectTag.findUnique({
         where: {
           projectID_tagId: {
             projectID: entityId,
-            tagId: tag.id
-          }
-        }
+            tagId: tag.id,
+          },
+        },
       });
     }
 
     if (existingAssociation) {
       return NextResponse.json(
         { error: `Tag "${normalizedTagName}" is already associated with this ${entityType}` },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -115,7 +109,7 @@ export async function POST(request: Request) {
       association = await prisma.userTag.create({
         data: {
           userId: entityId,
-          tagId: tag.id
+          tagId: tag.id,
         },
         include: {
           tag: true,
@@ -123,16 +117,16 @@ export async function POST(request: Request) {
             select: {
               id: true,
               name: true,
-              email: true
-            }
-          }
-        }
+              email: true,
+            },
+          },
+        },
       });
     } else {
       association = await prisma.projectTag.create({
         data: {
           projectID: entityId,
-          tagId: tag.id
+          tagId: tag.id,
         },
         include: {
           tag: true,
@@ -140,10 +134,10 @@ export async function POST(request: Request) {
             select: {
               projectID: true,
               name: true,
-              userId: true
-            }
-          }
-        }
+              userId: true,
+            },
+          },
+        },
       });
     }
 
@@ -156,15 +150,11 @@ export async function POST(request: Request) {
         tag,
         association,
         entityType,
-        entityId
-      }
+        entityId,
+      },
     });
-
   } catch (error) {
     console.error('Error adding tag:', error);
-    return NextResponse.json(
-      { error: 'Failed to add tag' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to add tag' }, { status: 500 });
   }
-} 
+}

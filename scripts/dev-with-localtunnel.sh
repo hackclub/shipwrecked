@@ -8,7 +8,7 @@ echo "[dev-with-localtunnel] Starting localtunnel to http://localhost:${PORT} ..
 rm -f .localtunnel.log || true
 
 start_lt() {
-  npx -y localtunnel --port ${PORT} > .localtunnel.log 2>&1 &
+  bunx --bun localtunnel --port ${PORT} > .localtunnel.log 2>&1 &
   LT_PID=$!
   echo "[dev-with-localtunnel] localtunnel pid: ${LT_PID} (logs: ./.localtunnel.log)"
 }

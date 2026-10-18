@@ -1,9 +1,9 @@
-import {getRecords} from '@/lib/airtable/airtable';
-import {FlightData, FlightDirection, FlightRelation, FlightStatus} from '@/lib/map';
-import {prisma} from '@/lib/prisma';
-import {NextResponse} from 'next/server';
-import {opts} from '@/app/api/auth/[...nextauth]/route';
-import {getServerSession} from 'next-auth';
+import { getRecords } from '@/lib/airtable/airtable';
+import { FlightData, FlightDirection, FlightRelation, FlightStatus } from '@/lib/map';
+import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
+import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession } from 'next-auth';
 
 // Used to determine if a flight is departing soon or has recently arrived
 const recentFlightThresholdMS = 1000 * 60 * 60 * 6; // 6 hours
@@ -16,31 +16,31 @@ let lastRequest = 0; // Last request time
 export async function GET(request: Request) {
   const session = await getServerSession(opts);
   if (!session?.user?.email) {
-    return NextResponse.json({error: 'Unauthorized'}, {status: 401});
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
     // Ensure the user is attending the event
-    const attendingTableName = "RSVPs"
+    const attendingTableName = 'RSVPs';
     const attendingRecords = await getRecords(attendingTableName, {
       filterByFormula: `{Email} = '${session.user.email}'`,
-      sort: [{field: 'Email', direction: 'asc'}],
-      maxRecords: 1
-    })
+      sort: [{ field: 'Email', direction: 'asc' }],
+      maxRecords: 1,
+    });
     const attending = attendingRecords[0] && attendingRecords[0].fields['Attending'];
     if (!attending) {
-      return NextResponse.json({error: 'User is not attending event'}, {status: 403});
+      return NextResponse.json({ error: 'User is not attending event' }, { status: 403 });
     }
     // If necessary, send cached reponse
     if (Date.now() - lastRequest < rateLimit && cache) {
-      return NextResponse.json(cache, {status: 200});
+      return NextResponse.json(cache, { status: 200 });
     }
     // Get flight data from Airtable
     const tableName = 'Flights';
     const records = await getRecords(tableName, {
       filterByFormula: `AND(NOT({Inbound Flight Number} = ''), NOT({Outbound Flight Number} = ''))`,
-      sort: [{field: 'Inbound Flight Number', direction: 'asc'}],
+      sort: [{ field: 'Inbound Flight Number', direction: 'asc' }],
       maxRecords: 1000,
-      view: 'Flights Info Public'
+      view: 'Flights Info Public',
     });
     let flights: FlightData[] = [];
     for (const record of records) {
@@ -61,12 +61,17 @@ export async function GET(request: Request) {
 
       // Determine flight direction and status
       let direction: FlightDirection;
-      if (inboundFlightDiff > -(recentFlightThresholdMS + estimatedFlightDurationMS) && outboundFlightDiff > 0) {
+      if (
+        inboundFlightDiff > -(recentFlightThresholdMS + estimatedFlightDurationMS) &&
+        outboundFlightDiff > 0
+      ) {
         // Flight has not departed yet, or inbound flight is in air or within the threshold, and outbound flight
         // is in the future
         direction = 'INBOUND';
-      } else if (inboundFlightDiff < 0
-        && outboundFlightDiff < (recentFlightThresholdMS + estimatedFlightDurationMS)) {
+      } else if (
+        inboundFlightDiff < 0 &&
+        outboundFlightDiff < recentFlightThresholdMS + estimatedFlightDurationMS
+      ) {
         // Inbound flight has already arrived, and outbound flight is either in the air or within the threshold
         direction = 'OUTBOUND';
       } else {
@@ -75,17 +80,18 @@ export async function GET(request: Request) {
       }
 
       // Get the departure time for the flight
-      const departureTime = direction === 'INBOUND' ? inboundFlightDate.getTime() : outboundFlightDate.getTime();
+      const departureTime =
+        direction === 'INBOUND' ? inboundFlightDate.getTime() : outboundFlightDate.getTime();
 
       // If there are multiple flight numbers (semicolon-separated), relate them in order (that is, the first
       // flight will be related to the next flight as CONNECTING_BEFORE, and the next flight will be related as
       // CONNECTING_AFTER or CONNECTING_BOTH)
-      const flightNumbers = (
-        direction === 'INBOUND' ? inboundFlightNumber : outboundFlightNumber
-      ).split(';').map(f => f.trim());
+      const flightNumbers = (direction === 'INBOUND' ? inboundFlightNumber : outboundFlightNumber)
+        .split(';')
+        .map((f) => f.trim());
       if (flightNumbers.length === 0) {
         console.warn(`No flight numbers found for record ${record.id}`);
-        continue;  // Skip this record if no flight numbers are found
+        continue; // Skip this record if no flight numbers are found
       } else if (flightNumbers.length === 1) {
         // Single flight number, no relations
         flights.push({
@@ -94,7 +100,7 @@ export async function GET(request: Request) {
           direction,
           departureTime,
           slackId,
-          flightTime: inboundFlightDate.getTime()
+          flightTime: inboundFlightDate.getTime(),
         });
       } else {
         // Multiple flight numbers, relate them
@@ -117,16 +123,19 @@ export async function GET(request: Request) {
             direction,
             departureTime,
             slackId,
-            flightTime: (direction === 'INBOUND' ? inboundFlightDate : outboundFlightDate).getTime()
+            flightTime: (direction === 'INBOUND'
+              ? inboundFlightDate
+              : outboundFlightDate
+            ).getTime(),
           });
         }
       }
     }
     // Get list of flight numbers to fetch from the flight tracking API
-    const flightNumbers = flights.map(f => f.flightNumber).filter(f => f);
+    const flightNumbers = flights.map((f) => f.flightNumber).filter((f) => f);
     if (flightNumbers.length === 0) {
       console.warn('No flight numbers found in the records');
-      return Response.json({error: 'No flight numbers found'}, {status: 404});
+      return Response.json({ error: 'No flight numbers found' }, { status: 404 });
     }
     console.log('Flight numbers to fetch:', flightNumbers);
     const flightNumbersQuery = flightNumbers.join(',');
@@ -135,34 +144,37 @@ export async function GET(request: Request) {
     const token = process.env.FLIGHT_API_TOKEN;
     if (!apiUrl || !token) {
       console.error('Flight API URL or token is not set');
-      return Response.json({error: 'Flight API not configured'}, {status: 500});
+      return Response.json({ error: 'Flight API not configured' }, { status: 500 });
     }
     console.log('Fetching flight tracking data from API...');
     const response = await fetch(`${apiUrl}/api/scrape/${flightNumbersQuery}?token=${token}`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
     if (!response.ok) {
       console.error('Failed to fetch flight tracking data:', response.statusText);
-      return Response.json({error: 'Failed to fetch flight tracking data'}, {status: response.status});
+      return Response.json(
+        { error: 'Failed to fetch flight tracking data' },
+        { status: response.status },
+      );
     }
     // Read each line of the response stream
     const reader = response.body?.getReader();
     if (!reader) {
       console.error('Response body is not readable');
-      return Response.json({error: 'Response body is not readable'}, {status: 500});
+      return Response.json({ error: 'Response body is not readable' }, { status: 500 });
     }
     const decoder = new TextDecoder();
     let done = false;
     while (!done) {
-      const {value, done: isDone} = await reader.read();
+      const { value, done: isDone } = await reader.read();
       done = isDone;
       if (value) {
-        const chunk = decoder.decode(value, {stream: true});
+        const chunk = decoder.decode(value, { stream: true });
         // Split the chunk into lines
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        const lines = chunk.split('\n').filter((line) => line.trim() !== '');
         console.log(lines);
         for (const line of lines) {
           try {
@@ -170,15 +182,19 @@ export async function GET(request: Request) {
             if (flightInfo.type == 'flight_data') {
               const flightData = flightInfo.result;
               // Find the corresponding flight in the flights array and update its status
-              const flightIndex = flights.findIndex(f => f.flightNumber === flightInfo.flight_number);
+              const flightIndex = flights.findIndex(
+                (f) => f.flightNumber === flightInfo.flight_number,
+              );
               if (flightIndex === -1) {
                 console.warn(`Flight ${flightData.flight_number} not found in the flights array`);
-                continue;  // Skip this flight if not found
+                continue; // Skip this flight if not found
               }
               const flight = flights[flightIndex];
               if (!flight) {
-                console.warn(`Flight ${flightData.flight_number} is undefined in the flights array`);
-                continue;  // Skip this flight if it's undefined
+                console.warn(
+                  `Flight ${flightData.flight_number} is undefined in the flights array`,
+                );
+                continue; // Skip this flight if it's undefined
               }
               // Determine the status of the flight based on the departure and arrival times
               const arrivalTime = flightData.destination?.arrival_time * 1000; // Convert to MS
@@ -207,16 +223,16 @@ export async function GET(request: Request) {
               // Try to get user name & image from Slack ID
               // Prisma: Look up user with slack = to flight.slackId
               const userData = await prisma.user.findFirst({
-                where: {slack: flight.slackId},
+                where: { slack: flight.slackId },
                 select: {
                   name: true,
-                  image: true
-                }
+                  image: true,
+                },
               });
 
               const user = {
                 name: userData?.name || 'Unknown User',
-                image: userData?.image || ''
+                image: userData?.image || '',
               };
               flight.status = status;
               flight.serverData = flightData;
@@ -231,15 +247,15 @@ export async function GET(request: Request) {
       }
     }
     // Cache the response for future requests
-    cache = {flights};
+    cache = { flights };
     lastRequest = Date.now();
-    return NextResponse.json({flights}, {status: 200});
+    return NextResponse.json({ flights }, { status: 200 });
   } catch (error) {
     console.error('❌ Error in /api/map/track:', error);
     if (error instanceof Error) {
       console.error('  Error message:', error.message);
       console.error('  Stack trace:', error.stack);
     }
-    return NextResponse.json({error: 'Failed to get tracking data'}, {status: 500});
+    return NextResponse.json({ error: 'Failed to get tracking data' }, { status: 500 });
   }
 }

@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { redis } from '@/lib/redis/redis';
 
-export async function GET(_req: NextRequest, { params }: { params: { key: string[] } }) {
-  const key = decodeURIComponent(params.key.join('/'));
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ key: string[] }> }) {
+  const key = decodeURIComponent((await params).key.join('/'));
   try {
     const buf = await redis.getBuffer(key);
     if (!buf) {
@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, { params }: { params: { key: string
     }
     const meta = await redis.hgetall(`${key}:meta`);
     const mime = meta?.mime || 'application/octet-stream';
-    return new Response(buf, {
+    return new Response(new Uint8Array(buf), {
       status: 200,
       headers: {
         'Content-Type': mime,
@@ -21,5 +21,3 @@ export async function GET(_req: NextRequest, { params }: { params: { key: string
     return new Response('Error', { status: 500 });
   }
 }
-
-

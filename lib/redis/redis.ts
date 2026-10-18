@@ -4,7 +4,6 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
   lazyConnect: false, // Connect immediately on startup
   enableOfflineQueue: true, // Queue commands while connecting
-  retryDelayOnFailover: 100,
   connectTimeout: 10000, // 10 seconds to establish connection
   commandTimeout: 5000, // 5 seconds for individual commands
 });
@@ -34,4 +33,4 @@ redis.on('reconnecting', () => {
   console.log('Redis reconnecting...');
 });
 
-export { redis }; 
+export { redis };

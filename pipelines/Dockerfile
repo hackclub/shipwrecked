@@ -1,60 +1,22 @@
-FROM node:20-alpine
-
-# Install cron and other necessary packages
-RUN apk add --no-cache \
-    dcron \
-    curl \
-    python3 \
-    py3-requests \
-    py3-dotenv \
-    py3-pip \
-    python3-dev \
-    build-base \
-    libffi-dev
-
-# Environment variables
-ENV NODE_ENV production
-
-# Create the log file
-RUN touch /var/log/cron.log
-
-# Create workspace directory
+# Cron and Python need a shell and OS packages; the web app uses shell-free DHI.
+FROM oven/bun:1.4.3-alpine
+USER root
+RUN apk add --no-cache dcron python3 py3-pip \
+    && python3 -m venv /opt/venv
+ENV NODE_ENV=production
 WORKDIR /app
-
-# Copy package files and prisma schema first to leverage layer caching
-COPY package.json yarn.lock ./
-COPY prisma ./prisma/
-
-# Install dependencies and generate Prisma client
-RUN yarn install --frozen-lockfile
-RUN npx prisma generate
-
-# Install tsx globally
-RUN npm install -g tsx
-
-# Ensure node_modules/@prisma/client is accessible
-# This allows using @prisma/client imports that work in both local and Docker environments
-RUN mkdir -p /app/node_modules/@prisma
-RUN ln -sf /app/app/generated/prisma /app/node_modules/@prisma/client
-
-# Copy the entire pipelines directory to preserve hierarchy
-COPY pipelines /app/pipelines
-
-# Copy app directory to ensure proper imports
-COPY app /app/app
-
-# Copy lib directory for shared utilities
-COPY lib /app/lib
-
-# Copy tsconfig.json for path mapping
-COPY tsconfig.json /app/tsconfig.json
-
-# Copy metrics.ts for prisma extension
-COPY metrics.ts /app/metrics.ts
-
-# Copy the crontab and entrypoint files
+COPY pipelines/jobs/ip2geo/ip2geo_requirements.txt /tmp/requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+COPY package.json bun.lock prisma.config.ts ./
+COPY webhook-forwarder/package.json ./webhook-forwarder/package.json
+COPY prisma ./prisma
+RUN bun install --frozen-lockfile
+COPY pipelines ./pipelines
+COPY app ./app
+COPY lib ./lib
+COPY tsconfig.json metrics.ts ./
 COPY pipelines/crontab /etc/crontabs/root
 COPY pipelines/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"] 
+RUN /opt/venv/bin/python -m compileall -q /app/pipelines/jobs/ip2geo \
+    && touch /var/log/cron.log && chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

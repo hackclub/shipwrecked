@@ -14,7 +14,7 @@ interface CompleteReviewFormProps {
 export default function CompleteReviewForm({
   projectID,
   isInReview,
-  onReviewCompleted
+  onReviewCompleted,
 }: CompleteReviewFormProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
@@ -30,22 +30,23 @@ export default function CompleteReviewForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // If approving and checklist hasn't been completed, show it
     if (isApproved && !checklistJustification) {
       setShowChecklist(true);
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Combine the checklist justification with the comment if approving
       let finalComment = comment.trim();
       if (isApproved && checklistJustification) {
-        finalComment = `Justification for approved hours: ${checklistJustification}\n\n${comment.trim()}`.trim();
+        finalComment =
+          `Justification for approved hours: ${checklistJustification}\n\n${comment.trim()}`.trim();
       }
-      
+
       const response = await fetch('/api/projects/complete-review', {
         method: 'POST',
         headers: {
@@ -58,19 +59,19 @@ export default function CompleteReviewForm({
           justification: isApproved ? checklistJustification : undefined,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to complete review');
       }
-      
+
       const data = await response.json();
       toast.success('Review completed successfully');
-      
+
       // Clear the form
       setComment('');
       setChecklistJustification('');
       setShowChecklist(false);
-      
+
       // Notify parent component
       onReviewCompleted(data.project, data.review);
     } catch (error) {
@@ -93,11 +94,11 @@ export default function CompleteReviewForm({
       setChecklistJustification('');
     }
   };
-  
+
   return (
     <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
       <h3 className="text-sm font-bold text-green-800 mb-3">Complete Review</h3>
-      
+
       {/* Show checklist if user wants to approve and hasn't completed it */}
       {showChecklist && (
         <ReviewChecklist
@@ -105,7 +106,7 @@ export default function CompleteReviewForm({
           isSubmitting={isSubmitting}
         />
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label htmlFor="reviewComment" className="block text-sm font-medium text-gray-700 mb-1">
@@ -121,7 +122,7 @@ export default function CompleteReviewForm({
             disabled={isSubmitting}
           />
         </div>
-        
+
         <div className="mb-4">
           <div className="flex items-center space-x-2">
             <input
@@ -141,12 +142,10 @@ export default function CompleteReviewForm({
             </p>
           )}
           {isApproved && checklistJustification && (
-            <p className="text-sm text-green-700 mt-1">
-              ✓ Review checklist completed
-            </p>
+            <p className="text-sm text-green-700 mt-1">✓ Review checklist completed</p>
           )}
         </div>
-        
+
         <button
           type="submit"
           disabled={isSubmitting}
@@ -157,4 +156,4 @@ export default function CompleteReviewForm({
       </form>
     </div>
   );
-} 
+}

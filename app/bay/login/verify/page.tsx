@@ -7,21 +7,24 @@ import Toast from '@/components/common/Toast';
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
-        <div className="flex items-center justify-center h-full">
-          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
-            <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Verifying Email</h1>
-            <p className="text-gray-600 text-center mb-4">
-              Please check your email for a verification link.
-            </p>
-            <p className="text-gray-600 text-center mb-6">
-              <strong>Important:</strong> Be sure to check your spam or junk folder if you don't see the email in your inbox.
-            </p>
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
+          <div className="flex items-center justify-center h-full">
+            <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-8 border border-gray-200 max-w-md w-full mx-4">
+              <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">Verifying Email</h1>
+              <p className="text-gray-600 text-center mb-4">
+                Please check your email for a verification link.
+              </p>
+              <p className="text-gray-600 text-center mb-6">
+                <strong>Important:</strong> Be sure to check your spam or junk folder if you don't
+                see the email in your inbox.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <VerifyContent />
     </Suspense>
   );
@@ -45,7 +48,7 @@ function VerifyContent() {
 
       try {
         console.log('Verifying email with token and email:', { tokenLength: token.length, email });
-        
+
         const response = await fetch(`/api/auth/verify?token=${token}&email=${email}`);
         console.log('Verification API response status:', response.status);
         const data = await response.json();
@@ -55,7 +58,7 @@ function VerifyContent() {
           console.log('Verification successful, attempting sign in');
           setToastMessage('Email verified successfully! Signing you in...');
           setToastType('success');
-          
+
           // Sign in the user
           console.log('Calling NextAuth signIn with email provider...');
           const result = await signIn('email', {
@@ -63,11 +66,11 @@ function VerifyContent() {
             token,
             redirect: false,
           });
-          console.log('SignIn result details:', { 
-            ok: result?.ok, 
+          console.log('SignIn result details:', {
+            ok: result?.ok,
             error: result?.error,
             url: result?.url,
-            status: result?.status
+            status: result?.status,
           });
 
           if (result?.ok) {
@@ -105,17 +108,14 @@ function VerifyContent() {
             Please check your email for a verification link.
           </p>
           <p className="text-gray-600 text-center mb-6">
-            <strong>Important:</strong> Be sure to check your spam or junk folder if you don't see the email in your inbox.
+            <strong>Important:</strong> Be sure to check your spam or junk folder if you don't see
+            the email in your inbox.
           </p>
           {toastMessage && (
-            <Toast
-              message={toastMessage}
-              type={toastType}
-              onClose={() => setToastMessage(null)}
-            />
+            <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
           )}
         </div>
       </div>
     </div>
   );
-} 
+}

@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -7,20 +7,20 @@ import { toast, Toaster } from 'sonner';
 
 // Enum for audit log event types (matching Prisma schema)
 enum AuditLogEventType {
-  ProjectCreated = "ProjectCreated",
-  ProjectSubmittedForReview = "ProjectSubmittedForReview",
-  ProjectMarkedShipped = "ProjectMarkedShipped",
-  ProjectMarkedViral = "ProjectMarkedViral",
-  ProjectReviewCompleted = "ProjectReviewCompleted",
-  UserRoleChanged = "UserRoleChanged",
-  UserVerified = "UserVerified",
-  UserCreated = "UserCreated",
-  ProjectDeleted = "ProjectDeleted",
-  SlackConnected = "SlackConnected",
-  ShopOrderCreated = "ShopOrderCreated",
-  ShopOrderFulfilled = "ShopOrderFulfilled",
-  ShopOrderRejected = "ShopOrderRejected",
-  OtherEvent = "OtherEvent"
+  ProjectCreated = 'ProjectCreated',
+  ProjectSubmittedForReview = 'ProjectSubmittedForReview',
+  ProjectMarkedShipped = 'ProjectMarkedShipped',
+  ProjectMarkedViral = 'ProjectMarkedViral',
+  ProjectReviewCompleted = 'ProjectReviewCompleted',
+  UserRoleChanged = 'UserRoleChanged',
+  UserVerified = 'UserVerified',
+  UserCreated = 'UserCreated',
+  ProjectDeleted = 'ProjectDeleted',
+  SlackConnected = 'SlackConnected',
+  ShopOrderCreated = 'ShopOrderCreated',
+  ShopOrderFulfilled = 'ShopOrderFulfilled',
+  ShopOrderRejected = 'ShopOrderRejected',
+  OtherEvent = 'OtherEvent',
 }
 
 // Audit log interface
@@ -74,7 +74,7 @@ export default function AuditLogsPage() {
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
     limit: 25,
-    offset: 0
+    offset: 0,
   });
   const [filters, setFilters] = useState({
     eventType: '',
@@ -92,23 +92,23 @@ export default function AuditLogsPage() {
           ...(filters.eventType ? { eventType: filters.eventType } : {}),
           ...(filters.userId ? { userId: filters.userId } : {}),
           limit: String(pagination.limit),
-          offset: String(pagination.offset)
-        })}`
+          offset: String(pagination.offset),
+        })}`,
       );
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch audit logs');
       }
-      
+
       // Check if data has logs or auditLogs property
       const logsData = data.logs || data.auditLogs || [];
       setAuditLogs(logsData);
-      
+
       // Check if data has total or pagination property
       const totalCount = data.total || (data.pagination && data.pagination.total) || 0;
-      setPagination(prev => ({ ...prev, total: totalCount }));
+      setPagination((prev) => ({ ...prev, total: totalCount }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Failed to fetch audit logs: ${errorMessage}`);
@@ -133,22 +133,22 @@ export default function AuditLogsPage() {
 
   // Handle pagination
   const handlePageChange = (newOffset: number) => {
-    setPagination(prev => ({
+    setPagination((prev) => ({
       ...prev,
-      offset: newOffset
+      offset: newOffset,
     }));
   };
 
   // Handle filter changes
   const handleFilterChange = (name: string, value: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Reset pagination when filters change
-    setPagination(prev => ({
+    setPagination((prev) => ({
       ...prev,
-      offset: 0
+      offset: 0,
     }));
   };
 
@@ -168,7 +168,7 @@ export default function AuditLogsPage() {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
   };
 
@@ -176,8 +176,8 @@ export default function AuditLogsPage() {
   const getEventTypeBadge = (eventType: AuditLogEventType) => {
     let bgColor = 'bg-gray-100';
     let textColor = 'text-gray-800';
-    
-    switch(eventType) {
+
+    switch (eventType) {
       case AuditLogEventType.ProjectCreated:
         bgColor = 'bg-green-100';
         textColor = 'text-green-800';
@@ -224,11 +224,13 @@ export default function AuditLogsPage() {
         // Keep default gray
         break;
     }
-    
+
     return (
-      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-        {eventType === AuditLogEventType.UserVerified 
-          ? 'Email Verified' 
+      <span
+        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}
+      >
+        {eventType === AuditLogEventType.UserVerified
+          ? 'Email Verified'
           : eventType.replace(/([A-Z])/g, ' $1').trim()}
       </span>
     );
@@ -237,14 +239,16 @@ export default function AuditLogsPage() {
   // Display user avatar and name
   const UserDisplay = ({ user }: { user: User | undefined }) => {
     if (!user) return <span className="text-gray-500">System</span>;
-    
+
     return (
       <div className="flex items-center">
         {user.image ? (
           <img className="h-6 w-6 rounded-full mr-2" src={user.image} alt={user.name || 'User'} />
         ) : (
           <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center mr-2">
-            <span className="text-xs text-gray-600 font-bold">{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
+            <span className="text-xs text-gray-600 font-bold">
+              {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+            </span>
           </div>
         )}
         <span>{user.name || user.email || 'Unknown'}</span>
@@ -259,7 +263,7 @@ export default function AuditLogsPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
           <p className="text-gray-600 mb-6">You need to be logged in to access the admin area.</p>
-          <Link 
+          <Link
             href="/api/auth/signin"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
@@ -279,13 +283,13 @@ export default function AuditLogsPage() {
   return (
     <div>
       <Toaster position="top-right" />
-      
+
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Audit Logs</h1>
           <p className="text-gray-600">View system activity and changes across the platform</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={fetchAuditLogs}
@@ -296,11 +300,13 @@ export default function AuditLogsPage() {
           </button>
         </div>
       </div>
-      
+
       {/* Filters */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+          <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">
+            Event Type
+          </label>
           <select
             id="eventType"
             value={filters.eventType}
@@ -315,9 +321,11 @@ export default function AuditLogsPage() {
             ))}
           </select>
         </div>
-        
+
         <div>
-          <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">User</label>
+          <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
+            User
+          </label>
           <select
             id="userId"
             value={filters.userId}
@@ -332,7 +340,7 @@ export default function AuditLogsPage() {
             ))}
           </select>
         </div>
-        
+
         <div className="flex items-end">
           <button
             onClick={() => {
@@ -344,7 +352,7 @@ export default function AuditLogsPage() {
           </button>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -357,19 +365,34 @@ export default function AuditLogsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
                       Event
                     </th>
-                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
                       Description
                     </th>
-                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    <th
+                      scope="col"
+                      className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                    >
                       Target User
                     </th>
-                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    <th
+                      scope="col"
+                      className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                    >
                       Actor
                     </th>
-                    <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    <th
+                      scope="col"
+                      className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                    >
                       Timestamp
                     </th>
                   </tr>
@@ -389,7 +412,7 @@ export default function AuditLogsPage() {
                         </td>
                         <td className="px-2 sm:px-6 py-3 sm:py-4 text-sm">
                           <div className="text-sm text-gray-900">{log.description}</div>
-                          
+
                           {/* Mobile-only: Show user info inline on mobile */}
                           <div className="sm:hidden mt-1">
                             <div className="text-xs text-gray-600">
@@ -399,7 +422,7 @@ export default function AuditLogsPage() {
                                   {log.targetUser?.name || log.targetUser?.email || 'Unknown'}
                                 </span>
                               </div>
-                              
+
                               {log.actorUser && (
                                 <div className="flex items-center mt-1">
                                   <span className="font-medium">By:</span>
@@ -408,53 +431,62 @@ export default function AuditLogsPage() {
                                   </span>
                                 </div>
                               )}
-                              
+
                               <div className="mt-1 text-xs text-gray-500">
                                 {formatTimestamp(log.createdAt)}
                               </div>
                             </div>
                           </div>
-                          
+
                           {log.project && (
                             <div className="text-xs text-gray-500">
                               {log.eventType !== AuditLogEventType.ProjectCreated && (
-                                <div>Project: <Link href={`/admin/projects?projectId=${log.project.projectID}`} className="text-blue-600 hover:underline">{log.project.name}</Link></div>
-                              )}
-                              
-                              {/* Show additional project details for ProjectCreated event */}
-                              {log.eventType === AuditLogEventType.ProjectCreated && log.metadata?.projectDetails && (
-                                <div className="mt-1">
-                                  <div className="flex flex-wrap gap-2 mt-1">
-                                    {log.metadata.projectDetails.url && (
-                                      <Link 
-                                        href={log.metadata.projectDetails.url} 
-                                        className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
-                                        target="_blank"
-                                      >
-                                        View Project
-                                      </Link>
-                                    )}
-                                    {log.metadata.projectDetails.codeUrl && (
-                                      <Link 
-                                        href={log.metadata.projectDetails.codeUrl} 
-                                        className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded text-xs hover:bg-gray-100"
-                                        target="_blank"
-                                      >
-                                        Code
-                                      </Link>
-                                    )}
-                                    {log.metadata.projectDetails.playableUrl && (
-                                      <Link 
-                                        href={log.metadata.projectDetails.playableUrl} 
-                                        className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs hover:bg-green-100"
-                                        target="_blank"
-                                      >
-                                        Play
-                                      </Link>
-                                    )}
-                                  </div>
+                                <div>
+                                  Project:{' '}
+                                  <Link
+                                    href={`/admin/projects?projectId=${log.project.projectID}`}
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {log.project.name}
+                                  </Link>
                                 </div>
                               )}
+
+                              {/* Show additional project details for ProjectCreated event */}
+                              {log.eventType === AuditLogEventType.ProjectCreated &&
+                                log.metadata?.projectDetails && (
+                                  <div className="mt-1">
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      {log.metadata.projectDetails.url && (
+                                        <Link
+                                          href={log.metadata.projectDetails.url}
+                                          className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
+                                          target="_blank"
+                                        >
+                                          View Project
+                                        </Link>
+                                      )}
+                                      {log.metadata.projectDetails.codeUrl && (
+                                        <Link
+                                          href={log.metadata.projectDetails.codeUrl}
+                                          className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded text-xs hover:bg-gray-100"
+                                          target="_blank"
+                                        >
+                                          Code
+                                        </Link>
+                                      )}
+                                      {log.metadata.projectDetails.playableUrl && (
+                                        <Link
+                                          href={log.metadata.projectDetails.playableUrl}
+                                          className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs hover:bg-green-100"
+                                          target="_blank"
+                                        >
+                                          Play
+                                        </Link>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                             </div>
                           )}
                         </td>
@@ -474,7 +506,7 @@ export default function AuditLogsPage() {
               </table>
             </div>
           </div>
-          
+
           {/* Pagination */}
           {auditLogs.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
@@ -483,10 +515,12 @@ export default function AuditLogsPage() {
                 <span className="font-medium">{endItem}</span> of{' '}
                 <span className="font-medium">{pagination.total}</span> results
               </div>
-              
+
               <div className="flex space-x-2">
                 <button
-                  onClick={() => handlePageChange(Math.max(0, pagination.offset - pagination.limit))}
+                  onClick={() =>
+                    handlePageChange(Math.max(0, pagination.offset - pagination.limit))
+                  }
                   disabled={pagination.offset === 0}
                   className={`px-3 py-1 border rounded ${
                     pagination.offset === 0
@@ -496,7 +530,7 @@ export default function AuditLogsPage() {
                 >
                   Previous
                 </button>
-                
+
                 <button
                   onClick={() => handlePageChange(pagination.offset + pagination.limit)}
                   disabled={endItem >= pagination.total}
@@ -515,4 +549,4 @@ export default function AuditLogsPage() {
       )}
     </div>
   );
-} 
+}

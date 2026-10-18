@@ -8,7 +8,13 @@ interface ProjectStatusProps {
   hideViral?: boolean;
 }
 
-export default function ProjectStatus({ viral, shipped, in_review = false, className = '', hideViral = false }: ProjectStatusProps) {
+export default function ProjectStatus({
+  viral,
+  shipped,
+  in_review = false,
+  className = '',
+  hideViral = false,
+}: ProjectStatusProps) {
   return (
     <div className={`flex justify-center mt-2 ${className}`}>
       <div className={`grid gap-x-3 min-w-[200px] ${hideViral ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -25,4 +31,4 @@ export default function ProjectStatus({ viral, shipped, in_review = false, class
       </div>
     </div>
   );
-} 
+}

@@ -7,7 +7,7 @@ import { getProjectHackatimeHours, getProjectApprovedHours } from '@/lib/project
 // GET all projects that are in review (from all users)
 export async function GET() {
   console.log('🔍 /api/review endpoint called');
-  
+
   try {
     // Check for valid session - user must be logged in but doesn't need to be the project owner
     const session = await getServerSession(opts);
@@ -22,7 +22,10 @@ export async function GET() {
 
     if (!isAdmin && !isReviewer) {
       console.log('❌ User is not admin or reviewer');
-      return NextResponse.json({ error: 'Forbidden: Requires Admin or Reviewer role' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Requires Admin or Reviewer role' },
+        { status: 403 },
+      );
     }
 
     console.log('✅ User authenticated as admin/reviewer');
@@ -43,7 +46,7 @@ export async function GET() {
             image: true,
             hackatimeId: true,
             status: true,
-          }
+          },
         },
         reviews: {
           include: {
@@ -53,8 +56,8 @@ export async function GET() {
                 name: true,
                 email: true,
                 image: true,
-              }
-            }
+              },
+            },
           },
           orderBy: {
             createdAt: 'desc',
@@ -70,11 +73,13 @@ export async function GET() {
     });
 
     console.log(`Found ${projectsInReview.length} projects in review`);
-    
+
     if (projectsInReview.length > 0) {
       console.log('Projects in review:');
       projectsInReview.forEach((project, index) => {
-        console.log(`  ${index + 1}. ${project.name} (by ${project.user?.name}) - User ID: ${project.userId}`);
+        console.log(
+          `  ${index + 1}. ${project.name} (by ${project.user?.name}) - User ID: ${project.userId}`,
+        );
       });
     } else {
       console.log('⚠️  No projects are currently in review');
@@ -97,13 +102,13 @@ export async function GET() {
       try {
         const userProjects = await prisma.project.findMany({
           where: { userId },
-          include: { hackatimeLinks: true }
+          include: { hackatimeLinks: true },
         });
 
         // Calculate approved hours using the same logic as project-client.ts
         let userApprovedHours = 0;
         const projectsWithHours = userProjects
-          .map(project => {
+          .map((project) => {
             // Use the same getProjectHackatimeHours logic as progress bar
             const hours = getProjectHackatimeHours(project);
             return { project, hours };
@@ -154,7 +159,7 @@ export async function GET() {
       // Calculate raw hours from hackatime links
       const rawHours = project.hackatimeLinks.reduce(
         (sum: number, link: any) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
-        0
+        0,
       );
 
       return {
@@ -164,7 +169,10 @@ export async function GET() {
         userImage: project.user?.image || null,
         userHackatimeId: project.user?.hackatimeId || null,
         latestReview,
-        reviewCount: project.reviews?.filter((review: { reviewerId: string }) => review.reviewerId === project.userId).length || 0,
+        reviewCount:
+          project.reviews?.filter(
+            (review: { reviewerId: string }) => review.reviewerId === project.userId,
+          ).length || 0,
         rawHours: rawHours,
         ownerApprovedHours: userProjectsMap[project.userId] || 0,
       };
@@ -175,14 +183,14 @@ export async function GET() {
     const sortedProjects = formattedProjects.sort((a, b) => {
       const aReviewDate = a.latestReview?.createdAt;
       const bReviewDate = b.latestReview?.createdAt;
-      
+
       // If neither has reviews, maintain original order
       if (!aReviewDate && !bReviewDate) return 0;
-      
+
       // Projects without reviews go to the end
       if (!aReviewDate) return 1;
       if (!bReviewDate) return -1;
-      
+
       // Sort by date (oldest first)
       return new Date(aReviewDate).getTime() - new Date(bReviewDate).getTime();
     });
@@ -191,8 +199,11 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching projects in review:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch projects in review', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      {
+        error: 'Failed to fetch projects in review',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
     );
   }
-} 
+}

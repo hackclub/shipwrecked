@@ -14,19 +14,22 @@ export async function POST(request: NextRequest) {
     // Check if user is admin or reviewer
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
       console.warn(`Unauthorized review completion attempt by user ${session.user.id}`);
-      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Admin or Reviewer access required' },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.projectID) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
-    
+
     // Get the project to verify it exists
     const project = await prisma.project.findUnique({
       where: {
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // If approved status is provided, set it
     const updateData: any = {
-      in_review: false
+      in_review: false,
     };
     if (typeof body.hoursOverride === 'number') {
       updateData.hoursOverride = body.hoursOverride;
@@ -75,12 +78,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       project: updatedProject,
-      review
+      review,
     });
   } catch (error) {
     console.error('Error completing project review:', error);
     return NextResponse.json({ error: 'Failed to complete project review' }, { status: 500 });
   }
-} 
+}

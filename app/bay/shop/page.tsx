@@ -8,7 +8,6 @@ interface ShopItem {
   description: string;
   image?: string;
   price: number;
-  
 }
 
 interface ShellBalance {
@@ -80,17 +79,17 @@ export default function ShopPage() {
       // Close modal and show success
       setSelectedItem(null);
       setQuantity(1);
-      
+
       // Show success message
       setSuccessMessage(`Successfully purchased ${quantity}x ${selectedItem.name}!`);
       setShowSuccess(true);
-      
+
       // Hide success message after 3 seconds
       setTimeout(() => {
         setShowSuccess(false);
         setSuccessMessage('');
       }, 3000);
-      
+
       // Refresh shell balance
       const shellsResponse = await fetch('/api/users/me/shells');
       if (shellsResponse.ok) {
@@ -120,8 +119,8 @@ export default function ShopPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-600 mb-4">Error: {error}</h2>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             Retry
@@ -154,7 +153,7 @@ export default function ShopPage() {
             <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
               Exchanged your shells for some rewards. Prices are subject to change. 👀
             </p>
-            
+
             {/* Shell Balance Display */}
             {userShells !== null && (
               <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-full px-6 py-3 shadow-sm">
@@ -170,66 +169,72 @@ export default function ShopPage() {
       {/* Shop Items */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {items.sort((a, b) => a.price - b.price).map((item) => (
-            <div
-              key={item.id}
-              className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
-            >
-              {/* Item Image */}
-              <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-2">
-                {item.image ? (
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="object-contain w-full h-full"
-                  />
-                ) : (
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full flex items-center justify-center">
-                    <span className="text-3xl">🏆</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Item Content */}
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.name}</h3>
-                <p className="text-gray-600 mb-4 leading-relaxed">{item.description}</p>
-                
-                {/* Price */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <img src="/shell_720.png" alt="Shell" className="w-6 h-6 mr-2" />
-                    <span className="text-2xl font-bold text-blue-600">{item.price}</span>
-                    <span className="text-gray-500 ml-1">shells</span>
-                  </div>
-                  
-                  {/* Check if user can afford */}
-                  {userShells !== null && (
-                    <div className={`text-sm px-2 py-1 rounded-full ${
-                      userShells.shells >= item.price 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {userShells.shells >= item.price ? 'Can afford' : 'Not enough shells'}
+          {items
+            .sort((a, b) => a.price - b.price)
+            .map((item) => (
+              <div
+                key={item.id}
+                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
+              >
+                {/* Item Image */}
+                <div className="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center p-2">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="object-contain w-full h-full"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full flex items-center justify-center">
+                      <span className="text-3xl">🏆</span>
                     </div>
                   )}
                 </div>
 
-                {/* Buy Button */}
-                <button
-                  onClick={() => setSelectedItem(item)}
-                  disabled={userShells !== null && userShells.shells < item.price}
-                  className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-200 ${
-                    userShells !== null && userShells.shells < item.price
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105'
-                  }`}
-                >
-                  {userShells !== null && userShells.shells < item.price ? 'Not enough shells' : 'Buy Now'}
-                </button>
+                {/* Item Content */}
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{item.name}</h3>
+                  <p className="text-gray-600 mb-4 leading-relaxed">{item.description}</p>
+
+                  {/* Price */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <img src="/shell_720.png" alt="Shell" className="w-6 h-6 mr-2" />
+                      <span className="text-2xl font-bold text-blue-600">{item.price}</span>
+                      <span className="text-gray-500 ml-1">shells</span>
+                    </div>
+
+                    {/* Check if user can afford */}
+                    {userShells !== null && (
+                      <div
+                        className={`text-sm px-2 py-1 rounded-full ${
+                          userShells.shells >= item.price
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {userShells.shells >= item.price ? 'Can afford' : 'Not enough shells'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Buy Button */}
+                  <button
+                    onClick={() => setSelectedItem(item)}
+                    disabled={userShells !== null && userShells.shells < item.price}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-200 ${
+                      userShells !== null && userShells.shells < item.price
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105'
+                    }`}
+                  >
+                    {userShells !== null && userShells.shells < item.price
+                      ? 'Not enough shells'
+                      : 'Buy Now'}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
@@ -247,7 +252,7 @@ export default function ShopPage() {
                 <p className="text-blue-800 text-sm">{selectedItem.description}</p>
               </div>
             </div>
-            
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <div className="flex items-center">
                 <span className="text-yellow-600 text-lg mr-2">⚠️</span>
@@ -256,7 +261,7 @@ export default function ShopPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Quantity:</label>
               <input
@@ -264,7 +269,9 @@ export default function ShopPage() {
                 min="1"
                 max="1000"
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Math.min(1000, parseInt(e.target.value) || 1)))}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, Math.min(1000, parseInt(e.target.value) || 1)))
+                }
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -274,7 +281,9 @@ export default function ShopPage() {
                 <span className="font-medium text-gray-700">Total:</span>
                 <div className="flex items-center">
                   <img src="/shell_720.png" alt="Shell" className="w-5 h-5 mr-1" />
-                  <span className="text-xl font-bold text-blue-600">{selectedItem.price * quantity}</span>
+                  <span className="text-xl font-bold text-blue-600">
+                    {selectedItem.price * quantity}
+                  </span>
                   <span className="text-gray-500 ml-1">shells</span>
                 </div>
               </div>
@@ -301,8 +310,8 @@ export default function ShopPage() {
                 onClick={handlePurchase}
                 disabled={isPurchasing}
                 className={`flex-1 py-3 px-4 rounded-lg font-semibold text-white transition ${
-                  isPurchasing 
-                    ? 'bg-gray-400 cursor-not-allowed' 
+                  isPurchasing
+                    ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
                 }`}
               >
@@ -314,4 +323,4 @@ export default function ShopPage() {
       )}
     </div>
   );
-} 
+}

@@ -6,7 +6,7 @@ import { logProjectEvent, AuditLogEventType } from '@/lib/auditLogger';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   // Check authentication
   const session = await getServerSession(opts);
@@ -23,7 +23,7 @@ export async function GET(
   try {
     // Use destructuring to access params properly
     const { projectId } = await params;
-    
+
     // Fetch the specific project with user info, reviews, and hackatime links
     const project = await prisma.project.findUnique({
       where: {
@@ -43,7 +43,7 @@ export async function GET(
             id: true,
           },
         },
-        hackatimeLinks: true
+        hackatimeLinks: true,
       },
     });
 
@@ -53,36 +53,33 @@ export async function GET(
 
     // Calculate total raw hours from all hackatime links
     const rawHours = project.hackatimeLinks.reduce(
-      (sum, link) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0), 
-      0
+      (sum, link) => sum + (typeof link.rawHours === 'number' ? link.rawHours : 0),
+      0,
     );
-    
+
     // Return project with calculated rawHours
     const processedProject = {
       ...project,
-      rawHours
+      rawHours,
     };
 
     return NextResponse.json(processedProject);
   } catch (error) {
     console.error('Error fetching project:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch project' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch project' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   // Check authentication
   const session = await getServerSession(opts);
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   // Check for admin role or isAdmin flag
   const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
   if (!isAdmin) {
@@ -92,7 +89,7 @@ export async function DELETE(
   try {
     // Use destructuring to access params properly
     const { projectId } = await params;
-    
+
     // Fetch project details before deletion to use in audit log
     const projectToDelete = await prisma.project.findUnique({
       where: {
@@ -100,16 +97,19 @@ export async function DELETE(
       },
       include: {
         user: true, // Include user info to identify the project owner
-        hackatimeLinks: true // Include hackatime links
-      }
+        hackatimeLinks: true, // Include hackatime links
+      },
     });
-    
+
     if (!projectToDelete) {
-      return NextResponse.json({
-        error: 'Project not found',
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: 'Project not found',
+        },
+        { status: 404 },
+      );
     }
-    
+
     // Create audit log for admin project deletion BEFORE deletion
     console.log(`[ADMIN DELETE] Creating audit log for project deletion: ${projectId}`);
     const auditLogResult = await logProjectEvent({
@@ -125,27 +125,29 @@ export async function DELETE(
           description: projectToDelete.description,
           adminAction: true,
           ownerName: projectToDelete.user?.name,
-          ownerEmail: projectToDelete.user?.email
-        }
-      }
+          ownerEmail: projectToDelete.user?.email,
+        },
+      },
     });
-    
-    console.log(`[ADMIN DELETE] Audit log creation result: ${auditLogResult ? 'Success' : 'Failed'}`);
-    
+
+    console.log(
+      `[ADMIN DELETE] Audit log creation result: ${auditLogResult ? 'Success' : 'Failed'}`,
+    );
+
     // First delete any reviews associated with the project
     await prisma.review.deleteMany({
       where: {
         projectID: projectId,
       },
     });
-    
+
     // Delete hackatime links associated with the project
     await prisma.hackatimeProjectLink.deleteMany({
       where: {
         projectID: projectId,
       },
     });
-    
+
     // Then delete the project
     await prisma.project.delete({
       where: {
@@ -156,9 +158,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting project:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete project' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
   }
-} 
+}

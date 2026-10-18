@@ -29,7 +29,13 @@ interface ProjectChatModalProps {
   isIslandMode?: boolean;
 }
 
-export default function ProjectChatModal({ isOpen, onClose, project, showToast, isIslandMode = false }: ProjectChatModalProps) {
+export default function ProjectChatModal({
+  isOpen,
+  onClose,
+  project,
+  showToast,
+  isIslandMode = false,
+}: ProjectChatModalProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -44,18 +50,18 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
   // Polling function to fetch new messages
   const pollMessages = async (isInitialLoad = false) => {
     if (!project.chat_enabled) return;
-    
+
     try {
       // Build the URL with optional since parameter
       let url = `/api/projects/${project.projectID}/chat/messages`;
       if (!isInitialLoad && lastMessageTimestampRef.current) {
         url += `?since=${encodeURIComponent(lastMessageTimestampRef.current)}`;
       }
-      
+
       const response = await fetch(url);
       if (response.ok) {
         const data: ChatMessage[] = await response.json();
-        
+
         if (isInitialLoad) {
           // Initial load - replace all messages
           setMessages(data);
@@ -65,7 +71,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         } else {
           // Polling update - append new messages
           if (data.length > 0) {
-            setMessages(prev => [...prev, ...data]);
+            setMessages((prev) => [...prev, ...data]);
             lastMessageTimestampRef.current = data[data.length - 1]?.createdAt || '';
           }
         }
@@ -75,14 +81,21 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
     }
   };
 
-  const canModerate = session?.user && (session.user.role === 'Admin' || session.user.isAdmin === true || (project.userId && session.user.id === project.userId));
+  const canModerate =
+    session?.user &&
+    (session.user.role === 'Admin' ||
+      session.user.isAdmin === true ||
+      (project.userId && session.user.id === project.userId));
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!canModerate) return;
     try {
-      const res = await fetch(`/api/projects/${project.projectID}/chat/messages?messageId=${encodeURIComponent(messageId)}`, { method: 'DELETE' });
+      const res = await fetch(
+        `/api/projects/${project.projectID}/chat/messages?messageId=${encodeURIComponent(messageId)}`,
+        { method: 'DELETE' },
+      );
       if (res.ok) {
-        setMessages(prev => prev.filter(m => m.id !== messageId));
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
         // Trigger quick poll to stay in sync
         setTimeout(() => pollMessages(false), 100);
       } else {
@@ -187,15 +200,15 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: messageContent
-        })
+          content: messageContent,
+        }),
       });
 
       if (response.ok) {
         const savedMessage = await response.json();
-        
+
         // Add to local state immediately for instant feedback
-        setMessages(prev => [...prev, savedMessage]);
+        setMessages((prev) => [...prev, savedMessage]);
         lastMessageTimestampRef.current = savedMessage.createdAt;
 
         // Re-focus the input field for continued chatting
@@ -211,13 +224,18 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         console.log('Rate limited:', errorData);
         // Restore the message in the input and show a toast or inline message
         setNewMessage(messageContent);
-        showToast && showToast('Please wait a moment before sending another message (max 1 message every 5 seconds)', 'info');
+        showToast &&
+          showToast(
+            'Please wait a moment before sending another message (max 1 message every 5 seconds)',
+            'info',
+          );
       } else {
         // Other error
         const errorData = await response.json();
         console.error('Error sending message:', errorData);
         setNewMessage(messageContent);
-        showToast && showToast(errorData.error || 'Failed to send message. Please try again.', 'error');
+        showToast &&
+          showToast(errorData.error || 'Failed to send message. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -231,10 +249,10 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
     });
   };
 
@@ -263,14 +281,25 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
       if (isLikelyImageUrl(url)) {
         elements.push(
           <a key={`i-${match.index}`} href={url} target="_blank" rel="noopener noreferrer">
-            <img src={url} alt="uploaded" className="max-w-full rounded-lg border border-gray-200 my-2" style={{ maxHeight: 240 }} />
-          </a>
+            <img
+              src={url}
+              alt="uploaded"
+              className="max-w-full rounded-lg border border-gray-200 my-2"
+              style={{ maxHeight: 240 }}
+            />
+          </a>,
         );
       } else {
         elements.push(
-          <a key={`l-${match.index}`} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+          <a
+            key={`l-${match.index}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline break-all"
+          >
             {url}
-          </a>
+          </a>,
         );
       }
       lastIndex = urlRegex.lastIndex;
@@ -328,7 +357,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
           });
           if (response.ok) {
             const savedMessage = await response.json();
-            setMessages(prev => [...prev, savedMessage]);
+            setMessages((prev) => [...prev, savedMessage]);
             lastMessageTimestampRef.current = savedMessage.createdAt;
             setTimeout(() => pollMessages(false), 100);
           } else {
@@ -352,26 +381,73 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
     // Create a simple hash to generate consistent animal names
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
-      hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+      hash = (hash << 5) - hash + userId.charCodeAt(i);
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     const animals = [
-      'Fox', 'Wolf', 'Bear', 'Eagle', 'Shark', 'Tiger', 'Lion', 'Panda',
-      'Owl', 'Hawk', 'Raven', 'Falcon', 'Lynx', 'Otter', 'Seal', 'Whale',
-      'Dolphin', 'Penguin', 'Koala', 'Sloth', 'Gecko', 'Viper', 'Cobra',
-      'Phoenix', 'Dragon', 'Unicorn', 'Griffin', 'Kraken', 'Hydra', 'Sphinx'
+      'Fox',
+      'Wolf',
+      'Bear',
+      'Eagle',
+      'Shark',
+      'Tiger',
+      'Lion',
+      'Panda',
+      'Owl',
+      'Hawk',
+      'Raven',
+      'Falcon',
+      'Lynx',
+      'Otter',
+      'Seal',
+      'Whale',
+      'Dolphin',
+      'Penguin',
+      'Koala',
+      'Sloth',
+      'Gecko',
+      'Viper',
+      'Cobra',
+      'Phoenix',
+      'Dragon',
+      'Unicorn',
+      'Griffin',
+      'Kraken',
+      'Hydra',
+      'Sphinx',
     ];
-    
+
     const adjectives = [
-      'Swift', 'Bold', 'Wise', 'Calm', 'Wild', 'Brave', 'Cool', 'Sharp',
-      'Quick', 'Zen', 'Fire', 'Ice', 'Storm', 'Night', 'Dawn', 'Void',
-      'Neon', 'Cyber', 'Nova', 'Stealth', 'Shadow', 'Light', 'Dark', 'Mystic'
+      'Swift',
+      'Bold',
+      'Wise',
+      'Calm',
+      'Wild',
+      'Brave',
+      'Cool',
+      'Sharp',
+      'Quick',
+      'Zen',
+      'Fire',
+      'Ice',
+      'Storm',
+      'Night',
+      'Dawn',
+      'Void',
+      'Neon',
+      'Cyber',
+      'Nova',
+      'Stealth',
+      'Shadow',
+      'Light',
+      'Dark',
+      'Mystic',
     ];
-    
+
     const animalIndex = Math.abs(hash) % animals.length;
     const adjIndex = Math.abs(hash >> 8) % adjectives.length;
-    
+
     return `${adjectives[adjIndex]}${animals[animalIndex]}`;
   };
 
@@ -379,14 +455,14 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
   const getUserColor = (userId: string) => {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
-      hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+      hash = (hash << 5) - hash + userId.charCodeAt(i);
       hash = hash & hash;
     }
-    
+
     // Generate colors that are readable on white background
     const colors = [
       '#dc2626', // red-600
-      '#ea580c', // orange-600  
+      '#ea580c', // orange-600
       '#d97706', // amber-600
       '#65a30d', // lime-600
       '#059669', // emerald-600
@@ -402,7 +478,7 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
       '#1e3a8a', // blue-800
       '#553c9a', // violet-800
     ];
-    
+
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -414,17 +490,10 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              Discussion: {project.name}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {project.description}
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900">Discussion: {project.name}</h2>
+            <p className="text-sm text-gray-500">{project.description}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <span className="text-xl">×</span>
           </button>
         </div>
@@ -446,11 +515,10 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
             messages.map((message) => (
               <div key={message.id} className="mb-3 group">
                 <div className="text-left flex items-start gap-2">
-                  <span 
-                    className="font-bold"
-                    style={{ color: getUserColor(message.userId) }}
-                  >
-                    {isIslandMode && message.userName ? message.userName : obfuscateUsername(message.userId)}
+                  <span className="font-bold" style={{ color: getUserColor(message.userId) }}>
+                    {isIslandMode && message.userName
+                      ? message.userName
+                      : obfuscateUsername(message.userId)}
                   </span>
                   {!isIslandMode && message.isAuthor && (
                     <span className="text-yellow-500 ml-1" title="Project Author">
@@ -481,60 +549,63 @@ export default function ProjectChatModal({ isOpen, onClose, project, showToast, 
         </div>
 
         {/* Message Input */}
-        <div className="border-t p-4 sticky bottom-0 bg-white" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
+        <div
+          className="border-t p-4 sticky bottom-0 bg-white"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+        >
           {/* In island mode, only the project owner can write */}
           {!(isIslandMode && session?.user?.id !== project.userId) ? (
-          <form onSubmit={handleSendMessage} className="flex flex-col gap-2 w-full">
-            <div className="flex w-full items-center gap-2 overflow-hidden">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="w-0 flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={isSending || isUploading}
-                ref={messageInputRef}
-                maxLength={1000}
-              />
-              <button
-                type="button"
-                onClick={handlePickAndUploadImage}
-                disabled={isSending || isUploading}
-                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-                title="Upload image"
-              >
-                {isUploading ? '…' : '🖼️'}
-              </button>
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || isSending || newMessage.length > 1000}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-              >
-                {isSending ? (
-                  <span className="animate-spin">⟳</span>
-                ) : (
-                  <span>→</span>
-                )}
-              </button>
-            </div>
-            {/* Character counter */}
-            <div className="flex justify-end">
-              <span className={`text-xs ${
-                newMessage.length > 1000 
-                  ? 'text-red-500 font-semibold' 
-                  : newMessage.length > 900 
-                    ? 'text-amber-500' 
-                    : 'text-gray-400'
-              }`}>
-                {newMessage.length}/1000
-              </span>
-            </div>
-          </form>
+            <form onSubmit={handleSendMessage} className="flex flex-col gap-2 w-full">
+              <div className="flex w-full items-center gap-2 overflow-hidden">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="w-0 flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isSending || isUploading}
+                  ref={messageInputRef}
+                  maxLength={1000}
+                />
+                <button
+                  type="button"
+                  onClick={handlePickAndUploadImage}
+                  disabled={isSending || isUploading}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title="Upload image"
+                >
+                  {isUploading ? '…' : '🖼️'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim() || isSending || newMessage.length > 1000}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  {isSending ? <span className="animate-spin">⟳</span> : <span>→</span>}
+                </button>
+              </div>
+              {/* Character counter */}
+              <div className="flex justify-end">
+                <span
+                  className={`text-xs ${
+                    newMessage.length > 1000
+                      ? 'text-red-500 font-semibold'
+                      : newMessage.length > 900
+                        ? 'text-amber-500'
+                        : 'text-gray-400'
+                  }`}
+                >
+                  {newMessage.length}/1000
+                </span>
+              </div>
+            </form>
           ) : (
-            <div className="text-sm text-gray-500">Only the project owner can write the story for island projects.</div>
+            <div className="text-sm text-gray-500">
+              Only the project owner can write the story for island projects.
+            </div>
           )}
         </div>
       </div>
     </div>
   );
-} 
+}

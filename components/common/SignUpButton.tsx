@@ -11,7 +11,7 @@ export default function SignUpButton() {
   const scrollToBottom = () => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   };
 
@@ -21,7 +21,7 @@ export default function SignUpButton() {
     <button
       className="fixed top-8 right-8 z-50 py-3 md:px-6 px-4 uppercase bg-dark-blue/80 text-sand border border-sand whitespace-nowrap text-sm md:text-lg transition-all duration-300 hover:border-yellow hover:scale-105 hover:shadow-lg hover:shadow-dark-blue/20 backdrop-blur-sm rounded-full cursor-pointer active:scale-95"
       onClick={scrollToBottom}
-      style={{ opacity: bannerOpacity, transition: "opacity 0.2s ease-out" }}
+      style={{ opacity: bannerOpacity, transition: 'opacity 0.2s ease-out' }}
     >
       <span className="flex items-center gap-3 flex-nowrap">
         RSVP
@@ -35,4 +35,4 @@ export default function SignUpButton() {
       </span>
     </button>
   );
-} 
+}

@@ -3,15 +3,17 @@
 
 # Get the absolute path to the project directory
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT_PATH="$PROJECT_DIR/scripts/sync-hackatime-hours.ts"
+SCRIPT_PATH="$PROJECT_DIR/pipelines/jobs/hackatime-sync/hackatime-sync.ts"
 LOG_PATH="$PROJECT_DIR/logs/hackatime-sync.log"
 
 # Create logs directory if it doesn't exist
 mkdir -p "$PROJECT_DIR/logs"
 
+BUN_BIN="$(command -v bun)" || { echo "Install Bun first"; exit 1; }
+
 # Define the cron job command
 # Run every hour at minute 0 (e.g., 1:00, 2:00, etc.)
-CRON_CMD="0 * * * * cd $PROJECT_DIR && npx tsx $SCRIPT_PATH >> $LOG_PATH 2>&1"
+CRON_CMD="0 * * * * cd \"$PROJECT_DIR\" && \"$BUN_BIN\" \"$SCRIPT_PATH\" >> \"$LOG_PATH\" 2>&1"
 
 # Check if the cron job already exists
 EXISTING_CRON=$(crontab -l 2>/dev/null | grep -F "$SCRIPT_PATH" || echo "")

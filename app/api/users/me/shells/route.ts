@@ -20,11 +20,11 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { 
-        totalShellsSpent: true, 
+      select: {
+        totalShellsSpent: true,
         purchasedProgressHours: true,
-        adminShellAdjustment: true
-      }
+        adminShellAdjustment: true,
+      },
     });
 
     if (!user) {
@@ -34,7 +34,7 @@ export async function GET() {
     // Get projects with their Hackatime links for the current user
     const projects = await prisma.project.findMany({
       where: { userId },
-      include: { hackatimeLinks: true }
+      include: { hackatimeLinks: true },
     });
 
     // Calculate comprehensive shell balance using the enhanced function
@@ -42,10 +42,10 @@ export async function GET() {
       projects,
       user.purchasedProgressHours,
       user.totalShellsSpent,
-      user.adminShellAdjustment
+      user.adminShellAdjustment,
     );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       shells: metrics.availableShells,
       earnedShells: metrics.availableShells,
       totalSpent: user.totalShellsSpent,
@@ -57,20 +57,20 @@ export async function GET() {
           totalPercentage: metrics.totalPercentage,
           shippedHours: metrics.shippedHours,
           viralHours: metrics.viralHours,
-          otherHours: metrics.otherHours
+          otherHours: metrics.otherHours,
         },
         purchased: {
           hours: metrics.purchasedProgressHours,
-          percentage: metrics.purchasedProgressHours
+          percentage: metrics.purchasedProgressHours,
         },
         total: {
           hours: metrics.totalProgressWithPurchased,
-          percentage: metrics.totalPercentageWithPurchased
-        }
-      }
+          percentage: metrics.totalPercentageWithPurchased,
+        },
+      },
     });
   } catch (error) {
     console.error('Error fetching user shells:', error);
     return NextResponse.json({ error: 'Failed to fetch user shells' }, { status: 500 });
   }
-} 
+}

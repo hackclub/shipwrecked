@@ -23,22 +23,16 @@ export async function PATCH(request: Request) {
 
     // Validate required fields
     if (!tagId) {
-      return NextResponse.json(
-        { error: 'Missing required field: tagId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required field: tagId' }, { status: 400 });
     }
 
     // Check if tag exists
     const existingTag = await prisma.tag.findUnique({
-      where: { id: tagId }
+      where: { id: tagId },
     });
 
     if (!existingTag) {
-      return NextResponse.json(
-        { error: 'Tag not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
     }
 
     // Update the tag
@@ -47,16 +41,16 @@ export async function PATCH(request: Request) {
       data: {
         description: description !== undefined ? description : existingTag.description,
         color: color !== undefined ? color : existingTag.color,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       include: {
         _count: {
           select: {
             userTags: true,
-            projectTags: true
-          }
-        }
-      }
+            projectTags: true,
+          },
+        },
+      },
     });
 
     console.log(`Successfully updated tag "${updatedTag.name}" (ID: ${tagId})`);
@@ -69,16 +63,12 @@ export async function PATCH(request: Request) {
           ...updatedTag,
           userCount: updatedTag._count.userTags,
           projectCount: updatedTag._count.projectTags,
-          totalUsage: updatedTag._count.userTags + updatedTag._count.projectTags
-        }
-      }
+          totalUsage: updatedTag._count.userTags + updatedTag._count.projectTags,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Error updating tag:', error);
-    return NextResponse.json(
-      { error: 'Failed to update tag' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update tag' }, { status: 500 });
   }
-} 
+}

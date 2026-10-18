@@ -7,7 +7,7 @@ import { withRateLimit } from '@/lib/rateLimit';
 // GET - Get chat messages for a project
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const session = await getServerSession(opts);
@@ -16,7 +16,7 @@ export async function GET(
     }
 
     const { projectId } = await params;
-    
+
     // Get optional 'since' timestamp from query parameters
     const { searchParams } = new URL(request.url);
     const sinceParam = searchParams.get('since');
@@ -34,12 +34,12 @@ export async function GET(
           select: {
             tag: {
               select: {
-                name: true
-              }
-            }
-          }
-        }
-      }
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!project) {
@@ -51,7 +51,7 @@ export async function GET(
     }
 
     // Check if this is an island project
-    const isIslandProject = project.projectTags.some(pt => pt.tag.name === 'island-project');
+    const isIslandProject = project.projectTags.some((pt) => pt.tag.name === 'island-project');
 
     // Get the chat room for this project
     const chatRoom = await prisma.chatRoom.findFirst({
@@ -91,9 +91,9 @@ export async function GET(
       messageQueryOptions.include = {
         user: {
           select: {
-            name: true
-          }
-        }
+            name: true,
+          },
+        },
       };
     }
 
@@ -103,7 +103,7 @@ export async function GET(
     const chronologicalMessages = sinceTimestamp ? messages : messages.reverse();
 
     // Format messages for the client - include isAuthor flag and user name for island projects
-    const formattedMessages = chronologicalMessages.map(message => ({
+    const formattedMessages = chronologicalMessages.map((message) => ({
       id: message.id,
       content: message.content,
       userId: message.userId,
@@ -113,7 +113,6 @@ export async function GET(
     }));
 
     return NextResponse.json(formattedMessages);
-
   } catch (error) {
     console.error('Error fetching chat messages:', error);
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
@@ -123,7 +122,7 @@ export async function GET(
 // POST - Send a new chat message
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   const session = await getServerSession(opts);
   if (!session?.user?.id) {
@@ -138,7 +137,7 @@ export async function POST(
     {
       window: 5, // 5 seconds
       maxRequests: 1, // 1 message max
-      keyPrefix: `chat_message:${userId}:${projectId}` // Per user per project
+      keyPrefix: `chat_message:${userId}:${projectId}`, // Per user per project
     },
     async () => {
       try {
@@ -150,7 +149,10 @@ export async function POST(
 
         // Limit message length to 1000 characters
         if (body.content.trim().length > 1000) {
-          return NextResponse.json({ error: 'Message too long. Maximum 1000 characters allowed.' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'Message too long. Maximum 1000 characters allowed.' },
+            { status: 400 },
+          );
         }
 
         // Check if the project exists and has chat enabled
@@ -165,12 +167,12 @@ export async function POST(
               select: {
                 tag: {
                   select: {
-                    name: true
-                  }
-                }
-              }
-            }
-          }
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
         });
 
         if (!project) {
@@ -178,15 +180,21 @@ export async function POST(
         }
 
         if (!project.chat_enabled) {
-          return NextResponse.json({ error: 'Chat is not enabled for this project' }, { status: 403 });
+          return NextResponse.json(
+            { error: 'Chat is not enabled for this project' },
+            { status: 403 },
+          );
         }
 
         // Check if this is an island project
-        const isIslandProject = project.projectTags.some(pt => pt.tag.name === 'island-project');
+        const isIslandProject = project.projectTags.some((pt) => pt.tag.name === 'island-project');
 
         // For island projects, only the project owner may post messages
         if (isIslandProject && session.user.id !== project.userId) {
-          return NextResponse.json({ error: 'Only the project owner can write in island stories.' }, { status: 403 });
+          return NextResponse.json(
+            { error: 'Only the project owner can write in island stories.' },
+            { status: 403 },
+          );
         }
 
         // Get or create the chat room for this project
@@ -202,7 +210,7 @@ export async function POST(
             data: {
               projectID: projectId,
               name: 'General Discussion',
-            }
+            },
           });
         }
 
@@ -212,7 +220,7 @@ export async function POST(
             content: body.content.trim(),
             userId: session.user.id,
             roomId: chatRoom.id,
-          }
+          },
         };
 
         // Only add include clause for island projects
@@ -220,9 +228,9 @@ export async function POST(
           messageCreateOptions.include = {
             user: {
               select: {
-                name: true
-              }
-            }
+                name: true,
+              },
+            },
           };
         }
 
@@ -235,23 +243,23 @@ export async function POST(
           userId: message.userId,
           createdAt: message.createdAt.toISOString(),
           isAuthor: message.userId === project.userId, // Flag to indicate if message is from project author
-          userName: isIslandProject && (message as any).user ? (message as any).user.name : undefined, // Include real name for island projects
+          userName:
+            isIslandProject && (message as any).user ? (message as any).user.name : undefined, // Include real name for island projects
         };
 
         return NextResponse.json(formattedMessage);
-
       } catch (error) {
         console.error('Error sending chat message:', error);
         return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
       }
-    }
+    },
   );
-} 
+}
 
 // DELETE - Delete a chat message (admins or project owners only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const session = await getServerSession(opts);

@@ -1,6 +1,10 @@
-import { HacaktimeMostRecentHeartbeat, HackatimeProject, HackatimeStatsProject } from "@/types/hackatime";
-import { prisma } from "@/lib/prisma";
-import metrics from "@/metrics";
+import {
+  HacaktimeMostRecentHeartbeat,
+  HackatimeProject,
+  HackatimeStatsProject,
+} from '@/types/hackatime';
+import { prisma } from '@/lib/prisma';
+import metrics from '@/metrics';
 
 if (!process.env.HACKATIME_API_TOKEN) {
   throw new Error('HACKATIME_API_TOKEN environment variable must be set');
@@ -12,9 +16,9 @@ const HACKATIME_RACK_ATTACK_BYPASS_TOKEN = process.env.HACKATIME_RACK_ATTACK_BYP
 async function makeHackatimeRequest(uri: string) {
   const response = await fetch(uri, {
     headers: {
-      'Authorization': `Bearer ${HACKATIME_API_TOKEN}`,
+      Authorization: `Bearer ${HACKATIME_API_TOKEN}`,
       'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
-    }
+    },
   });
   return response;
 }
@@ -23,14 +27,14 @@ export async function fetchHackatimeProjects(
   hackatimeUserId: string,
 ): Promise<Array<HackatimeProject>> {
   console.log(`🎮 Fetching Hackatime projects for user ID: ${hackatimeUserId}`);
-  
+
   const uri = `https://hackatime.hackclub.com/api/v1/users/${hackatimeUserId}/stats?features=projects&start_date=2025-04-22`;
   console.log(`📡 Hackatime API Request: ${uri}`);
 
   try {
     const response = await makeHackatimeRequest(uri);
     console.log(`📥 Hackatime Response Status: ${response.status} ${response.statusText}`);
-    
+
     if (!response.ok) {
       console.error(`❌ Hackatime API error: ${response.status} ${response.statusText}`);
       console.error(`Response headers:`, Object.fromEntries(response.headers.entries()));
@@ -41,39 +45,42 @@ export async function fetchHackatimeProjects(
 
     const data: HackatimeStatsProject = await response.json();
     // console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
-    console.log(`✅ Hackatime projects fetched successfully. Found ${data.data.projects.length} projects`);
-    
-    // Log hours for debugging
-    console.log(`📊 Hours for projects:`, data.data.projects.map(p => ({ 
-      name: p.name, 
-      hours: p.hours, 
-      total_seconds: p.total_seconds,
-      precise_hours: p.total_seconds / 3600
-    })));
+    console.log(
+      `✅ Hackatime projects fetched successfully. Found ${data.data.projects.length} projects`,
+    );
 
-    metrics.increment("success.fetch_hackatime", 1);
+    // Log hours for debugging
+    console.log(
+      `📊 Hours for projects:`,
+      data.data.projects.map((p) => ({
+        name: p.name,
+        hours: p.hours,
+        total_seconds: p.total_seconds,
+        precise_hours: p.total_seconds / 3600,
+      })),
+    );
+
+    metrics.increment('success.fetch_hackatime', 1);
     return data.data.projects;
   } catch (error) {
     console.error(`💥 Error fetching Hackatime projects:`, error);
     console.error(`For user ID: ${hackatimeUserId}`);
-    metrics.increment("errors.fetch_hackatime", 1);
+    metrics.increment('errors.fetch_hackatime', 1);
     throw error; // Re-throw to handle in calling code
   }
 }
 
-export async function checkHackatimeUserExists(
-  id: string
-): Promise<boolean> {
+export async function checkHackatimeUserExists(id: string): Promise<boolean> {
   const uri = `https://hackatime.hackclub.com/api/v1/users/${id}/stats`;
   const response = await makeHackatimeRequest(uri);
 
   if (response.status == 404) return false;
-  
+
   if (response.ok) {
     const data = await response.json();
     console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
   }
-  
+
   return true;
 }
 
@@ -88,34 +95,34 @@ export async function fetchRecentHeartbeat(id: string): Promise<HacaktimeMostRec
 export async function lookupHackatimeIdByEmail(email: string): Promise<string | null> {
   console.log(`🔍 Looking up Hackatime ID for email: ${email}`);
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_email/${encodeURIComponent(email)}`;
-  
+
   try {
     const response = await fetch(uri, {
       headers: {
-        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        Authorization: `Bearer ${process.env.HACKATIME_API_TOKEN}`,
         'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
-      }
+      },
     });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
-    
+
     if (response.status === 404) {
       console.log('⚠️ No Hackatime user found for email');
       return null;
     }
-    
+
     if (!response.ok) {
-      metrics.increment("errors.hackatime_api_error", 1);
+      metrics.increment('errors.hackatime_api_error', 1);
       console.error(`❌ Hackatime API error: ${response.status} ${response.statusText}`);
       throw new Error(`Hackatime API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    metrics.increment("success.hackatime_by_email", 1);
+    metrics.increment('success.hackatime_by_email', 1);
     console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
     console.log(`✅ Found Hackatime ID: ${data.user_id}`);
     return data.user_id as string;
   } catch (error) {
-    metrics.increment("errors.hackatime_by_email", 1);
+    metrics.increment('errors.hackatime_by_email', 1);
     console.error(`💥 Error looking up Hackatime ID by email:`, error);
     throw error;
   }
@@ -124,34 +131,34 @@ export async function lookupHackatimeIdByEmail(email: string): Promise<string | 
 export async function lookupHackatimeIdBySlack(slackId: string): Promise<string | null> {
   console.log(`🔍 Looking up Hackatime ID for Slack ID: ${slackId}`);
   const uri = `https://hackatime.hackclub.com/api/v1/users/lookup_slack_uid/${slackId}`;
-  
+
   try {
     const response = await fetch(uri, {
       headers: {
-        'Authorization': `Bearer ${process.env.HACKATIME_API_TOKEN}`,
+        Authorization: `Bearer ${process.env.HACKATIME_API_TOKEN}`,
         'Rack-Attack-Bypass': HACKATIME_RACK_ATTACK_BYPASS_TOKEN || '',
-      }
+      },
     });
     console.log(`📥 Lookup Response Status: ${response.status} ${response.statusText}`);
-    
+
     if (response.status === 404) {
       console.log('⚠️ No Hackatime user found for Slack ID');
       return null;
     }
-    
+
     if (!response.ok) {
-      metrics.increment("errors.hackatime_api_error", 1);
+      metrics.increment('errors.hackatime_api_error', 1);
       console.error(`❌ Hackatime API error: ${response.status} ${response.statusText}`);
       throw new Error(`Hackatime API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    metrics.increment("success.hackatime_by_email", 1);
+    metrics.increment('success.hackatime_by_email', 1);
     console.log('📦 Full Hackatime response:', JSON.stringify(data, null, 2));
     console.log(`✅ Found Hackatime ID: ${data.user_id}`);
     return data.user_id as string;
   } catch (error) {
-    metrics.increment("errors.hackatime_by_email", 1);
+    metrics.increment('errors.hackatime_by_email', 1);
     console.error(`💥 Error looking up Hackatime ID by Slack ID:`, error);
     throw error;
   }
@@ -166,14 +173,17 @@ export interface HackatimeSetupStatus {
  * Checks if a user has Hackatime properly set up by verifying their Hackatime ID
  * exists in our database or can be found via their email.
  */
-export async function checkHackatimeSetup(userId: string, userEmail: string): Promise<HackatimeSetupStatus> {
+export async function checkHackatimeSetup(
+  userId: string,
+  userEmail: string,
+): Promise<HackatimeSetupStatus> {
   // return { isSetup: false };
 
   try {
     // First check if we already have a Hackatime ID stored
     console.log('🔍 Checking database for existing Hackatime ID...');
     const dbUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
     });
 
     if (!dbUser) {
@@ -181,11 +191,11 @@ export async function checkHackatimeSetup(userId: string, userEmail: string): Pr
       return { isSetup: false, error: 'User not found' };
     }
 
-    console.log('👤 Found user:', { 
-      id: dbUser.id, 
+    console.log('👤 Found user:', {
+      id: dbUser.id,
       email: dbUser.email,
       hasSlack: !!dbUser.slack,
-      hasHackatime: !!dbUser.hackatimeId 
+      hasHackatime: !!dbUser.hackatimeId,
     });
 
     // If we have a Hackatime ID stored, they're set up
@@ -199,7 +209,9 @@ export async function checkHackatimeSetup(userId: string, userEmail: string): Pr
     if (dbUser.slack) {
       console.log('🔍 Looking up Hackatime ID by Slack ID:', dbUser.slack);
       hackatimeId = await lookupHackatimeIdBySlack(dbUser.slack);
-      console.log(hackatimeId ? '✅ Found Hackatime ID via Slack' : '❌ No Hackatime ID found via Slack');
+      console.log(
+        hackatimeId ? '✅ Found Hackatime ID via Slack' : '❌ No Hackatime ID found via Slack',
+      );
     } else {
       console.log('⏭️ Skipping Slack lookup - no Slack ID available');
     }
@@ -208,25 +220,27 @@ export async function checkHackatimeSetup(userId: string, userEmail: string): Pr
     if (!hackatimeId) {
       console.log('🔍 Attempting email lookup with:', dbUser.email);
       hackatimeId = await lookupHackatimeIdByEmail(userEmail);
-      console.log(hackatimeId ? '✅ Found Hackatime ID via email' : '❌ No Hackatime ID found via email');
+      console.log(
+        hackatimeId ? '✅ Found Hackatime ID via email' : '❌ No Hackatime ID found via email',
+      );
     }
-    
+
     if (hackatimeId) {
       // Found ID, save it and return success
       console.log('💾 Saving Hackatime ID to database:', hackatimeId);
       await prisma.user.update({
         where: { id: userId },
-        data: { hackatimeId: hackatimeId.toString() }
+        data: { hackatimeId: hackatimeId.toString() },
       });
       console.log('✅ Successfully saved Hackatime ID');
       return { isSetup: true };
     }
 
-    metrics.increment("errors.get_hackatime_id", 1);
+    metrics.increment('errors.get_hackatime_id', 1);
     console.log('❌ No Hackatime ID found through any method');
     return { isSetup: false };
   } catch (error) {
-    metrics.increment("errors.hackatime_status", 1);
+    metrics.increment('errors.hackatime_status', 1);
     console.error('💥 Error checking Hackatime status:', error);
     return { isSetup: false, error: 'Failed to check Hackatime status' };
   }

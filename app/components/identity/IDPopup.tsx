@@ -30,7 +30,8 @@ export default function IDPopup() {
           Verify your identity to attend Shipwrecked!
         </p>
         <div className="mb-6 text-gray-500 text-sm text-center">
-          <span className="font-semibold text-blue-600">Why verify?</span> It helps us keep Shipwrecked safe, fair, and fun for everyone.
+          <span className="font-semibold text-blue-600">Why verify?</span> It helps us keep
+          Shipwrecked safe, fair, and fun for everyone.
         </div>
         <button
           onClick={async () => {

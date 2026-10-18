@@ -5,7 +5,10 @@ import { prisma } from '@/lib/prisma';
 import { createAuditLog, AuditLogEventType } from '@/lib/auditLogger';
 
 // Whitelist of admin users who can access shop orders
-const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '').split(',').map(e => e.trim()).filter(Boolean);
+const SHOP_ORDERS_ADMIN_WHITELIST = (process.env.SHOP_ORDERS_ADMIN_WHITELIST || '')
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean);
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +22,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user || user.role !== 'Admin' || !SHOP_ORDERS_ADMIN_WHITELIST.includes(user.email)) {
-      return NextResponse.json({ error: 'Access denied. Only authorized shop order administrators can access this resource.' }, { status: 403 });
+      return NextResponse.json(
+        {
+          error:
+            'Access denied. Only authorized shop order administrators can access this resource.',
+        },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -63,7 +72,13 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!user || user.role !== 'Admin' || !SHOP_ORDERS_ADMIN_WHITELIST.includes(user.email)) {
-      return NextResponse.json({ error: 'Access denied. Only authorized shop order administrators can access this resource.' }, { status: 403 });
+      return NextResponse.json(
+        {
+          error:
+            'Access denied. Only authorized shop order administrators can access this resource.',
+        },
+        { status: 403 },
+      );
     }
 
     const { orderId, status } = await request.json();
@@ -112,9 +127,9 @@ export async function PATCH(request: NextRequest) {
           where: { id: existingOrder.userId },
           data: {
             purchasedProgressHours: {
-              increment: progressToApply
-            }
-          }
+              increment: progressToApply,
+            },
+          },
         });
       }
     }
@@ -126,20 +141,20 @@ export async function PATCH(request: NextRequest) {
         purchasedProgressHours?: { decrement: number };
       } = {
         totalShellsSpent: {
-          decrement: existingOrder.price
-        }
+          decrement: existingOrder.price,
+        },
       };
 
       if (existingOrder.itemName.toLowerCase().includes('progress')) {
         const progressToReimburse = existingOrder.quantity;
         updateData.purchasedProgressHours = {
-          decrement: progressToReimburse
+          decrement: progressToReimburse,
         };
       }
 
       await prisma.user.update({
         where: { id: existingOrder.userId },
-        data: updateData
+        data: updateData,
       });
     }
 
@@ -150,40 +165,42 @@ export async function PATCH(request: NextRequest) {
         purchasedProgressHours?: { decrement: number };
       } = {
         totalShellsSpent: {
-          decrement: existingOrder.price
-        }
+          decrement: existingOrder.price,
+        },
       };
 
       if (existingOrder.itemName.toLowerCase().includes('progress')) {
         const progressToRemove = existingOrder.quantity;
         updateData.purchasedProgressHours = {
-          decrement: progressToRemove
+          decrement: progressToRemove,
         };
       }
 
       await prisma.user.update({
         where: { id: existingOrder.userId },
-        data: updateData
+        data: updateData,
       });
     }
 
     // Log audit event
     if (status === 'fulfilled' || status === 'rejected' || status === 'refunded') {
-      const userDisplay = existingOrder.user?.name || existingOrder.user?.email || existingOrder.userId;
+      const userDisplay =
+        existingOrder.user?.name || existingOrder.user?.email || existingOrder.userId;
       let eventType: AuditLogEventType;
       let description: string;
-      
+
       if (status === 'fulfilled') {
         eventType = AuditLogEventType.ShopOrderFulfilled;
         description = `Order for ${order.itemName} by ${userDisplay} marked as fulfilled and progress applied.`;
       } else if (status === 'rejected') {
         eventType = AuditLogEventType.ShopOrderRejected;
         description = `Order for ${order.itemName} by ${userDisplay} rejected and ${existingOrder.price} shells reimbursed.`;
-      } else { // status === 'refunded'
+      } else {
+        // status === 'refunded'
         eventType = AuditLogEventType.ShopOrderRejected; // Reusing rejected event type for refunds
         description = `Order for ${order.itemName} by ${userDisplay} refunded and ${existingOrder.price} shells reimbursed.`;
       }
-      
+
       await createAuditLog({
         eventType,
         description,
@@ -195,22 +212,43 @@ export async function PATCH(request: NextRequest) {
           itemName: order.itemName,
           price: existingOrder.price,
           quantity: order.quantity,
-          shellsReimbursed: (status === 'rejected' || status === 'refunded') ? existingOrder.price : 0,
-          progressApplied: status === 'fulfilled' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
-          progressRemoved: status === 'refunded' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
+          shellsReimbursed:
+            status === 'rejected' || status === 'refunded' ? existingOrder.price : 0,
+          progressApplied:
+            status === 'fulfilled'
+              ? existingOrder.itemName.toLowerCase().includes('progress')
+                ? existingOrder.quantity
+                : 0
+              : 0,
+          progressRemoved:
+            status === 'refunded'
+              ? existingOrder.itemName.toLowerCase().includes('progress')
+                ? existingOrder.quantity
+                : 0
+              : 0,
         },
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       order,
-      shellsReimbursed: (status === 'rejected' || status === 'refunded') ? existingOrder.price : 0,
-      progressApplied: status === 'fulfilled' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0,
-      progressRemoved: status === 'refunded' ? (existingOrder.itemName.toLowerCase().includes('progress') ? existingOrder.quantity : 0) : 0
+      shellsReimbursed: status === 'rejected' || status === 'refunded' ? existingOrder.price : 0,
+      progressApplied:
+        status === 'fulfilled'
+          ? existingOrder.itemName.toLowerCase().includes('progress')
+            ? existingOrder.quantity
+            : 0
+          : 0,
+      progressRemoved:
+        status === 'refunded'
+          ? existingOrder.itemName.toLowerCase().includes('progress')
+            ? existingOrder.quantity
+            : 0
+          : 0,
     });
   } catch (error) {
     console.error('Update order error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

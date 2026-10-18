@@ -20,4 +20,4 @@ export async function POST(request: Request) {
     console.error('Error setting RSVP data:', error);
     return NextResponse.json({ error: 'Failed to set RSVP data' }, { status: 500 });
   }
-} 
+}

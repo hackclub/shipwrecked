@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode } from 'react';
 
 export default function FormSelect({
   fieldName,
@@ -19,9 +19,8 @@ export default function FormSelect({
   defaultValue?: string;
   disabled?: boolean;
 }) {
-  let selectClasses =
-    "w-full px-4 py-2 bg-gray-100 rounded outline-1 outline-gray-200";
-  if (multiple) selectClasses += " h-64";
+  let selectClasses = 'w-full px-4 py-2 bg-gray-100 rounded outline-1 outline-gray-200';
+  if (multiple) selectClasses += ' h-64';
 
   return (
     <>
@@ -29,7 +28,7 @@ export default function FormSelect({
         <label className="text-lg font-semibold text-left">
           {children}
           {required && <p className="text-red-500 inline">*</p>}
-        </label>{" "}
+        </label>{' '}
         <br />
         <select
           className={selectClasses}
@@ -40,13 +39,11 @@ export default function FormSelect({
           disabled={disabled}
         >
           {placeholder && <option value="">{placeholder}</option>}
-          {Object.entries(values).map(
-            (v: [string, string | number]): ReactNode => (
-              <option value={v[1]} key={v[1]}>
-                {v[0]}
-              </option>
-            )
-          )}
+          {Object.entries(values).map((v: [string, string | number]): ReactNode => (
+            <option value={v[1]} key={v[1]}>
+              {v[0]}
+            </option>
+          ))}
         </select>
       </div>
     </>

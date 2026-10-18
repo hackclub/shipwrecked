@@ -40,7 +40,7 @@ echo "Cleaning up existing database volume..."
 
 # Stop any running containers first (this might free up the ports)
 echo "🛑 Stopping any existing Docker services..."
-docker-compose -f docker-compose-local-debug.yaml down
+docker compose -f docker-compose-local-debug.yaml down
 
 # Now check if ports are still blocked by external processes
 check_ports

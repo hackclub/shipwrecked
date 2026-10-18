@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
     const reviewCount = await prisma.review.count();
     const projectCount = await prisma.project.count();
     const projectInReviewCount = await prisma.project.count({
-      where: { in_review: true }
+      where: { in_review: true },
     });
     const auditLogCount = await prisma.auditLog.count();
-    
+
     // Fetch 5 latest reviews
     const latestReviews = await prisma.review.findMany({
       take: 5,
@@ -34,18 +34,18 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            email: true
-          }
+            email: true,
+          },
         },
         project: {
           select: {
             projectID: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
-    
+
     // Fetch projects in review with their reviews
     const projectsInReview = await prisma.project.findMany({
       where: { in_review: true },
@@ -57,37 +57,40 @@ export async function GET(request: NextRequest) {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         user: {
           select: {
             id: true,
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
-    
+
     return NextResponse.json({
       stats: {
         reviewCount,
         projectCount,
         projectInReviewCount,
-        auditLogCount
+        auditLogCount,
       },
       latestReviews,
       projectsInReview,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error in debug endpoint:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
-} 
+}

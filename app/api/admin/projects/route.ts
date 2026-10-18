@@ -19,10 +19,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter');
-    
+
     // Base query conditions
     let whereCondition: any = {};
-    
+
     // Apply filters if provided
     if (filter === 'in_review') {
       whereCondition.in_review = true;
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     } else if (filter === 'viral') {
       whereCondition.viral = true;
     }
-    
+
     // Fetch all projects with user info, reviews, hackatime links, and project tags
     const projects = await prisma.project.findMany({
       where: whereCondition,
@@ -64,33 +64,30 @@ export async function GET(request: Request) {
     });
 
     // Process projects to include calculated rawHours
-    const processedProjects = projects.map(project => {
+    const processedProjects = projects.map((project) => {
       // Calculate total raw hours from all hackatime links, respecting overrides
-      const rawHours = project.hackatimeLinks.reduce(
-        (sum, link) => {
-          // Use the link's hoursOverride if it exists, otherwise use rawHours
-          const effectiveHours = (link.hoursOverride !== undefined && link.hoursOverride !== null)
+      const rawHours = project.hackatimeLinks.reduce((sum, link) => {
+        // Use the link's hoursOverride if it exists, otherwise use rawHours
+        const effectiveHours =
+          link.hoursOverride !== undefined && link.hoursOverride !== null
             ? link.hoursOverride
-            : (typeof link.rawHours === 'number' ? link.rawHours : 0);
-          
-          return sum + effectiveHours;
-        }, 
-        0
-      );
-      
+            : typeof link.rawHours === 'number'
+              ? link.rawHours
+              : 0;
+
+        return sum + effectiveHours;
+      }, 0);
+
       // Return project with calculated rawHours
       return {
         ...project,
-        rawHours
+        rawHours,
       };
     });
 
     return NextResponse.json(processedProjects);
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch projects' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
   }
-} 
+}

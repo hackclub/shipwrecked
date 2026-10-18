@@ -18,11 +18,11 @@ export async function userHasTag(userId: string, tagName: string): Promise<boole
       where: {
         userId,
         tag: {
-          name: tagName.toLowerCase().trim()
-        }
-      }
+          name: tagName.toLowerCase().trim(),
+        },
+      },
     });
-    
+
     return !!userTag;
   } catch (error) {
     console.error(`Error checking if user ${userId} has tag "${tagName}":`, error);
@@ -55,13 +55,13 @@ export async function getUserTags(userId: string) {
             id: true,
             name: true,
             description: true,
-            color: true
-          }
-        }
-      }
+            color: true,
+          },
+        },
+      },
     });
-    
-    return userTags.map(ut => ut.tag);
+
+    return userTags.map((ut) => ut.tag);
   } catch (error) {
     console.error(`Error fetching tags for user ${userId}:`, error);
     return [];

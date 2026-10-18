@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -20,9 +20,7 @@ function Loading() {
     <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
       <div className="relative flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-            Loading...
-          </p>
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">Loading...</p>
         </div>
       </div>
     </div>
@@ -34,12 +32,8 @@ function AccessDenied() {
     <div className="fixed inset-0 bg-[url(/bay.webp)] bg-cover bg-center">
       <div className="relative flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">
-            Access Denied
-          </p>
-          <p className="text-2xl md:text-3xl font-serif text-white">
-            Admin access required
-          </p>
+          <p className="text-5xl md:text-6xl font-serif mb-6 text-white font-bold">Access Denied</p>
+          <p className="text-2xl md:text-3xl font-serif text-white">Admin access required</p>
         </div>
       </div>
     </div>
@@ -61,7 +55,7 @@ export default function AdminImpersonateBay() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session || !isAdmin) {
       return;
     }
@@ -78,11 +72,11 @@ export default function AdminImpersonateBay() {
   const fetchUserData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch user info and projects
       const [userResponse, projectsResponse] = await Promise.all([
         fetch(`/api/admin/users/${userId}`),
-        fetch(`/api/admin/users/${userId}/projects`)
+        fetch(`/api/admin/users/${userId}/projects`),
       ]);
 
       if (!userResponse.ok || !projectsResponse.ok) {
@@ -119,18 +113,18 @@ export default function AdminImpersonateBay() {
   const impersonationData = {
     userId: userId,
     user: user,
-    projects: projects
+    projects: projects,
   };
 
   return (
     <ReviewModeProvider>
-      <BayWithReviewMode 
-        session={session} 
-        status={status} 
+      <BayWithReviewMode
+        session={session}
+        status={status}
         router={router}
         impersonationData={impersonationData}
       />
       <Toaster />
     </ReviewModeProvider>
   );
-} 
+}

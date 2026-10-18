@@ -1,15 +1,15 @@
-import ProgressBar from "@/components/common/ProgressBar";
-import Prompt from "./prompt";
-import { getServerSession } from "next-auth";
-import { opts } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
+import ProgressBar from '@/components/common/ProgressBar';
+import Prompt from './prompt';
+import { getServerSession } from 'next-auth';
+import { opts } from '@/app/api/auth/[...nextauth]/route';
+import { redirect } from 'next/navigation';
 
 // Slack Setup Page (/bay/intro/slack)
 // Guides and confirms the registration of the users in the slack
 export default async function Page() {
   const session = await getServerSession(opts);
 
-  if (!session || !session?.user || !session.user.email) redirect("/bay/login");
+  if (!session || !session?.user || !session.user.email) redirect('/bay/login');
 
   return (
     <>

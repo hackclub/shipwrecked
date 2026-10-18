@@ -6,7 +6,7 @@ import { opts } from '../../../auth/[...nextauth]/route';
 // PATCH - Update project settings
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const session = await getServerSession(opts);
@@ -26,7 +26,7 @@ export async function PATCH(
         projectID: true,
         userId: true,
         chat_enabled: true,
-      }
+      },
     });
 
     if (!project) {
@@ -35,7 +35,10 @@ export async function PATCH(
 
     // Check if the user is the owner of the project
     if (project.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden: You can only edit your own projects' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: You can only edit your own projects' },
+        { status: 403 },
+      );
     }
 
     // Prepare update data
@@ -50,8 +53,8 @@ export async function PATCH(
         await prisma.chatRoom.create({
           data: {
             projectID: projectId,
-            name: 'General Discussion'
-          }
+            name: 'General Discussion',
+          },
         });
       } else if (!body.chat_enabled && project.chat_enabled) {
         // Disabling chat - we'll keep the chat rooms and messages for now
@@ -74,13 +77,12 @@ export async function PATCH(
       select: {
         projectID: true,
         chat_enabled: true,
-      }
+      },
     });
 
     return NextResponse.json(updatedProject);
-
   } catch (error) {
     console.error('Error updating project settings:', error);
     return NextResponse.json({ error: 'Failed to update project settings' }, { status: 500 });
   }
-} 
+}

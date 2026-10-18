@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "ignorePatterns": [
+    "app/generated/**",
+    ".next/**",
+    "public/**",
+    "node_modules/**",
+    "bun.lock",
+    "prisma/migrations/**",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.css"
+  ]
+}

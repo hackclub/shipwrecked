@@ -13,7 +13,7 @@ export class StatsService {
 
   public static getInstance(): StatsService {
     if (!StatsService.instance) {
-      console.log("created new stats service!");
+      console.log('created new stats service!');
       StatsService.instance = new StatsService();
     }
     return StatsService.instance;
@@ -26,21 +26,21 @@ export class StatsService {
   private async updateStats() {
     try {
       console.log('Fetching RSVP count...');
-      const currentCount = await getRecordCount("RSVPs");
+      const currentCount = await getRecordCount('RSVPs');
       const lastCount = await getCount();
-      
+
       if (currentCount !== lastCount) {
         console.log(`RSVP count changed: ${lastCount} -> ${currentCount}`);
         await setCount(currentCount);
       } else {
         console.log(`RSVP count remains at: ${currentCount}`);
       }
-      
-      metrics.increment("stats_service.update", 1);
+
+      metrics.increment('stats_service.update', 1);
     } catch (error) {
       console.error('Error in stats service:', error);
-      
-      metrics.increment("stats_service.update_fail", 1);
+
+      metrics.increment('stats_service.update_fail', 1);
     }
   }
 
@@ -59,8 +59,8 @@ export class StatsService {
 
     // Then run every 10 seconds
     this.intervalId = setInterval(() => this.updateStats(), 10000);
-    
-    metrics.increment("stats_service.start", 1);
+
+    metrics.increment('stats_service.start', 1);
   }
 
   public stop() {
@@ -69,9 +69,9 @@ export class StatsService {
       this.intervalId = null;
     }
     isServiceRunning = false;
-    
-    metrics.increment("stats_service.stop", 1);
-    
+
+    metrics.increment('stats_service.stop', 1);
+
     console.log('Stats service stopped');
   }
 }
@@ -86,4 +86,4 @@ export async function startStatsService() {
 export function stopStatsService() {
   const service = StatsService.getInstance();
   service.stop();
-} 
+}

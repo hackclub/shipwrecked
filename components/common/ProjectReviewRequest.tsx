@@ -31,22 +31,22 @@ export default function ProjectReviewRequest({
   screenshot,
   onRequestSubmitted,
   onEditProject,
-  isIslandProject = false
+  isIslandProject = false,
 }: ProjectReviewRequestProps) {
   const { isReviewMode } = useReviewMode();
   const [comment, setComment] = useState('');
   const [reviewType, setReviewType] = useState<ReviewRequestType>(
-    isIslandProject ? 'ShippedApproval' : (isShipped ? 'HoursApproval' : 'ShippedApproval')
+    isIslandProject ? 'ShippedApproval' : isShipped ? 'HoursApproval' : 'ShippedApproval',
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Checklist state
   const [checklist, setChecklist] = useState({
     codeComplete: false,
     easyToRun: false,
     experienceableBuild: false,
     wellDocumented: false,
-    polished: false
+    polished: false,
   });
 
   // Effect to update default reviewType when isShipped, isViral, or isIslandProject changes
@@ -88,19 +88,19 @@ export default function ProjectReviewRequest({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!comment.trim()) {
       toast.error('Please specify what you need reviewed');
       return;
     }
 
     // Check if all checklist items are completed
-    const allChecklistComplete = Object.values(checklist).every(checked => checked);
+    const allChecklistComplete = Object.values(checklist).every((checked) => checked);
     if (!allChecklistComplete) {
       toast.error('Please complete all checklist items before submitting');
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
       const response = await fetch('/api/projects/review-request', {
@@ -114,14 +114,14 @@ export default function ProjectReviewRequest({
           reviewType,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to submit project for review');
       }
-      
+
       const data = await response.json();
       toast.success('Project submitted for review');
-      
+
       // Clear the form
       setComment('');
       // Reset checklist
@@ -130,9 +130,9 @@ export default function ProjectReviewRequest({
         easyToRun: false,
         experienceableBuild: false,
         wellDocumented: false,
-        polished: false
+        polished: false,
       });
-      
+
       // Notify parent component
       onRequestSubmitted(data.project, data.review);
     } catch (error) {
@@ -145,14 +145,14 @@ export default function ProjectReviewRequest({
 
   // Helper function to handle checklist changes
   const handleChecklistChange = (key: keyof typeof checklist) => {
-    setChecklist(prev => ({
+    setChecklist((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
   // Check if all checklist items are completed
-  const allChecklistComplete = Object.values(checklist).every(checked => checked);
+  const allChecklistComplete = Object.values(checklist).every((checked) => checked);
 
   // Helper text based on selected review type
   const getPlaceholderText = () => {
@@ -164,16 +164,16 @@ export default function ProjectReviewRequest({
       case 'HoursApproval':
         return "Provide details about the updates you've made to this project since it was approved as shipped. (ex. I implemented feature X, Y, & Z.) Please keep it short & use bullets for readability.";
       case 'Other':
-        return "Specify what you need reviewed about this project.";
+        return 'Specify what you need reviewed about this project.';
       default:
-        return "Provide details about your review request.";
+        return 'Provide details about your review request.';
     }
   };
-  
+
   return (
     <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-500">
       <h3 className="text-sm font-bold text-amber-800 mb-3">Submit for Review</h3>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label htmlFor="reviewType" className="block text-sm font-medium text-gray-700 mb-1">
@@ -207,7 +207,7 @@ export default function ProjectReviewRequest({
             )}
           </select>
         </div>
-        
+
         <div className="mb-3">
           <label htmlFor="reviewComment" className="block text-sm font-medium text-gray-700 mb-1">
             Additional details*
@@ -240,10 +240,11 @@ export default function ProjectReviewRequest({
                 disabled={isSubmitting}
               />
               <label htmlFor="codeComplete" className="text-sm text-gray-700">
-                ✅ Code is complete and functional — Project runs as described after setup, with all core features working (e.g., login flow, interactivity).
+                ✅ Code is complete and functional — Project runs as described after setup, with all
+                core features working (e.g., login flow, interactivity).
               </label>
             </div>
-            
+
             <div className="flex items-start space-x-2">
               <input
                 type="checkbox"
@@ -254,10 +255,11 @@ export default function ProjectReviewRequest({
                 disabled={isSubmitting}
               />
               <label htmlFor="easyToRun" className="text-sm text-gray-700">
-                📦 Easy to run locally — Clear, working setup instructions (&lt;2 min) with no need for guessing or extra troubleshooting beyond documented steps in the readme.
+                📦 Easy to run locally — Clear, working setup instructions (&lt;2 min) with no need
+                for guessing or extra troubleshooting beyond documented steps in the readme.
               </label>
             </div>
-            
+
             <div className="flex items-start space-x-2">
               <input
                 type="checkbox"
@@ -268,10 +270,21 @@ export default function ProjectReviewRequest({
                 disabled={isSubmitting}
               />
               <label htmlFor="experienceableBuild" className="text-sm text-gray-700">
-              🌐 Experienceable build — Live site, working APK/App Store link for iOS (if it's not on the App Store, please check out <a href="http://shipwrecked.hackclub.com/AltStore.md" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">this guide</a>), or if any other runnable builds exist (videos alone are not acceptable unless explicitly approved).
+                🌐 Experienceable build — Live site, working APK/App Store link for iOS (if it's not
+                on the App Store, please check out{' '}
+                <a
+                  href="http://shipwrecked.hackclub.com/AltStore.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  this guide
+                </a>
+                ), or if any other runnable builds exist (videos alone are not acceptable unless
+                explicitly approved).
               </label>
             </div>
-            
+
             <div className="flex items-start space-x-2">
               <input
                 type="checkbox"
@@ -282,10 +295,11 @@ export default function ProjectReviewRequest({
                 disabled={isSubmitting}
               />
               <label htmlFor="wellDocumented" className="text-sm text-gray-700">
-                📄 Well-documented — README clearly explains what the project does, how to run it, and includes working screenshots and links.
+                📄 Well-documented — README clearly explains what the project does, how to run it,
+                and includes working screenshots and links.
               </label>
             </div>
-            
+
             <div className="flex items-start space-x-2">
               <input
                 type="checkbox"
@@ -296,12 +310,13 @@ export default function ProjectReviewRequest({
                 disabled={isSubmitting}
               />
               <label htmlFor="polished" className="text-sm text-gray-700">
-                🧹 Polished and presentable — No major bugs or visual issues; looks intentional and ready for others to experience.
+                🧹 Polished and presentable — No major bugs or visual issues; looks intentional and
+                ready for others to experience.
               </label>
             </div>
           </div>
         </div>
-        
+
         <button
           type="submit"
           disabled={isSubmitting || !comment.trim() || !allChecklistComplete}
@@ -312,4 +327,4 @@ export default function ProjectReviewRequest({
       </form>
     </div>
   );
-} 
+}

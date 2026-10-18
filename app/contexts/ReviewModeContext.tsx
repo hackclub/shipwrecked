@@ -15,7 +15,7 @@ export function ReviewModeProvider({ children }: { children: ReactNode }) {
   const [isReviewMode, setIsReviewMode] = useState(false);
 
   const toggleReviewMode = () => {
-    setIsReviewMode(prev => !prev);
+    setIsReviewMode((prev) => !prev);
   };
 
   const enableReviewMode = () => {
@@ -27,7 +27,9 @@ export function ReviewModeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ReviewModeContext.Provider value={{ isReviewMode, toggleReviewMode, enableReviewMode, disableReviewMode }}>
+    <ReviewModeContext.Provider
+      value={{ isReviewMode, toggleReviewMode, enableReviewMode, disableReviewMode }}
+    >
       {children}
     </ReviewModeContext.Provider>
   );
@@ -39,4 +41,4 @@ export function useReviewMode() {
     throw new Error('useReviewMode must be used within a ReviewModeProvider');
   }
   return context;
-} 
+}

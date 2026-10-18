@@ -10,16 +10,16 @@ interface ProgressBarProps {
   showLabels?: boolean;
 }
 
-export default function ProgressBar({ 
-  earnedProgress, 
-  purchasedProgress = 0, 
+export default function ProgressBar({
+  earnedProgress,
+  purchasedProgress = 0,
   totalProgress,
-  className = "",
-  showLabels = true 
+  className = '',
+  showLabels = true,
 }: ProgressBarProps) {
   // Calculate total progress if not provided
   const calculatedTotal = totalProgress ?? Math.min(earnedProgress + purchasedProgress, 100);
-  
+
   // Ensure values are within bounds
   const earned = Math.max(0, Math.min(100, earnedProgress));
   const purchased = Math.max(0, Math.min(100, purchasedProgress));
@@ -33,25 +33,25 @@ export default function ProgressBar({
           <span>{total.toFixed(1)}%</span>
         </div>
       )}
-      
+
       <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
         {/* Earned progress (blue) */}
-        <div 
+        <div
           className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300 ease-out"
           style={{ width: `${earned}%` }}
         />
-        
+
         {/* Purchased progress (green) - only show if there's purchased progress */}
         {purchased > 0 && (
-          <div 
+          <div
             className="absolute top-0 h-full bg-green-500 transition-all duration-300 ease-out"
-            style={{ 
+            style={{
               left: `${earned}%`,
-              width: `${Math.min(purchased, 100 - earned)}%`
+              width: `${Math.min(purchased, 100 - earned)}%`,
             }}
           />
         )}
-        
+
         {/* Progress text overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xs font-semibold text-white drop-shadow-sm">
@@ -60,7 +60,7 @@ export default function ProgressBar({
           </span>
         </div>
       </div>
-      
+
       {/* Legend */}
       {showLabels && purchased > 0 && (
         <div className="flex items-center justify-center gap-4 mt-2 text-xs">
@@ -76,4 +76,4 @@ export default function ProgressBar({
       )}
     </div>
   );
-} 
+}

@@ -3,29 +3,35 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 
 // Whitelist of admin users who can access shop admin features
-const SHOP_ADMIN_WHITELIST = (process.env.SHOP_ADMIN_WHITELIST || process.env.SHOP_ORDERS_ADMIN_WHITELIST || '')
+const SHOP_ADMIN_WHITELIST = (
+  process.env.SHOP_ADMIN_WHITELIST ||
+  process.env.SHOP_ORDERS_ADMIN_WHITELIST ||
+  ''
+)
   .split(',')
-  .map(e => e.trim())
+  .map((e) => e.trim())
   .filter(Boolean);
 
 // Whitelist of users who can change shop items
 const SHOP_ITEM_ADMIN_WHITELIST = (process.env.SHOP_ITEM_ADMIN_WHITELIST || '')
   .split(',')
-  .map(e => e.trim())
+  .map((e) => e.trim())
   .filter(Boolean);
 
-export type ShopAdminAuthResult = {
-  success: true;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-} | {
-  success: false;
-  error: string;
-  status: number;
-}
+export type ShopAdminAuthResult =
+  | {
+      success: true;
+      user: {
+        id: string;
+        email: string;
+        role: string;
+      };
+    }
+  | {
+      success: false;
+      error: string;
+      status: number;
+    };
 
 /**
  * Verifies that the current user is authenticated and whitelisted for shop admin access
@@ -39,7 +45,7 @@ export async function verifyShopAdminAccess(): Promise<ShopAdminAuthResult> {
       return {
         success: false,
         error: 'Unauthorized',
-        status: 401
+        status: 401,
       };
     }
 
@@ -50,15 +56,15 @@ export async function verifyShopAdminAccess(): Promise<ShopAdminAuthResult> {
         id: true,
         email: true,
         role: true,
-        isAdmin: true
-      }
+        isAdmin: true,
+      },
     });
 
     if (!user) {
       return {
         success: false,
         error: 'User not found',
-        status: 404
+        status: 404,
       };
     }
 
@@ -67,7 +73,7 @@ export async function verifyShopAdminAccess(): Promise<ShopAdminAuthResult> {
       return {
         success: false,
         error: 'Admin access required',
-        status: 403
+        status: 403,
       };
     }
 
@@ -76,7 +82,7 @@ export async function verifyShopAdminAccess(): Promise<ShopAdminAuthResult> {
       return {
         success: false,
         error: 'Access denied. Only authorized shop administrators can access this resource.',
-        status: 403
+        status: 403,
       };
     }
 
@@ -85,16 +91,15 @@ export async function verifyShopAdminAccess(): Promise<ShopAdminAuthResult> {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     };
-
   } catch (error) {
     console.error('Shop admin auth error:', error);
     return {
       success: false,
       error: 'Internal server error',
-      status: 500
+      status: 500,
     };
   }
 }
@@ -128,7 +133,7 @@ export async function verifyShopItemAdminAccess(): Promise<ShopAdminAuthResult> 
       return {
         success: false,
         error: 'Unauthorized',
-        status: 401
+        status: 401,
       };
     }
 
@@ -139,15 +144,15 @@ export async function verifyShopItemAdminAccess(): Promise<ShopAdminAuthResult> 
         id: true,
         email: true,
         role: true,
-        isAdmin: true
-      }
+        isAdmin: true,
+      },
     });
 
     if (!user) {
       return {
         success: false,
         error: 'User not found',
-        status: 404
+        status: 404,
       };
     }
 
@@ -156,7 +161,7 @@ export async function verifyShopItemAdminAccess(): Promise<ShopAdminAuthResult> 
       return {
         success: false,
         error: 'Admin access required',
-        status: 403
+        status: 403,
       };
     }
 
@@ -165,7 +170,7 @@ export async function verifyShopItemAdminAccess(): Promise<ShopAdminAuthResult> 
       return {
         success: false,
         error: 'Access denied. Only authorized shop item administrators can access this resource.',
-        status: 403
+        status: 403,
       };
     }
 
@@ -174,16 +179,15 @@ export async function verifyShopItemAdminAccess(): Promise<ShopAdminAuthResult> 
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     };
-
   } catch (error) {
     console.error('Shop item admin auth error:', error);
     return {
       success: false,
       error: 'Internal server error',
-      status: 500
+      status: 500,
     };
   }
 }
@@ -203,4 +207,4 @@ export function isShopItemAdminWhitelisted(email: string): boolean {
  */
 export function getShopItemAdminWhitelist(): string[] {
   return [...SHOP_ITEM_ADMIN_WHITELIST];
-} 
+}

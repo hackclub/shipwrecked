@@ -1,33 +1,26 @@
-# Build stage
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1
+FROM dhi.io/bun:1-debian13-dev AS builder
 WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY package.json bun.lock prisma.config.ts ./
+COPY webhook-forwarder/package.json ./webhook-forwarder/package.json
+COPY prisma ./prisma
+RUN bun install --frozen-lockfile
 COPY . .
-RUN yarn install --frozen-lockfile
-ENV AIRTABLE_API_KEY=testing
-ENV HACKATIME_API_TOKEN=testing
-ENV GRAPHITE_HOST=localhost
-# Clear any previous build artifacts
-RUN rm -rf .next
-RUN yarn build
+RUN AIRTABLE_API_KEY=build-placeholder HACKATIME_API_TOKEN=build-placeholder \
+    GRAPHITE_HOST=localhost MOCK_API=true bun run build
 
-# Production stage
-FROM node:20-alpine AS runner
+FROM dhi.io/bun:1-debian13 AS runner
 WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-USER nextjs
-
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=9991 \
+    HOSTNAME=0.0.0.0
+COPY --from=builder --chown=65532:65532 /app/public ./public
+COPY --from=builder --chown=65532:65532 /app/.next/standalone ./
+COPY --from=builder --chown=65532:65532 /app/.next/static ./.next/static
+USER 65532:65532
 EXPOSE 9991
-
-ENV PORT 9991
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"] 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["bun", "-e", "const r = await fetch('http://127.0.0.1:9991/api/health/live'); process.exit(r.ok ? 0 : 1)"]
+CMD ["bun", "server.js"]

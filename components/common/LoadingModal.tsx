@@ -8,15 +8,11 @@ interface LoadingModalProps {
   imageUrls: string[];
 }
 
-const LoadingModal: React.FC<LoadingModalProps> = ({ 
-  onLoadComplete, 
-  titles,
-  imageUrls 
-}) => {
+const LoadingModal: React.FC<LoadingModalProps> = ({ onLoadComplete, titles, imageUrls }) => {
   const [progress, setProgress] = useState(0);
   const [showLoader, setShowLoader] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(titles[0]);
-  
+
   const areImagesCached = async (): Promise<boolean> => {
     // Always return false to force showing the loader
     return false;
@@ -44,7 +40,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
     };
 
     // Load all images
-    const imagePromises = imageUrls.map(url => loadImage(url));
+    const imagePromises = imageUrls.map((url) => loadImage(url));
 
     try {
       await Promise.all(imagePromises);
@@ -78,11 +74,11 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
   // Rotate through titles every 5 seconds
   useEffect(() => {
     if (!showLoader) return;
-    
+
     const interval = setInterval(() => {
-      setCurrentTitle(prevTitle => {
+      setCurrentTitle((prevTitle) => {
         // Get all titles except the current one
-        const otherTitles = titles.filter(t => t !== prevTitle);
+        const otherTitles = titles.filter((t) => t !== prevTitle);
         // Pick a random one
         return otherTitles[Math.floor(Math.random() * otherTitles.length)];
       });
@@ -99,10 +95,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
         <h2 className={styles.title}>{currentTitle}</h2>
         <div className={styles.spinner} />
         <div className={styles.progressBar}>
-          <div 
-            className={styles.progressFill} 
-            style={{ width: `${progress}%` }}
-          />
+          <div className={styles.progressFill} style={{ width: `${progress}%` }} />
         </div>
         <div className={styles.progressText}>{progress}%</div>
       </div>
@@ -110,4 +103,4 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
   );
 };
 
-export default LoadingModal; 
+export default LoadingModal;

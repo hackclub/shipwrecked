@@ -18,22 +18,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.eventType || !body.description || !body.targetUserId) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: eventType, description, and targetUserId are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Missing required fields: eventType, description, and targetUserId are required',
+        },
+        { status: 400 },
+      );
     }
-    
+
     // Validate event type
     if (!Object.values(AuditLogEventType).includes(body.eventType)) {
-      return NextResponse.json({ 
-        error: 'Invalid event type', 
-        validTypes: Object.values(AuditLogEventType) 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Invalid event type',
+          validTypes: Object.values(AuditLogEventType),
+        },
+        { status: 400 },
+      );
     }
-    
+
     // Create the audit log
     const auditLog = await createAuditLog({
       eventType: body.eventType,
@@ -43,19 +49,22 @@ export async function POST(request: NextRequest) {
       projectId: body.projectId, // Optional
       metadata: body.metadata, // Optional
     });
-    
+
     if (!auditLog) {
       return NextResponse.json({ error: 'Failed to create audit log' }, { status: 500 });
     }
-    
-    return NextResponse.json({ 
-      success: true, 
-      auditLog 
+
+    return NextResponse.json({
+      success: true,
+      auditLog,
     });
   } catch (error) {
     console.error('Error creating audit log:', error);
-    return NextResponse.json({ 
-      error: 'Failed to create audit log' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to create audit log',
+      },
+      { status: 500 },
+    );
   }
-} 
+}

@@ -15,9 +15,9 @@ function unescapeString(str: string): string {
   return str
     .replace(/\\'/g, "'")
     .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\")
-    .replace(/\\n/g, "\n")
-    .replace(/\\t/g, "\t");
+    .replace(/\\\\/g, '\\')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t');
 }
 
 /**
@@ -26,10 +26,10 @@ function unescapeString(str: string): string {
  */
 export function parseIslandProjectTypes(): IslandProjectType[] {
   const islandProjectsEnv = process.env.ISLAND_PROJECTS;
-  
+
   console.log('🏝️ ISLAND_PROJECTS env var:', islandProjectsEnv ? 'Found' : 'Not found');
   console.log('🏝️ Raw value:', islandProjectsEnv);
-  
+
   if (!islandProjectsEnv) {
     console.warn('ISLAND_PROJECTS environment variable not found, using default types (none)');
     return [];
@@ -37,27 +37,29 @@ export function parseIslandProjectTypes(): IslandProjectType[] {
 
   try {
     const parts = islandProjectsEnv.split('#');
-    
+
     // Should have an even number of parts (name/description pairs)
     if (parts.length % 2 !== 0) {
-      console.error('ISLAND_PROJECTS format error: should have even number of parts (name/description pairs)');
+      console.error(
+        'ISLAND_PROJECTS format error: should have even number of parts (name/description pairs)',
+      );
       return [];
     }
 
     const projectTypes: IslandProjectType[] = [];
-    
+
     for (let i = 0; i < parts.length; i += 2) {
       const name = parts[i]?.trim();
       const description = parts[i + 1]?.trim();
-      
+
       if (name && description) {
-        projectTypes.push({ 
-          name: unescapeString(name), 
-          description: unescapeString(description) 
+        projectTypes.push({
+          name: unescapeString(name),
+          description: unescapeString(description),
         });
       }
     }
-    
+
     console.log('🏝️ Parsed project types:', projectTypes);
     return projectTypes;
   } catch (error) {

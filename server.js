@@ -9,8 +9,9 @@ const port = parseInt(process.env.PORT) || 3000; // Use PORT env var from Docker
 // Set up Next.js options
 const nextConfig = {
   dev,
+  webpack: true,
   hostname,
-  port
+  port,
 };
 
 // Initialize Next.js
@@ -31,12 +32,14 @@ app.prepare().then(async () => {
 
   // Set a short timeout to fail fast rather than waiting
   server.setTimeout(0);
-  
+
   // Handle error during server listen
   server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
       console.error(`\x1b[31mError: Port ${port} is already in use.\x1b[0m`);
-      console.error('Please ensure no other processes are using this port before starting the application.');
+      console.error(
+        'Please ensure no other processes are using this port before starting the application.',
+      );
       process.exit(1);
     } else {
       console.error('Server error:', e);
@@ -47,6 +50,8 @@ app.prepare().then(async () => {
   server.listen(port, hostname, async (err) => {
     if (err) throw err;
     const address = server.address();
-    console.log(`> Ready on http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${address.port}`);    
+    console.log(
+      `> Ready on http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${address.port}`,
+    );
   });
-}); 
+});

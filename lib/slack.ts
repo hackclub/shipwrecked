@@ -20,7 +20,7 @@ interface SlackMessageOptions {
  */
 export async function sendChannelMessage(
   channelId: string,
-  options: SlackMessageOptions
+  options: SlackMessageOptions,
 ): Promise<ChatPostMessageResponse> {
   try {
     const result = await slack.chat.postMessage({
@@ -31,10 +31,10 @@ export async function sendChannelMessage(
       thread_ts: options.thread_ts,
     });
 
-    metrics.increment("sucess.send_channel_msg", 1);
+    metrics.increment('sucess.send_channel_msg', 1);
     return result;
   } catch (error) {
-    metrics.increment("errors.send_channel_msg", 1);
+    metrics.increment('errors.send_channel_msg', 1);
     console.error('Error sending message to Slack channel:', error);
     throw error;
   }
@@ -48,7 +48,7 @@ export async function sendChannelMessage(
  */
 export async function sendUserMessage(
   userId: string,
-  options: SlackMessageOptions
+  options: SlackMessageOptions,
 ): Promise<ChatPostMessageResponse> {
   try {
     // First, open a direct message channel with the user
@@ -69,10 +69,10 @@ export async function sendUserMessage(
       thread_ts: options.thread_ts,
     });
 
-    metrics.increment("success.send_user_msg", 1);
+    metrics.increment('success.send_user_msg', 1);
     return result;
   } catch (error) {
-    metrics.increment("errors.send_user_msg", 1);
+    metrics.increment('errors.send_user_msg', 1);
     console.error('Error sending message to Slack user:', error);
     throw error;
   }
@@ -112,19 +112,19 @@ export function createButtonBlock(text: string, actionId: string, value: string)
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const lookup = await slack.users.lookupByEmail({ email: email })
+  const lookup = await slack.users.lookupByEmail({ email: email });
   return lookup.user;
 }
 
 export async function checkSlackUserExists(email: string): Promise<boolean> {
   try {
     await getUserByEmail(email);
-    metrics.increment("success.check_slack_user_exists", 1);
+    metrics.increment('success.check_slack_user_exists', 1);
     return true;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
-    metrics.increment("errors.check_slack_user_exists", 1);
+    metrics.increment('errors.check_slack_user_exists', 1);
     return false;
   }
 }

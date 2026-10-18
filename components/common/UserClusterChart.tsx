@@ -46,11 +46,10 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
   return (
     <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          User Activity Clusters
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">User Activity Clusters</h3>
         <p className="text-sm text-gray-600">
-          Distribution of {totalUsers} active users by engagement patterns across hours, projects, and shipping.
+          Distribution of {totalUsers} active users by engagement patterns across hours, projects,
+          and shipping.
         </p>
       </div>
 
@@ -67,11 +66,11 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
               {clusters.whales.percentage.toFixed(1)}%
             </span>
           </div>
-          <div className="text-2xl font-bold text-purple-900 mb-1">
-            {clusters.whales.count}
-          </div>
+          <div className="text-2xl font-bold text-purple-900 mb-1">{clusters.whales.count}</div>
           <div className="text-xs text-purple-600">
-            High-impact creators with {clusters.whales.thresholds.minHours.toFixed(1)}h+, {clusters.whales.thresholds.minProjects}+ projects, {clusters.whales.thresholds.minShipped}+ shipped
+            High-impact creators with {clusters.whales.thresholds.minHours.toFixed(1)}h+,{' '}
+            {clusters.whales.thresholds.minProjects}+ projects,{' '}
+            {clusters.whales.thresholds.minShipped}+ shipped
           </div>
         </div>
 
@@ -86,9 +85,7 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
               {clusters.shippers.percentage.toFixed(1)}%
             </span>
           </div>
-          <div className="text-2xl font-bold text-blue-900 mb-1">
-            {clusters.shippers.count}
-          </div>
+          <div className="text-2xl font-bold text-blue-900 mb-1">{clusters.shippers.count}</div>
           <div className="text-xs text-blue-600">
             Active contributors with balanced engagement and shipping activity
           </div>
@@ -105,11 +102,11 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
               {clusters.newbies.percentage.toFixed(1)}%
             </span>
           </div>
-          <div className="text-2xl font-bold text-green-900 mb-1">
-            {clusters.newbies.count}
-          </div>
+          <div className="text-2xl font-bold text-green-900 mb-1">{clusters.newbies.count}</div>
           <div className="text-xs text-green-600">
-            Getting started with ≤{clusters.newbies.thresholds.maxHours.toFixed(1)}h, ≤{clusters.newbies.thresholds.maxProjects} projects, {clusters.newbies.thresholds.maxShipped} shipped
+            Getting started with ≤{clusters.newbies.thresholds.maxHours.toFixed(1)}h, ≤
+            {clusters.newbies.thresholds.maxProjects} projects,{' '}
+            {clusters.newbies.thresholds.maxShipped} shipped
           </div>
         </div>
       </div>
@@ -118,21 +115,21 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
       <div className="mb-6">
         <h4 className="text-md font-medium text-gray-900 mb-3">Distribution Overview</h4>
         <div className="flex h-8 rounded-lg overflow-hidden border border-gray-200">
-          <div 
+          <div
             className="bg-purple-400 flex items-center justify-center text-white text-sm font-medium"
             style={{ width: `${clusters.whales.percentage}%` }}
             title={`Whales: ${clusters.whales.count} users (${clusters.whales.percentage.toFixed(1)}%)`}
           >
             {clusters.whales.percentage > 10 ? '🐋' : ''}
           </div>
-          <div 
+          <div
             className="bg-blue-400 flex items-center justify-center text-white text-sm font-medium"
             style={{ width: `${clusters.shippers.percentage}%` }}
             title={`Shippers: ${clusters.shippers.count} users (${clusters.shippers.percentage.toFixed(1)}%)`}
           >
             {clusters.shippers.percentage > 10 ? '🚢' : ''}
           </div>
-          <div 
+          <div
             className="bg-green-400 flex items-center justify-center text-white text-sm font-medium"
             style={{ width: `${clusters.newbies.percentage}%` }}
             title={`Newbies: ${clusters.newbies.count} users (${clusters.newbies.percentage.toFixed(1)}%)`}
@@ -195,4 +192,4 @@ export default function UserClusterChart({ className = '' }: UserClusterChartPro
       </div>
     </div>
   );
-} 
+}

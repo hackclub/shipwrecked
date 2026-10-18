@@ -1,12 +1,8 @@
-import Link from "next/link";
-import Tabs from "./Tabs";
-import Image from "next/image";
+import Link from 'next/link';
+import Tabs from './Tabs';
+import Image from 'next/image';
 
-export default function Sidebar({
-  setSidebarOpen,
-}: {
-  setSidebarOpen?: (open: boolean) => void;
-}) {
+export default function Sidebar({ setSidebarOpen }: { setSidebarOpen?: (open: boolean) => void }) {
   return (
     <aside className="w-64 bg-slate-100 p-6 shadow-md min-h-screen">
       <div className="mb-8">
@@ -21,10 +17,7 @@ export default function Sidebar({
             />
           </a>
         </div>
-        <p
-          className="text-xl text-sky-600 mt-1"
-          style={{ fontFamily: "var(--font-baloo)" }}
-        >
+        <p className="text-xl text-sky-600 mt-1" style={{ fontFamily: 'var(--font-baloo)' }}>
           August 8-11
         </p>
         <div className="flex justify-center mt-4 mb-8">
@@ -32,7 +25,7 @@ export default function Sidebar({
             href="/"
             className={`text-base flex justify-between items-center flex-nowrap rounded py-2 px-4 text-center transition w-full max-w-xs
               bg-slate-200/50 hover:bg-blue-300/50 shadow group font-semibold text-dark-blue`}
-            style={{ fontFamily: "var(--font-baloo)" }}
+            style={{ fontFamily: 'var(--font-baloo)' }}
           >
             <svg
               className="w-5 h-5 text-sky-600 group-hover:-translate-x-1 transition-transform"
@@ -41,11 +34,7 @@ export default function Sidebar({
               strokeWidth={2}
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             Main website
           </Link>

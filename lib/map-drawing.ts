@@ -1,8 +1,8 @@
-import {Icon, latLng, LatLng} from 'leaflet';
-import {IconConfig} from '@/lib/map-theme';
+import { Icon, latLng, LatLng } from 'leaflet';
+import { IconConfig } from '@/lib/map-theme';
 
-const toRadians = (degrees: number): number => degrees * Math.PI / 180;
-const toDegrees = (radians: number): number => radians * 180 / Math.PI;
+const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+const toDegrees = (radians: number): number => (radians * 180) / Math.PI;
 
 function toCartesian(coord: LatLng): { x: number; y: number; z: number } {
   const latRad = toRadians(coord.lat);
@@ -10,15 +10,12 @@ function toCartesian(coord: LatLng): { x: number; y: number; z: number } {
   return {
     x: Math.cos(latRad) * Math.cos(lngRad),
     y: Math.cos(latRad) * Math.sin(lngRad),
-    z: Math.sin(latRad)
+    z: Math.sin(latRad),
   };
 }
 
 function toGeographic(cartesian: { x: number; y: number; z: number }): LatLng {
-  return latLng(
-    toDegrees(Math.asin(cartesian.z)),
-    toDegrees(Math.atan2(cartesian.y, cartesian.x))
-  );
+  return latLng(toDegrees(Math.asin(cartesian.z)), toDegrees(Math.atan2(cartesian.y, cartesian.x)));
 }
 
 export function getIntermediatePoint(p1: LatLng, p2: LatLng, fraction: number): LatLng {
@@ -37,13 +34,17 @@ export function getIntermediatePoint(p1: LatLng, p2: LatLng, fraction: number): 
   const interpolatedVector = {
     x: a * v1.x + b * v2.x,
     y: a * v1.y + b * v2.y,
-    z: a * v1.z + b * v2.z
+    z: a * v1.z + b * v2.z,
   };
 
   return toGeographic(interpolatedVector);
 }
 
-export function generateGreatCirclePoints(p1: LatLng, p2: LatLng, numPoints: number = 100): L.LatLng[] {
+export function generateGreatCirclePoints(
+  p1: LatLng,
+  p2: LatLng,
+  numPoints: number = 100,
+): L.LatLng[] {
   const points: LatLng[] = [];
   for (let i = 0; i <= numPoints; i++) {
     const fraction = i / numPoints;
@@ -76,7 +77,12 @@ export function getBezierPoint(p0: LatLng, p1: LatLng, p2: LatLng, t: number): L
   return latLng(lat, lng);
 }
 
-export function generateBezierPoints(p0: LatLng, p1: LatLng, p2: LatLng, numPoints: number = 100): L.LatLng[] {
+export function generateBezierPoints(
+  p0: LatLng,
+  p1: LatLng,
+  p2: LatLng,
+  numPoints: number = 100,
+): L.LatLng[] {
   const points: L.LatLng[] = [];
   for (let i = 0; i <= numPoints; i++) {
     const t = i / numPoints;
@@ -88,8 +94,8 @@ export function generateBezierPoints(p0: LatLng, p1: LatLng, p2: LatLng, numPoin
 
 export function calculateBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
   /* Utility function to calculate the bearing between two geographic coordinates. */
-  const toRadians = (deg: number) => deg * Math.PI / 180;
-  const toDegrees = (rad: number) => rad * 180 / Math.PI;
+  const toRadians = (deg: number) => (deg * Math.PI) / 180;
+  const toDegrees = (rad: number) => (rad * 180) / Math.PI;
 
   const lat1Rad = toRadians(lat1);
   const lng1Rad = toRadians(lng1);
@@ -99,7 +105,8 @@ export function calculateBearing(lat1: number, lng1: number, lat2: number, lng2:
   const deltaLon = lng2Rad - lng1Rad;
 
   const y = Math.sin(deltaLon) * Math.cos(lat2Rad);
-  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+  const x =
+    Math.cos(lat1Rad) * Math.sin(lat2Rad) -
     Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLon);
 
   const bearingRad = Math.atan2(y, x);
@@ -109,8 +116,8 @@ export function calculateBearing(lat1: number, lng1: number, lat2: number, lng2:
 }
 
 export interface IconState {
-  flip?: boolean;  // Indicates if the icon should be flipped horizontally after rotation
-  rotate?: number;  // Rotation angle in degrees
+  flip?: boolean; // Indicates if the icon should be flipped horizontally after rotation
+  rotate?: number; // Rotation angle in degrees
 }
 
 export function makeIcon(config: IconConfig, state: IconState, flip: boolean): Icon {
@@ -123,6 +130,6 @@ export function makeIcon(config: IconConfig, state: IconState, flip: boolean): I
     iconSize: config.size,
     iconAnchor: config.anchor,
     popupAnchor: config.popupAnchor,
-    iconRotate: config.rotate
+    iconRotate: config.rotate,
   });
 }

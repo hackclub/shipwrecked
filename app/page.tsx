@@ -1,45 +1,61 @@
-"use client";
-import { useState, useEffect, Suspense } from "react";
-import Story from "@/components/launch/Story";
-import { ReactLenis } from "lenis/react";
-import LoadingModal from "@/components/common/LoadingModal";
-import Link from "next/link";
+'use client';
+import { useState, useEffect, Suspense } from 'react';
+import Story from '@/components/launch/Story';
+import { ReactLenis } from 'lenis/react';
+import LoadingModal from '@/components/common/LoadingModal';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { PrefillData } from "@/types/prefill";
+import { PrefillData } from '@/types/prefill';
 
 const loadingMessages = [
-  "Swabbing the decks...",
-  "Counting the doubloons...",
-  "Polishing the cannonballs...",
-  "Teaching the parrot to talk...",
-  "Burying the treasure...",
-  "Filling the rum barrels...",
-  "Sharpening the cutlasses...",
-  "Mending the sails...",
-  "Cleaning the spyglass...",
-  "Stocking the galley...",
-  "Checking the compass...",
-  "Raising the Jolly Roger...",
-  "Loading the cannon...",
-  "Untying the knots...",
-  "Hoisting the anchor...",
-  "Dusting off the treasure map...",
-  "Filling the water barrels...",
-  "Checking the rigging...",
-  "Waxing the figurehead...",
-  "Preparing the plank...",
+  'Swabbing the decks...',
+  'Counting the doubloons...',
+  'Polishing the cannonballs...',
+  'Teaching the parrot to talk...',
+  'Burying the treasure...',
+  'Filling the rum barrels...',
+  'Sharpening the cutlasses...',
+  'Mending the sails...',
+  'Cleaning the spyglass...',
+  'Stocking the galley...',
+  'Checking the compass...',
+  'Raising the Jolly Roger...',
+  'Loading the cannon...',
+  'Untying the knots...',
+  'Hoisting the anchor...',
+  'Dusting off the treasure map...',
+  'Filling the water barrels...',
+  'Checking the rigging...',
+  'Waxing the figurehead...',
+  'Preparing the plank...',
 ];
 
 // Extract the search params logic to a separate client component
-function SearchParamsHandler({ children }: { children: (prefillData: PrefillData) => React.ReactNode }) {
+function SearchParamsHandler({
+  children,
+}: {
+  children: (prefillData: PrefillData) => React.ReactNode;
+}) {
   const searchParams = useSearchParams();
   const [prefillData, setPrefillData] = useState<PrefillData>({});
 
   useEffect(() => {
-    const firstName = searchParams.get('first')?.trim().replace(/[^A-Za-z0-9-]/g, '');
-    const lastName = searchParams.get('last')?.trim().replace(/[^A-Za-z0-9-]/g, '');
-    const email = searchParams.get('email')?.trim().replace(/[^A-Za-z0-9-@.]/g, '');
-    const birthdayISO = searchParams.get('birthday')?.trim().replace(/[^A-Za-z0-9-:T]/g, '');
+    const firstName = searchParams
+      .get('first')
+      ?.trim()
+      .replace(/[^A-Za-z0-9-]/g, '');
+    const lastName = searchParams
+      .get('last')
+      ?.trim()
+      .replace(/[^A-Za-z0-9-]/g, '');
+    const email = searchParams
+      .get('email')
+      ?.trim()
+      .replace(/[^A-Za-z0-9-@.]/g, '');
+    const birthdayISO = searchParams
+      .get('birthday')
+      ?.trim()
+      .replace(/[^A-Za-z0-9-:T]/g, '');
 
     const formattedBirthday = birthdayISO ? birthdayISO.split('T')[0] : null;
 
@@ -49,7 +65,12 @@ function SearchParamsHandler({ children }: { children: (prefillData: PrefillData
       email: email,
       birthday: formattedBirthday,
     });
-    console.log("Prefill Data from URL:", { firstName, lastName, email, birthday: formattedBirthday });
+    console.log('Prefill Data from URL:', {
+      firstName,
+      lastName,
+      email,
+      birthday: formattedBirthday,
+    });
   }, [searchParams]);
 
   return <>{children(prefillData)}</>;
@@ -73,22 +94,22 @@ export default function Home() {
       setScrollPercent(effectiveScrollHeight > 0 ? scrollTop / effectiveScrollHeight : 0);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const bannerOpacity = Math.max(0, Math.min(1, (0.75 - scrollPercent) / 0.1));
 
   const imageUrls = [
-    "/logo.svg",
-    "/logo-outline.svg",
-    "/calendar-icon.png",
-    "/location-icon.png",
-    "/sand-logo.png",
-    "/bottle.png",
-    "/back-arrow.png",
-    "/shore.webp",
+    '/logo.svg',
+    '/logo-outline.svg',
+    '/calendar-icon.png',
+    '/location-icon.png',
+    '/sand-logo.png',
+    '/bottle.png',
+    '/back-arrow.png',
+    '/shore.webp',
     ...Array.from({ length: 10 }, (_, i) => `/waves/${i + 1}.svg`),
   ];
 
@@ -110,14 +131,14 @@ export default function Home() {
             <Link href="https://hackclub.com">
               <img
                 style={{
-                  position: "fixed",
-                  top: "20px",
-                  left: "0",
-                  border: "0",
-                  width: "180px",
-                  zIndex: "999",
+                  position: 'fixed',
+                  top: '20px',
+                  left: '0',
+                  border: '0',
+                  width: '180px',
+                  zIndex: '999',
                   opacity: bannerOpacity,
-                  transition: "opacity 0.2s ease-out"
+                  transition: 'opacity 0.2s ease-out',
                 }}
                 src="https://assets.hackclub.com/banners/2025.svg"
                 alt="Hack Club"
@@ -127,16 +148,16 @@ export default function Home() {
           {isLocalEnv && (
             <div
               style={{
-                position: "fixed",
-                bottom: "20px",
-                right: "20px",
-                backgroundColor: "rgba(0, 0, 0, 0.7)",
-                color: "white",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                zIndex: "999",
-                fontFamily: "var(--font-poppins)"
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                zIndex: '999',
+                fontFamily: 'var(--font-poppins)',
               }}
             >
               LOCAL

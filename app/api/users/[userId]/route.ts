@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth';
 
-export async function GET(request: Request, { params }: { params: { userId: string } }) {
-  const { userId } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params;
   if (!userId) {
     return NextResponse.json({ error: 'User ID not provided' }, { status: 400 });
   }
@@ -15,7 +15,10 @@ export async function GET(request: Request, { params }: { params: { userId: stri
   }
 
   if (session.user.id !== userId) {
-    return NextResponse.json({ error: 'Forbidden: You are not allowed to access this user' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'Forbidden: You are not allowed to access this user' },
+      { status: 403 },
+    );
   }
 
   try {
@@ -50,4 +53,4 @@ export async function GET(request: Request, { params }: { params: { userId: stri
     console.error('Error fetching user:', error);
     return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
   }
-} 
+}

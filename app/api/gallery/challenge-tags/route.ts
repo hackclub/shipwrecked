@@ -15,7 +15,7 @@ export async function GET() {
     const challengeTags = await prisma.tag.findMany({
       where: {
         name: {
-          startsWith: 'challenge'
+          startsWith: 'challenge',
         },
         projectTags: {
           some: {
@@ -24,13 +24,13 @@ export async function GET() {
               projectTags: {
                 some: {
                   tag: {
-                    name: 'island-project'
-                  }
-                }
-              }
-            }
-          }
-        }
+                    name: 'island-project',
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -45,37 +45,33 @@ export async function GET() {
                   projectTags: {
                     some: {
                       tag: {
-                        name: 'island-project'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                        name: 'island-project',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: {
-        name: 'asc'
-      }
+        name: 'asc',
+      },
     });
 
     // Transform the data to include project counts
-    const tagsWithCounts = challengeTags.map(tag => ({
+    const tagsWithCounts = challengeTags.map((tag) => ({
       id: tag.id,
       name: tag.name,
       description: tag.description,
       color: tag.color,
-      projectCount: tag._count.projectTags
+      projectCount: tag._count.projectTags,
     }));
 
     return NextResponse.json(tagsWithCounts);
-
   } catch (error) {
     console.error('Error fetching challenge tags:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch challenge tags' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch challenge tags' }, { status: 500 });
   }
-} 
+}

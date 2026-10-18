@@ -5,12 +5,9 @@ import { opts } from '@/app/api/auth/[...nextauth]/route';
 import { fetchHackatimeProjects } from '@/lib/hackatime';
 
 // GET - Retrieve all Hackatime projects for a user (admin only)
-export async function GET(
-  request: Request,
-  { params }: { params: { userId: string } }
-) {
-  const { userId } = params;
-  
+export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params;
+
   // Check authentication
   const session = await getServerSession(opts);
   if (!session?.user) {
@@ -27,65 +24,65 @@ export async function GET(
     // Get the user's Hackatime ID
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { 
+      select: {
         id: true,
         name: true,
         email: true,
-        hackatimeId: true
-      }
+        hackatimeId: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     if (!user.hackatimeId) {
-      return NextResponse.json({ 
-        error: 'User does not have a Hackatime account connected',
-        projects: []
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          error: 'User does not have a Hackatime account connected',
+          projects: [],
+        },
+        { status: 200 },
+      );
     }
 
     // Get all projects for this user
     const hackatimeProjects = await fetchHackatimeProjects(user.hackatimeId);
-    
+
     // Get all project names
-    const projectNames = hackatimeProjects.map(project => project.name);
-    
+    const projectNames = hackatimeProjects.map((project) => project.name);
+
     // Get all projects already linked to any Shipwrecked project for this user
     const linkedProjects = await prisma.hackatimeProjectLink.findMany({
       where: {
         project: {
-          userId: userId
-        }
+          userId: userId,
+        },
       },
       select: {
-        hackatimeName: true
-      }
+        hackatimeName: true,
+      },
     });
-    
-    const linkedProjectNames = linkedProjects.map(link => link.hackatimeName);
-    
+
+    const linkedProjectNames = linkedProjects.map((link) => link.hackatimeName);
+
     // Filter out already linked projects
-    const availableProjects = projectNames.filter(name => !linkedProjectNames.includes(name));
+    const availableProjects = projectNames.filter((name) => !linkedProjectNames.includes(name));
 
     return NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        hackatimeId: user.hackatimeId
+        hackatimeId: user.hackatimeId,
       },
       projects: availableProjects,
       totalProjects: projectNames.length,
       linkedProjects: linkedProjectNames.length,
-      availableProjects: availableProjects.length
+      availableProjects: availableProjects.length,
     });
   } catch (error) {
     console.error('Error getting Hackatime projects:', error);
-    return NextResponse.json(
-      { error: 'Failed to get Hackatime projects' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get Hackatime projects' }, { status: 500 });
   }
-} 
+}

@@ -2,7 +2,7 @@ import Airtable from 'airtable';
 
 // Initialize Airtable with your API key
 const base = new Airtable({
-  apiKey: process.env.AIRTABLE_API_KEY
+  apiKey: process.env.AIRTABLE_API_KEY,
 }).base(process.env.AIRTABLE_BASE_ID || '');
 
 // Type for Airtable record
@@ -13,12 +13,15 @@ export interface AirtableRecord {
 }
 
 // Generic function to fetch records from a table
-export async function getRecords(tableName: string, options?: {
-  filterByFormula?: string;
-  sort?: { field: string; direction: 'asc' | 'desc' }[];
-  maxRecords?: number;
-  view?: string;
-}): Promise<AirtableRecord[]> {
+export async function getRecords(
+  tableName: string,
+  options?: {
+    filterByFormula?: string;
+    sort?: { field: string; direction: 'asc' | 'desc' }[];
+    maxRecords?: number;
+    view?: string;
+  },
+): Promise<AirtableRecord[]> {
   try {
     console.log('\n🚨 I HIT AIRTABLE - getRecords 🚨\n');
     const records = await base(tableName)
@@ -26,11 +29,11 @@ export async function getRecords(tableName: string, options?: {
         filterByFormula: options?.filterByFormula,
         sort: options?.sort,
         maxRecords: options?.maxRecords,
-        ...(options?.view && { view: options.view })
+        ...(options?.view && { view: options.view }),
       })
       .all();
-    
-    return records.map(record => ({
+
+    return records.map((record) => ({
       id: record.id,
       fields: record.fields,
       createdTime: record._rawJson.createdTime,
@@ -42,17 +45,20 @@ export async function getRecords(tableName: string, options?: {
 }
 
 // Function to get the count of records in a table
-export async function getRecordCount(tableName: string, options?: {
-  filterByFormula?: string;
-}): Promise<number> {
+export async function getRecordCount(
+  tableName: string,
+  options?: {
+    filterByFormula?: string;
+  },
+): Promise<number> {
   try {
     console.log('\n🚨 I HIT AIRTABLE - getRecordCount 🚨\n');
     const records = await base(tableName)
       .select({
-        filterByFormula: options?.filterByFormula || "",
+        filterByFormula: options?.filterByFormula || '',
       })
       .all();
-    
+
     return records.length;
   } catch (error) {
     console.error(`Error getting record count from ${tableName}:`, error);
@@ -61,7 +67,10 @@ export async function getRecordCount(tableName: string, options?: {
 }
 
 // Generic function to create a record
-export async function createRecord(tableName: string, fields: Record<string, any>): Promise<AirtableRecord> {
+export async function createRecord(
+  tableName: string,
+  fields: Record<string, any>,
+): Promise<AirtableRecord> {
   try {
     console.log('\n🚨 I HIT AIRTABLE - createRecord 🚨\n');
     const record = await base(tableName).create(fields);
@@ -80,7 +89,7 @@ export async function createRecord(tableName: string, fields: Record<string, any
 export async function updateRecord(
   tableName: string,
   recordId: string,
-  fields: Record<string, any>
+  fields: Record<string, any>,
 ): Promise<AirtableRecord> {
   try {
     console.log('\n🚨 I HIT AIRTABLE - updateRecord 🚨\n');
@@ -105,4 +114,4 @@ export async function deleteRecord(tableName: string, recordId: string): Promise
     console.error(`Error deleting record from ${tableName}:`, error);
     throw error;
   }
-} 
+}

@@ -7,7 +7,12 @@ interface ProjectStatusProps {
   className?: string;
 }
 
-export default function ProjectStatus({ viral, shipped, in_review = false, className = '' }: ProjectStatusProps) {
+export default function ProjectStatus({
+  viral,
+  shipped,
+  in_review = false,
+  className = '',
+}: ProjectStatusProps) {
   return (
     <div className={`flex justify-center mt-2 ${className}`}>
       <div className="grid grid-cols-2 gap-x-3 min-w-[200px]">
@@ -22,4 +27,4 @@ export default function ProjectStatus({ viral, shipped, in_review = false, class
       </div>
     </div>
   );
-} 
+}

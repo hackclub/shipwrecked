@@ -1,7 +1,7 @@
 'use client';
 
 import { useReviewMode } from '@/app/contexts/ReviewModeContext';
-import Icon from "@hackclub/icons";
+import Icon from '@hackclub/icons';
 
 interface ProjectMetadataWarningProps {
   projectID: string;
@@ -18,7 +18,7 @@ export default function ProjectMetadataWarning({
   codeUrl,
   playableUrl,
   screenshot,
-  onEditProject
+  onEditProject,
 }: ProjectMetadataWarningProps) {
   const { isReviewMode } = useReviewMode();
 
@@ -31,7 +31,7 @@ export default function ProjectMetadataWarning({
   const hasCodeUrl = codeUrl && codeUrl.trim() !== '';
   const hasPlayableUrl = playableUrl && playableUrl.trim() !== '';
   const hasScreenshot = screenshot && screenshot.trim() !== '';
-  
+
   // If all metadata is present, don't show the warning
   if (hasCodeUrl && hasPlayableUrl && hasScreenshot) {
     return null;
@@ -54,8 +54,8 @@ export default function ProjectMetadataWarning({
             Complete Your Project Before Submitting for Review
           </h3>
           <p className="text-sm text-amber-700 mb-3">
-            Your project is missing some important information that reviewers need. 
-            Please add the following before submitting for review:
+            Your project is missing some important information that reviewers need. Please add the
+            following before submitting for review:
           </p>
           <ul className="text-sm text-amber-700 mb-4 list-disc list-inside space-y-1">
             {missingFields.map((field) => (
@@ -73,4 +73,4 @@ export default function ProjectMetadataWarning({
       </div>
     </div>
   );
-} 
+}

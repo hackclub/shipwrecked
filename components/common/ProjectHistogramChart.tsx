@@ -52,21 +52,22 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
     );
   }
 
-     const maxCount = analysis.bins.length > 0 ? Math.max(...analysis.bins.map(bin => bin.count)) : 0;
-   const totalProjects = analysis.bins.reduce((sum, bin) => sum + bin.count, 0);
+  const maxCount =
+    analysis.bins.length > 0 ? Math.max(...analysis.bins.map((bin) => bin.count)) : 0;
+  const totalProjects = analysis.bins.reduce((sum, bin) => sum + bin.count, 0);
 
-   // Debug logging
-   console.log('Histogram data:', {
-     bins: analysis.bins,
-     maxCount,
-     totalProjects,
-     binsLength: analysis.bins.length
-   });
+  // Debug logging
+  console.log('Histogram data:', {
+    bins: analysis.bins,
+    maxCount,
+    totalProjects,
+    binsLength: analysis.bins.length,
+  });
 
   // Function to get color based on percentile thresholds
   const getBinColor = (binMin: number, binMax: number) => {
     const binMidpoint = (binMin + binMax) / 2;
-    
+
     if (binMidpoint < analysis.classifications.veryLow) {
       return 'bg-red-400 hover:bg-red-500';
     } else if (binMidpoint < analysis.classifications.low) {
@@ -83,26 +84,21 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
   return (
     <div className={`bg-white rounded-lg border border-gray-200 p-6 overflow-hidden ${className}`}>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Project Hours Distribution
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Project Hours Distribution</h3>
         <p className="text-sm text-gray-600">
-          Distribution of {totalProjects} projects by hours worked. Colors match the classification system.
+          Distribution of {totalProjects} projects by hours worked. Colors match the classification
+          system.
         </p>
       </div>
 
       {/* Statistics Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-lg font-semibold text-gray-900">
-            {analysis.mean.toFixed(1)}h
-          </div>
+          <div className="text-lg font-semibold text-gray-900">{analysis.mean.toFixed(1)}h</div>
           <div className="text-xs text-gray-500">Mean</div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-lg font-semibold text-gray-900">
-            {analysis.median.toFixed(1)}h
-          </div>
+          <div className="text-lg font-semibold text-gray-900">{analysis.median.toFixed(1)}h</div>
           <div className="text-xs text-gray-500">Median</div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
@@ -132,9 +128,12 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
                 {analysis.bins.map((bin, index) => {
                   // Calculate height as pixels, not percentage, for better control
                   const maxBarHeight = 176; // 44 * 4 (h-44 in pixels minus padding)
-                  const heightPx = maxCount > 0 ? Math.max((bin.count / maxCount) * maxBarHeight, bin.count > 0 ? 8 : 2) : 2;
-                  const percentage = totalProjects > 0 ? ((bin.count / totalProjects) * 100) : 0;
-                  
+                  const heightPx =
+                    maxCount > 0
+                      ? Math.max((bin.count / maxCount) * maxBarHeight, bin.count > 0 ? 8 : 2)
+                      : 2;
+                  const percentage = totalProjects > 0 ? (bin.count / totalProjects) * 100 : 0;
+
                   return (
                     <div
                       key={index}
@@ -143,9 +142,9 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
                     >
                       <div
                         className={`rounded-t transition-colors duration-200 ${getBinColor(bin.min, bin.max)}`}
-                        style={{ 
+                        style={{
                           height: `${heightPx}px`,
-                          minHeight: bin.count > 0 ? '8px' : '2px'
+                          minHeight: bin.count > 0 ? '8px' : '2px',
                         }}
                         title={`${bin.min.toFixed(1)}h - ${bin.max.toFixed(1)}h: ${bin.count} projects (${percentage.toFixed(1)}%)`}
                       >
@@ -155,7 +154,7 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
                             {bin.count}
                           </div>
                         )}
-                        
+
                         {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                           <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
@@ -174,7 +173,7 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
                 })}
               </div>
             </div>
-            
+
             {/* X-axis labels with proper overflow handling */}
             {analysis.bins.length > 0 && (
               <div className="flex justify-between px-2 -mt-4">
@@ -182,22 +181,26 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
                   // Only show labels for every nth bin if there are too many, but ensure we show first and last
                   const isFirst = index === 0;
                   const isLast = index === analysis.bins.length - 1;
-                  const shouldShow = analysis.bins.length <= 10 || 
-                                   isFirst || 
-                                   isLast || 
-                                   index % Math.max(1, Math.ceil(analysis.bins.length / 6)) === 0;
-                  
+                  const shouldShow =
+                    analysis.bins.length <= 10 ||
+                    isFirst ||
+                    isLast ||
+                    index % Math.max(1, Math.ceil(analysis.bins.length / 6)) === 0;
+
                   return (
-                    <div key={index} className="flex-1 text-center relative" style={{ minWidth: '8px' }}>
+                    <div
+                      key={index}
+                      className="flex-1 text-center relative"
+                      style={{ minWidth: '8px' }}
+                    >
                       {shouldShow && (
                         <div className="text-xs text-gray-500 px-1">
                           {/* Show range for better clarity, or just the min value for shorter display */}
-                          {bin.max - bin.min < 1 ? 
-                            `${bin.min.toFixed(1)}h` : 
-                            bin.min < 1 ? 
-                              `${bin.min.toFixed(1)}h` : 
-                              `${Math.round(bin.min)}h`
-                          }
+                          {bin.max - bin.min < 1
+                            ? `${bin.min.toFixed(1)}h`
+                            : bin.min < 1
+                              ? `${bin.min.toFixed(1)}h`
+                              : `${Math.round(bin.min)}h`}
                         </div>
                       )}
                     </div>
@@ -214,7 +217,9 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
         <div className="flex flex-wrap gap-4 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-400 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Very Low (&lt; {analysis.classifications.veryLow.toFixed(1)}h)</span>
+            <span className="text-gray-600">
+              Very Low (&lt; {analysis.classifications.veryLow.toFixed(1)}h)
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-orange-400 rounded flex-shrink-0"></div>
@@ -230,7 +235,9 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-purple-400 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Very High (&gt; {analysis.classifications.high.toFixed(1)}h)</span>
+            <span className="text-gray-600">
+              Very High (&gt; {analysis.classifications.high.toFixed(1)}h)
+            </span>
           </div>
         </div>
       </div>
@@ -240,4 +247,4 @@ export default function ProjectHistogramChart({ className = '' }: ProjectHistogr
       </div>
     </div>
   );
-} 
+}

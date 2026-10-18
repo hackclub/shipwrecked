@@ -14,9 +14,12 @@ export async function GET() {
     // Check for admin or reviewer role
     const isAdmin = session.user.role === 'Admin' || session.user.isAdmin === true;
     const isReviewer = session.user.role === 'Reviewer';
-    
+
     if (!isAdmin && !isReviewer) {
-      return NextResponse.json({ error: 'Forbidden: Admin or Reviewer access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Admin or Reviewer access required' },
+        { status: 403 },
+      );
     }
 
     // Fetch all tags ordered by name
@@ -30,17 +33,17 @@ export async function GET() {
         _count: {
           select: {
             userTags: true,
-            projectTags: true
-          }
-        }
+            projectTags: true,
+          },
+        },
       },
       orderBy: {
-        name: 'asc'
-      }
+        name: 'asc',
+      },
     });
 
     // Transform the data to include usage counts
-    const tagsWithUsage = tags.map(tag => ({
+    const tagsWithUsage = tags.map((tag) => ({
       id: tag.id,
       name: tag.name,
       description: tag.description,
@@ -48,16 +51,12 @@ export async function GET() {
       createdAt: tag.createdAt,
       userCount: tag._count.userTags,
       projectCount: tag._count.projectTags,
-      totalUsage: tag._count.userTags + tag._count.projectTags
+      totalUsage: tag._count.userTags + tag._count.projectTags,
     }));
 
     return NextResponse.json(tagsWithUsage);
-
   } catch (error) {
     console.error('Error fetching tags:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch tags' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 });
   }
-} 
+}

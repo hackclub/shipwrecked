@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useState } from "react";
-import LoginOptions from "./options";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import LoginOptions from './options';
+import { useRouter } from 'next/navigation';
 
 // Login Page (/bay/login)
 export default function LoginPage() {
@@ -18,7 +18,7 @@ export default function LoginPage() {
         <div
           style={{
             opacity: visible ? 1 : 0,
-            transition: "opacity 0.5s ease-in"
+            transition: 'opacity 0.5s ease-in',
           }}
         >
           <div className="flex justify-center flex-col items-center my-4 rounded-lg bg-white p-2">
@@ -58,7 +58,7 @@ function AccessDeniedHaiku() {
           style={{
             opacity: visible ? 1 : 0,
             transition: 'opacity 0.5s ease-in',
-            display: 'inline-block'
+            display: 'inline-block',
           }}
           className="text-center"
         >

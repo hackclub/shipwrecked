@@ -1,23 +1,29 @@
-"use client";
+'use client';
 
-import FormGroup from "@/components/form/FormGroup";
-import FormInput from "@/components/form/FormInput";
-import FormSelect from "@/components/form/FormSelect";
-import countries from "@/types/countries";
-import { save, FormSave } from "./actions";
-import { useActionState, useEffect, useState, startTransition, useRef } from "react";
-import Image from "next/image";
-import { redirect } from "next/navigation";
-import { signIn } from "next-auth/react";
-import Toast from "@/components/common/Toast";
-import Link from "next/link";
-import { PrefillData } from "@/types/prefill";
+import FormGroup from '@/components/form/FormGroup';
+import FormInput from '@/components/form/FormInput';
+import FormSelect from '@/components/form/FormSelect';
+import countries from '@/types/countries';
+import { save, FormSave } from './actions';
+import { useActionState, useEffect, useState, startTransition, useRef } from 'react';
+import Image from 'next/image';
+import { redirect } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import Toast from '@/components/common/Toast';
+import Link from 'next/link';
+import { PrefillData } from '@/types/prefill';
 import { useSearchParams } from 'next/navigation';
 
 // Client Side Registration Form
 //
 // If hasSession is true, hide the email/log in with slack option
-export default function Form({ hasSession, prefillData }: { hasSession?: boolean, prefillData?: PrefillData }) {
+export default function Form({
+  hasSession,
+  prefillData,
+}: {
+  hasSession?: boolean;
+  prefillData?: PrefillData;
+}) {
   const [state, formAction, pending] = useActionState(save, {
     errors: undefined,
     data: undefined,
@@ -30,28 +36,31 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
 
   // Initialize with empty strings or potentially prefilled data later in useEffect
   const [formData, setFormData] = useState({
-    "First Name": "",
-    "Last Name": "",
-    "Email": "",
-    "Birthday": "",
-    ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') } : {}),
-    ...(searchParams.get('r') ? { "referral_code": Number(searchParams.get('r')) } : {})
+    'First Name': '',
+    'Last Name': '',
+    Email: '',
+    Birthday: '',
+    ...(searchParams.get('t') ? { referral_type: searchParams.get('t') } : {}),
+    ...(searchParams.get('r') ? { referral_code: Number(searchParams.get('r')) } : {}),
   });
   const hasPrefilled = useRef(false); // Ref to track if prefill happened
 
   // Use useEffect to set initial state from props ONCE
   useEffect(() => {
     // Only prefill if data exists and hasn't been prefilled yet
-    if (prefillData && !hasPrefilled.current &&
-        (prefillData.firstName || prefillData.lastName || prefillData.email || prefillData.birthday)) {
-      console.log("Applying prefill data:", prefillData);
-      setFormData(prev => ({
+    if (
+      prefillData &&
+      !hasPrefilled.current &&
+      (prefillData.firstName || prefillData.lastName || prefillData.email || prefillData.birthday)
+    ) {
+      console.log('Applying prefill data:', prefillData);
+      setFormData((prev) => ({
         ...prev, // Keep any existing state just in case, though likely empty
-        "First Name": prefillData.firstName || prev["First Name"],
-        "Last Name": prefillData.lastName || prev["Last Name"],
-        "Email": prefillData.email || prev["Email"],
+        'First Name': prefillData.firstName || prev['First Name'],
+        'Last Name': prefillData.lastName || prev['Last Name'],
+        Email: prefillData.email || prev['Email'],
         // Ensure birthday is a string, fallback to previous or empty
-        "Birthday": prefillData.birthday || prev["Birthday"] || ""
+        Birthday: prefillData.birthday || prev['Birthday'] || '',
       }));
       hasPrefilled.current = true; // Mark as prefilled
     }
@@ -62,26 +71,31 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     if (state.valid) {
       console.log('Form submission successful:', formData);
       setToastType('success');
-      setToastMessage("Thanks! Check your email for next steps.");
+      setToastMessage('Thanks! Check your email for next steps.');
       // Clear form data on success only if it wasn't prefilled initially
       // (or always clear, depending on desired behavior)
       setFormData({
-        "First Name": "",
-        "Last Name": "",
-        "Email": "",
-        "Birthday": "",
-        ...(searchParams.get('t') ? { "referral_type": searchParams.get('t') } : {}),
-        ...(searchParams.get('r') ? { "referral_code": Number(searchParams.get('r')) } : {}),
+        'First Name': '',
+        'Last Name': '',
+        Email: '',
+        Birthday: '',
+        ...(searchParams.get('t') ? { referral_type: searchParams.get('t') } : {}),
+        ...(searchParams.get('r') ? { referral_code: Number(searchParams.get('r')) } : {}),
       });
       hasPrefilled.current = false; // Reset prefill tracker for potential subsequent renders
       setIsSubmitting(false);
     } else if (state.errors) {
       console.log('Form submission failed:', state.errors);
       setToastType('error');
-      if (state.errors._form && Array.isArray(state.errors._form) && state.errors._form.length > 0 && state.errors._form[0] === "This email is already RSVPed!") {
-        setToastMessage("This email is already RSVPed!");
+      if (
+        state.errors._form &&
+        Array.isArray(state.errors._form) &&
+        state.errors._form.length > 0 &&
+        state.errors._form[0] === 'This email is already RSVPed!'
+      ) {
+        setToastMessage('This email is already RSVPed!');
       } else {
-        setToastMessage("Ooops - something went wrong.  Please try again later!");
+        setToastMessage('Ooops - something went wrong.  Please try again later!');
       }
       setIsSubmitting(false);
     }
@@ -94,31 +108,36 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
       console.log('Prevented duplicate submission attempt');
       return;
     }
-    
+
     // Basic client-side validation (optional, Zod handles server-side)
-    if (!formData["First Name"] || !formData["Last Name"] || !formData["Email"] || !formData["Birthday"]) {
-         setToastType('error');
-         setToastMessage("Please fill in all required fields.");
-         return;
+    if (
+      !formData['First Name'] ||
+      !formData['Last Name'] ||
+      !formData['Email'] ||
+      !formData['Birthday']
+    ) {
+      setToastType('error');
+      setToastMessage('Please fill in all required fields.');
+      return;
     }
-    if (!formData["Email"].includes('@')) {
-         setToastType('error');
-         setToastMessage("Please enter a valid email address.");
-         return;
+    if (!formData['Email'].includes('@')) {
+      setToastType('error');
+      setToastMessage('Please enter a valid email address.');
+      return;
     }
-    
+
     console.log('Starting form submission:', formData);
     setIsSubmitting(true);
     const data = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {      
+    Object.entries(formData).forEach(([key, value]) => {
       // String all null values, don't send 'em at all
       if (value !== null) {
-        if (key === "referral_code") {
+        if (key === 'referral_code') {
           console.log(`Adding form field: ${key} = ${value}`);
           data.append(key, String(value));
         } else {
           console.log(`Adding form field: ${key} = ${value}`);
-          data.append(key, String(value));  
+          data.append(key, String(value));
         }
       }
     });
@@ -130,31 +149,25 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
     } catch (error) {
       console.error('Form submission error:', error);
       setToastType('error');
-      setToastMessage("Ooops - something went wrong submitting.  Please try again later!");
+      setToastMessage('Ooops - something went wrong submitting.  Please try again later!');
       setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (fieldName: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: value,
     }));
   };
 
   return (
     <>
       {toastMessage && (
-        <Toast 
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage(null)}
-        />
+        <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
       )}
       <div className="text-dark-brown w-full max-w-4xl mb-1">
-        <h1 className="text-2xl md:text-6xl font-bold mb-1 md:mb-4">
-          RSVP for Shipwrecked!
-        </h1>
+        <h1 className="text-2xl md:text-6xl font-bold mb-1 md:mb-4">RSVP for Shipwrecked!</h1>
 
         <p className="text-center text-sm md:text-base mb-3 md:mb-6 text-dark-brown/80">
           Shipwrecked is for teenagers ages 18 and under.
@@ -167,8 +180,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               state={state}
               placeholder="Prophet"
               required
-              value={formData["First Name"]}
-              onChange={(e) => handleInputChange("First Name", e.target.value)}
+              value={formData['First Name']}
+              onChange={(e) => handleInputChange('First Name', e.target.value)}
             >
               First Name
             </FormInput>
@@ -177,8 +190,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               state={state}
               placeholder="Orpheus"
               required
-              value={formData["Last Name"]}
-              onChange={(e) => handleInputChange("Last Name", e.target.value)}
+              value={formData['Last Name']}
+              onChange={(e) => handleInputChange('Last Name', e.target.value)}
             >
               Last Name
             </FormInput>
@@ -191,8 +204,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               state={state}
               placeholder="orpheus@hackclub.com"
               required
-              value={formData["Email"]}
-              onChange={(e) => handleInputChange("Email", e.target.value)}
+              value={formData['Email']}
+              onChange={(e) => handleInputChange('Email', e.target.value)}
             >
               Email
             </FormInput>
@@ -202,8 +215,8 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               state={state}
               placeholder=""
               required
-              value={formData["Birthday"]}
-              onChange={(e) => handleInputChange("Birthday", e.target.value)}
+              value={formData['Birthday']}
+              onChange={(e) => handleInputChange('Birthday', e.target.value)}
             >
               Birthday
             </FormInput>
@@ -216,7 +229,7 @@ export default function Form({ hasSession, prefillData }: { hasSession?: boolean
               type="submit"
             >
               <span className="flex items-center gap-1 flex-nowrap">
-                {isSubmitting ? "Submitting..." : "Submit"}
+                {isSubmitting ? 'Submitting...' : 'Submit'}
                 <Image
                   src="/mark-check.svg"
                   width={12}

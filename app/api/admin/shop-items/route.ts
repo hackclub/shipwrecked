@@ -29,22 +29,29 @@ export async function POST(request: NextRequest) {
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-    
+
     const user = authResult.user;
 
-    const { name, description, image, price, usdCost, costType, config, useRandomizedPricing } = await request.json();
+    const { name, description, image, price, usdCost, costType, config, useRandomizedPricing } =
+      await request.json();
 
     // Validate required fields
     if (!name || !description || price === undefined || price === null) {
-      return NextResponse.json({ 
-        error: 'Name, description, and price are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Name, description, and price are required',
+        },
+        { status: 400 },
+      );
     }
 
     if (price <= 0) {
-      return NextResponse.json({ 
-        error: 'Price must be greater than 0' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Price must be greater than 0',
+        },
+        { status: 400 },
+      );
     }
 
     const item = await prisma.shopItem.create({
@@ -78,4 +85,4 @@ export async function POST(request: NextRequest) {
     console.error('Error creating shop item:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

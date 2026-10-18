@@ -24,8 +24,11 @@ export async function DELETE(request: Request) {
     // Validate required fields
     if (!entityType || (!associationId && (!entityId || !tagId))) {
       return NextResponse.json(
-        { error: 'Missing required fields: entityType and either associationId or both entityId and tagId' },
-        { status: 400 }
+        {
+          error:
+            'Missing required fields: entityType and either associationId or both entityId and tagId',
+        },
+        { status: 400 },
       );
     }
 
@@ -33,7 +36,7 @@ export async function DELETE(request: Request) {
     if (entityType !== 'user' && entityType !== 'project') {
       return NextResponse.json(
         { error: 'Invalid entityType. Must be "user" or "project"' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,10 +53,10 @@ export async function DELETE(request: Request) {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         });
       } else {
         // Delete by user ID and tag ID
@@ -61,8 +64,8 @@ export async function DELETE(request: Request) {
           where: {
             userId_tagId: {
               userId: entityId,
-              tagId: tagId
-            }
+              tagId: tagId,
+            },
           },
           include: {
             tag: true,
@@ -70,10 +73,10 @@ export async function DELETE(request: Request) {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         });
       }
     } else {
@@ -87,10 +90,10 @@ export async function DELETE(request: Request) {
               select: {
                 projectID: true,
                 name: true,
-                userId: true
-              }
-            }
-          }
+                userId: true,
+              },
+            },
+          },
         });
       } else {
         // Delete by project ID and tag ID
@@ -98,8 +101,8 @@ export async function DELETE(request: Request) {
           where: {
             projectID_tagId: {
               projectID: entityId,
-              tagId: tagId
-            }
+              tagId: tagId,
+            },
           },
           include: {
             tag: true,
@@ -107,15 +110,17 @@ export async function DELETE(request: Request) {
               select: {
                 projectID: true,
                 name: true,
-                userId: true
-              }
-            }
-          }
+                userId: true,
+              },
+            },
+          },
         });
       }
     }
 
-    console.log(`Successfully removed tag "${deletedAssociation.tag.name}" from ${entityType} ${entityId || 'via association'}`);
+    console.log(
+      `Successfully removed tag "${deletedAssociation.tag.name}" from ${entityType} ${entityId || 'via association'}`,
+    );
 
     // Get the entity ID for the response
     let responseEntityId = entityId;
@@ -133,24 +138,17 @@ export async function DELETE(request: Request) {
       data: {
         deletedAssociation,
         entityType,
-        entityId: responseEntityId
-      }
+        entityId: responseEntityId,
+      },
     });
-
   } catch (error) {
     console.error('Error removing tag:', error);
-    
+
     // Handle specific Prisma errors
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      return NextResponse.json(
-        { error: 'Tag association not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Tag association not found' }, { status: 404 });
     }
-    
-    return NextResponse.json(
-      { error: 'Failed to remove tag' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: 'Failed to remove tag' }, { status: 500 });
   }
-} 
+}

@@ -14,19 +14,18 @@ interface ModalProps {
   hideCloseButton?: boolean;
 }
 
-export default function Modal({ 
-  isOpen, 
-  onClose, 
+export default function Modal({
+  isOpen,
+  onClose,
   title = 'Information',
   children,
   okText = 'OK',
   hideFooter = false,
-  hideCloseButton = false
+  hideCloseButton = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  
   const isMobile = useIsMobile();
 
   // Close on escape key
@@ -34,12 +33,12 @@ export default function Modal({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       if (isMobile) document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEscape);
       if (isMobile) document.body.style.overflow = 'unset';
@@ -50,7 +49,7 @@ export default function Modal({
   const handleBackdropClick = (e: React.MouseEvent) => {
     // Stop propagation to prevent triggering parent element clicks
     e.stopPropagation();
-    
+
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
@@ -67,12 +66,8 @@ export default function Modal({
   if (!isOpen) return null;
 
   return (
-    <div 
-      className={styles.backdrop}
-      onClick={handleBackdropClick}
-      role="presentation"
-    >
-      <div 
+    <div className={styles.backdrop} onClick={handleBackdropClick} role="presentation">
+      <div
         ref={modalRef}
         className={styles.modal}
         role="dialog"
@@ -80,17 +75,19 @@ export default function Modal({
         aria-modal="true"
       >
         <div className={`${styles.header} sticky top-0 z-10 bg-white`}>
-          <span className='flex flex-row items-center'>
-          <img src="/bottle.png" className="w-[60px] -rotate-45" />
-          <h2 id="modal-title" className={styles.title}>{title}</h2>
+          <span className="flex flex-row items-center">
+            <img src="/bottle.png" className="w-[60px] -rotate-45" />
+            <h2 id="modal-title" className={styles.title}>
+              {title}
+            </h2>
           </span>
-         <button 
+          <button
             onClick={handleClose}
             hidden={hideCloseButton}
             className={styles.closeButton}
             aria-label="Close modal"
           >
-            <img className='w-[40px]' src="/mark-cross.svg" />
+            <img className="w-[40px]" src="/mark-cross.svg" />
           </button>
         </div>
         <div className={`${styles.content} overflow-x-auto`} ref={contentRef}>
@@ -98,10 +95,7 @@ export default function Modal({
         </div>
         {!hideFooter && (
           <div className={`${styles.footer} sticky bottom-0 z-10 bg-white`}>
-            <button 
-              onClick={handleClose}
-              className={styles.okButton}
-            >
+            <button onClick={handleClose} className={styles.okButton}>
               {okText}
             </button>
           </div>
@@ -109,4 +103,4 @@ export default function Modal({
       </div>
     </div>
   );
-} 
+}

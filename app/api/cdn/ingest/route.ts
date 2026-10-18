@@ -12,12 +12,13 @@ export async function POST(request: NextRequest) {
   try {
     // Prefer server env, but allow Authorization header or NEXT_PUBLIC_API_TOKEN for dev
     const headerAuth = request.headers.get('authorization') || '';
-    const headerToken = headerAuth.toLowerCase().startsWith('bearer ')
-      ? headerAuth.slice(7)
-      : '';
+    const headerToken = headerAuth.toLowerCase().startsWith('bearer ') ? headerAuth.slice(7) : '';
     const token = process.env.API_TOKEN || process.env.NEXT_PUBLIC_API_TOKEN || headerToken;
     if (!token) {
-      return NextResponse.json({ error: 'Missing API token. Set API_TOKEN, or send Authorization: Bearer <token>.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing API token. Set API_TOKEN, or send Authorization: Bearer <token>.' },
+        { status: 400 },
+      );
     }
     const { tempPath } = await request.json();
     if (typeof tempPath !== 'string' || !tempPath.startsWith('/')) {
@@ -39,7 +40,10 @@ export async function POST(request: NextRequest) {
     if (!res.ok) {
       const text = await res.text();
       console.error('CDN ingest failed', res.status, text);
-      return NextResponse.json({ error: 'CDN ingest failed', status: res.status, details: text }, { status: 502 });
+      return NextResponse.json(
+        { error: 'CDN ingest failed', status: res.status, details: text },
+        { status: 502 },
+      );
     }
 
     const data = await res.json();
@@ -47,8 +51,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ deployedUrl });
   } catch (e: any) {
     console.error('Ingest error', e);
-    return NextResponse.json({ error: 'Ingest error', details: e?.message || String(e) }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Ingest error', details: e?.message || String(e) },
+      { status: 500 },
+    );
   }
 }
-
-

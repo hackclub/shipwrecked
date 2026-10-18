@@ -7,7 +7,10 @@ interface ReviewChecklistProps {
   onChecklistStateChange: (complete: boolean, justification: string) => void;
 }
 
-export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }: ReviewChecklistProps) {
+export default function ReviewChecklist({
+  isSubmitting,
+  onChecklistStateChange,
+}: ReviewChecklistProps) {
   const [checklistItems, setChecklistItems] = useState({
     canReplicate: false,
     playLinkNotVideo: false,
@@ -18,12 +21,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
     verifiedHackatimeHistory: false,
     sampledGitHubCommits: false,
     hackatimeHoursAddUp: false,
-    certifiedAsShipped: false
+    certifiedAsShipped: false,
   });
-  
+
   const [justification, setJustification] = useState('');
 
-  const allItemsChecked = Object.values(checklistItems).every(item => item);
+  const allItemsChecked = Object.values(checklistItems).every((item) => item);
   const isChecklistComplete = allItemsChecked && !!justification.trim();
 
   // Notify parent on every change
@@ -45,27 +48,38 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.canReplicate}
-              onChange={() => setChecklistItems(prev => ({ ...prev, canReplicate: !prev.canReplicate }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({ ...prev, canReplicate: !prev.canReplicate }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
-            <span className="text-sm text-gray-700">I can replicate this project on my computer</span>
+            <span className="text-sm text-gray-700">
+              I can replicate this project on my computer
+            </span>
           </label>
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={checklistItems.playLinkNotVideo}
-              onChange={() => setChecklistItems(prev => ({ ...prev, playLinkNotVideo: !prev.playLinkNotVideo }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({ ...prev, playLinkNotVideo: !prev.playLinkNotVideo }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
-            <span className="text-sm text-gray-700">Play link is not a video. If it is, I've made sure that it is acceptable in this circumstance.</span>
+            <span className="text-sm text-gray-700">
+              Play link is not a video. If it is, I've made sure that it is acceptable in this
+              circumstance.
+            </span>
           </label>
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={checklistItems.projectWorks}
-              onChange={() => setChecklistItems(prev => ({ ...prev, projectWorks: !prev.projectWorks }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({ ...prev, projectWorks: !prev.projectWorks }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -81,7 +95,9 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.validReadme}
-              onChange={() => setChecklistItems(prev => ({ ...prev, validReadme: !prev.validReadme }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({ ...prev, validReadme: !prev.validReadme }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -91,7 +107,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.screenshotRendering}
-              onChange={() => setChecklistItems(prev => ({ ...prev, screenshotRendering: !prev.screenshotRendering }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  screenshotRendering: !prev.screenshotRendering,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -101,7 +122,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.validPlayUrlAndGithub}
-              onChange={() => setChecklistItems(prev => ({ ...prev, validPlayUrlAndGithub: !prev.validPlayUrlAndGithub }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  validPlayUrlAndGithub: !prev.validPlayUrlAndGithub,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -117,7 +143,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.verifiedHackatimeHistory}
-              onChange={() => setChecklistItems(prev => ({ ...prev, verifiedHackatimeHistory: !prev.verifiedHackatimeHistory }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  verifiedHackatimeHistory: !prev.verifiedHackatimeHistory,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -127,7 +158,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.sampledGitHubCommits}
-              onChange={() => setChecklistItems(prev => ({ ...prev, sampledGitHubCommits: !prev.sampledGitHubCommits }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  sampledGitHubCommits: !prev.sampledGitHubCommits,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -137,7 +173,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.hackatimeHoursAddUp}
-              onChange={() => setChecklistItems(prev => ({ ...prev, hackatimeHoursAddUp: !prev.hackatimeHoursAddUp }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  hackatimeHoursAddUp: !prev.hackatimeHoursAddUp,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -147,7 +188,12 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
             <input
               type="checkbox"
               checked={checklistItems.certifiedAsShipped}
-              onChange={() => setChecklistItems(prev => ({ ...prev, certifiedAsShipped: !prev.certifiedAsShipped }))}
+              onChange={() =>
+                setChecklistItems((prev) => ({
+                  ...prev,
+                  certifiedAsShipped: !prev.certifiedAsShipped,
+                }))
+              }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
               disabled={isSubmitting}
             />
@@ -173,4 +219,4 @@ export default function ReviewChecklist({ isSubmitting, onChecklistStateChange }
       </div>
     </div>
   );
-} 
+}

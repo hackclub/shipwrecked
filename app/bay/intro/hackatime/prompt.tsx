@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { redirect } from "next/navigation";
-import { useEffect, useState } from "react";
+import Image from 'next/image';
+import { redirect } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 // Hackatime Setup Page Prompt
 // The main client-side modal that checks for account & heartbeat status
@@ -15,11 +15,11 @@ export default function Prompt({ slackId }: { slackId: string }) {
   function recheck() {
     fetch(`/api/intro/hackatime?q=${slackId}`)
       .then((d) => d.json())
-      .then((d) => setAccountStatus(d["exists"]));
+      .then((d) => setAccountStatus(d['exists']));
 
     fetch(`/api/intro/hackatime_heartbeat?q=${slackId}`)
       .then((d) => d.json())
-      .then((d) => setHeartbeatStatus(d["exists"]));
+      .then((d) => setHeartbeatStatus(d['exists']));
 
     if (!accountStatus || !heartbeatStatus) setTimeout(recheck, 5000);
   }
@@ -27,47 +27,38 @@ export default function Prompt({ slackId }: { slackId: string }) {
   useEffect(recheck, []);
 
   function next() {
-    redirect("/bay/login/success");
+    redirect('/bay/login/success');
   }
 
   return (
     <>
       <div className="text-dark-brown bg-sand/60 border border-sand p-6 rounded-md w-full max-w-4xl backdrop-blur-md mb-2">
-        <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          Create a Hackatime Account
-        </h1>
-        Hackatime is an important part of the Shipwrecked experience. Its the
-        platform you&apos;ll use to log and track your coding hours throughout
-        the event, helping you stay focused and giving the organizers insight
-        into your progress. <br /> <br />
-        To get started, click the button below, which will take you to the
-        Hackatime landing page. There, you&apos;ll log in using{" "}
-        <b>your Slack account</b> to ensure everything stays connected. Once
-        you&apos;ve logged in, you&apos;ll see a button labeled{" "}
-        <b>&quot;Set up Hackatime! Click me.&quot;</b> — go ahead and click that
-        to complete your setup. After you’ve finished setting things up, return
-        to this page. <br /> <br />
-        If we can&apos;t find your hackatime account, don’t worry — simply click
-        the refresh button, and we’ll check again. If that still doesn&apos;t
-        work, make sure you logged in the <b>correct</b> slack account.
+        <h1 className="text-4xl md:text-6xl font-bold mb-4">Create a Hackatime Account</h1>
+        Hackatime is an important part of the Shipwrecked experience. Its the platform you&apos;ll
+        use to log and track your coding hours throughout the event, helping you stay focused and
+        giving the organizers insight into your progress. <br /> <br />
+        To get started, click the button below, which will take you to the Hackatime landing page.
+        There, you&apos;ll log in using <b>your Slack account</b> to ensure everything stays
+        connected. Once you&apos;ve logged in, you&apos;ll see a button labeled{' '}
+        <b>&quot;Set up Hackatime! Click me.&quot;</b> — go ahead and click that to complete your
+        setup. After you’ve finished setting things up, return to this page. <br /> <br />
+        If we can&apos;t find your hackatime account, don’t worry — simply click the refresh button,
+        and we’ll check again. If that still doesn&apos;t work, make sure you logged in the{' '}
+        <b>correct</b> slack account.
         <br /> <br />
         {/* Status Check */}
         <div className="flex justify-center">
           <div>
             <h2 className="text-center font-semibold text-2xl mr-2">
-              <img
-                src={`/mark-${accountStatus ? "check" : "cross"}.svg`}
-                className="w-10 inline"
-              />{" "}
-              {!accountStatus ? "No" : ""} Hackatime Account Found!
+              <img src={`/mark-${accountStatus ? 'check' : 'cross'}.svg`} className="w-10 inline" />{' '}
+              {!accountStatus ? 'No' : ''} Hackatime Account Found!
             </h2>
             <h2 className="text-center font-semibold text-2xl mr-2">
               <img
-                src={`/mark-${heartbeatStatus ? "check" : "cross"}.svg`}
+                src={`/mark-${heartbeatStatus ? 'check' : 'cross'}.svg`}
                 className="w-10 inline"
-              />{" "}
-              {!heartbeatStatus ? "No" : ""} Heartbeat from Hackatime Account
-              Found!
+              />{' '}
+              {!heartbeatStatus ? 'No' : ''} Heartbeat from Hackatime Account Found!
             </h2>
           </div>
 

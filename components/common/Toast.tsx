@@ -8,12 +8,7 @@ interface ToastProps {
   onClose?: () => void;
 }
 
-export default function Toast({ 
-  message, 
-  type = 'info', 
-  duration = 3000,
-  onClose 
-}: ToastProps) {
+export default function Toast({ message, type = 'info', duration = 3000, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -31,7 +26,7 @@ export default function Toast({
     <div className={`${styles.toast} ${styles[type]}`}>
       <div className={styles.content}>
         <span className={styles.message}>{message}</span>
-        <button 
+        <button
           className={styles.closeButton}
           onClick={() => {
             setIsVisible(false);
@@ -44,4 +39,4 @@ export default function Toast({
       </div>
     </div>
   );
-} 
+}

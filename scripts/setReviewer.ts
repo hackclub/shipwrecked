@@ -1,7 +1,8 @@
+import { createPrismaAdapter } from '../lib/prisma-adapter';
 // This script will set a user as a Reviewer by their email address
 import { PrismaClient } from '../app/generated/prisma/client';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 async function main() {
   const email = process.argv[2];
@@ -13,9 +14,9 @@ async function main() {
   try {
     const user = await prisma.user.update({
       where: { email },
-      data: { 
+      data: {
         // Using a raw string value since the enum is defined in Prisma schema but might not be exported correctly
-        role: 'Reviewer'
+        role: 'Reviewer',
       },
     });
     console.log(`User ${user.name || user.email} (${user.id}) is now a Reviewer`);
@@ -33,4 +34,4 @@ main()
     console.error(e);
     await prisma.$disconnect();
     process.exit(1);
-  }); 
+  });
